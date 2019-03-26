@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<templates>
+
+    <t t-extend="ListView.buttons" t-name="EnhancedCrudList.buttons">
+        <t t-jquery="div.o_list_buttons" t-operation="replace">
+
+            <div class="o_list_buttons" role="toolbar" aria-label="Main actions">
+                <t t-if="widget.is_action_enabled('create')">
+                    <button type="button"
+                            class="btn btn-primary o_button_enhanced_crud_add"
+                            accesskey="c">
+                        <span class="fa fa-plus"></span> ECrudAdd
+                    </button>
+                </t>
+                <t t-if="widget.is_action_enabled('edit')">
+                    <button type="button"
+                            class="btn btn-primary o_button_enhanced_crud_modify o_button_enhanced_crud_1click2enable disabled"
+                            accesskey="m">
+                        <span class="fa fa-edit"></span> ECrudModify
+                    </button>
+                </t>
+                <t t-if="widget.is_action_enabled('delete')">
+                    <button type="button"
+                            class="btn btn-primary o_button_enhanced_crud_delete o_button_enhanced_crud_xclick2enable disabled"
+                            accesskey="d">
+                        <span class="fa fa-trash"></span> ECrudDelete
+                    </button>
+                </t>
+                <button type="button"
+                        class="btn btn-secondary dropdown-toggle o_button_enhanced_crud_actions o_button_enhanced_crud_xclick2enable disabled" data-toggle="dropdown"
+                        accesskey="x">
+                    <span class="fa "></span> ECrudMore
+                </button>
+                <div class="dropdown-menu"></div>
+                <button t-if='widget and widget.importEnabled' type="button" class="btn btn-secondary o_button_import" accesskey="i">
+                    <span class="fa fa-upload" />
+                </button>
+            </div>
+
+        </t>
+    </t>
+
+    <t t-extend="KanbanView.buttons" t-name="EnhancedCrudKanban.buttons">
+        <t t-jquery="div" t-operation="replace">
+
+            <div>
+                <t t-if="widget.is_action_enabled('create')">
+                    <button type="button"
+                            class="btn btn-primary o_button_enhanced_crud_add"
+                            accesskey="c">
+                        <span class="fa fa-plus"></span> ECrudAdd
+                    </button>
+                </t>
+            </div>
+
+        </t>
+    </t>
+
+    <t t-name="EnhancedCrud.pager">
+        <span class="btn-group" aria-atomic="true">
+            <!-- accesskeys not wanted in X2Many widgets -->
+            <t t-if="widget.options.withAccessKey">
+                <t t-set="att_prev" t-value="{'accesskey': 'i'}" />
+                <t t-set="att_next" t-value="{'accesskey': 'p'}" />
+            </t>
+            <button type="button" class="fa fa-angle-double-left btn btn-secondary o_enhanced_crud_pager_first" t-att="att_first" aria-label="First" title="First" tabindex="-1" accesskey="f" />
+            <button type="button" class="fa fa-angle-left btn btn-secondary o_enhanced_crud_pager_previous" t-att="att_prev" aria-label="Previous" title="Previous" tabindex="-1" accesskey="p" />
+        </span>
+        <span class="o_pager_counter">
+            <span class="o_pager_value"></span> of <span class="o_pager_limit"></span>
+        </span>
+        <span class="btn-group" aria-atomic="true">
+            <!-- accesskeys not wanted in X2Many widgets -->
+            <t t-if="widget.options.withAccessKey">
+                <t t-set="att_prev" t-value="{'accesskey': 'n'}" />
+                <t t-set="att_next" t-value="{'accesskey': 'l'}" />
+            </t>
+            <button type="button" class="fa fa-angle-right btn btn-secondary o_enhanced_crud_pager_next" t-att="att_next" aria-label="Next" title="Next" tabindex="-1" accesskey="n" />
+            <button type="button" class="fa fa-angle-double-right btn btn-secondary o_enhanced_crud_pager_last" t-att="att_last" aria-label="Last" title="Last" tabindex="-1" accesskey="t" />
+        </span>
+        <span class="btn-group" aria-atomic="true">
+            <button type="button" class="fa fa-refresh btn btn-secondary o_enhanced_crud_pager_reload" t-att="att_last" aria-label="Reload" title="Reload" tabindex="-1" accesskey="r" />
+        </span>
+        <span class="btn-group" aria-atomic="true">
+            <select class="o_input o_field_widget o_enhanced_crud_pagination">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="40">40</option>
+                <option value="80">80</option>
+                <option value="100">100</option>
+            </select>
+        </span>
+    </t>
+
+    <t t-name="EnhancedCrudForm.pagination_buttons">
+        <button type="button"
+                class="btn btn-secondary o_enhanced_crud_form_prev_button"
+                accesskey="p">
+            <span class="fa fa-angle-left"></span> Previous
+        </button>
+
+        <button type="button"
+                class="btn btn-secondary o_enhanced_crud_form_next_button"
+                accesskey="n">
+            Next <span class="fa fa-angle-right"></span>
+        </button>
+    </t>
+
+    <t t-name="EnhancedCrudForm.buttons_on_create">
+        <button type="button"
+                class="btn btn-secondary o_enhanced_crud_form_cancel_button"
+                accesskey="c">
+            <span class="fa fa-times-circle"></span> Cancel
+        </button>
+        <button type="button"
+                class="btn btn-primary o_enhanced_crud_form_apply_button"
+                accesskey="a">
+            <span class="fa fa-check-circle"></span> ECrudApply
+        </button>
+        <div class="btn-group" role="group">
+            <button type="button"
+                    class="btn btn-primary o_enhanced_crud_form_save_button"
+                    accesskey="s">
+                <span class="fa fa-plus-circle"></span> Accept
+            </button>
+            <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <span class="sr-only">Toggle Dropdown</span>
+            </button>
+            <div class="dropdown-menu">
+                <button type="button"
+                        class="dropdown-item o_enhanced_crud_form_savecopy_button" >
+                    <span class="fa fa-copy"></span> Accept &amp; Copy
+                </button>
+            </div>
+        </div>
+    </t>
+
+    <t t-name="EnhancedCrudForm.buttons_on_edit">
+        <button type="button"
+                class="btn btn-secondary o_enhanced_crud_form_cancel_button"
+                accesskey="c">
+            <span class="fa fa-times-circle"></span> Cancel
+        </button>
+        <t t-if="widget.is_action_enabled('edit')">
+            <div class="btn-group" role="group">
+                <button type="button"
+                        class="btn btn-primary o_enhanced_crud_form_save_button"
+                        accesskey="s">
+                    <span class="fa fa-plus-circle"></span> Accept
+                </button>
+                <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <span class="sr-only">Toggle Dropdown</span>
+                </button>
+                <div class="dropdown-menu">
+                    <button type="button"
+                            class="dropdown-item o_enhanced_crud_form_savenext_button">
+                        <span class="fa fa-angle-right"></span> Accept &amp; Next
+                    </button>
+                </div>
+            </div>
+        </t>
+    </t>
+
+    <t t-extend="FormView.buttons" t-name="EnhancedCrudForm.buttons">
+        <t t-jquery="div.o_form_buttons_view" t-operation="replace" />
+        <t t-jquery="div.o_form_buttons_edit" t-operation="replace">
+            <div class="o_enhanced_crud_form_buttons_create" role="toolbar" aria-label="Main actions" align="right">
+                <t t-call="EnhancedCrudForm.buttons_on_create" />
+            </div>
+            <div class="o_enhanced_crud_form_buttons_viewedit" role="toolbar" aria-label="Main actions" align="right">
+                <t t-call="EnhancedCrudForm.pagination_buttons" />
+                <t t-call="EnhancedCrudForm.buttons_on_edit" />
+            </div>
+        </t>
+    </t>
+
+</templates>

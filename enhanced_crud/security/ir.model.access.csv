@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+enhanced_crud_act_window_managment,Enhanced CRUD Window Actions Managment,model_enhanced_crud_act_window,enhanced_crud.enhanced_crud_manager,1,0,1,1
+enhanced_crud_act_window_groups_managment,Enhanced CRUD Window Action Groups Managment,model_enhanced_crud_act_window_groups,enhanced_crud.enhanced_crud_manager,1,1,1,1
+
+enhanced_crud_act_window_access,Enhanced CRUD Window Actions Access,model_enhanced_crud_act_window,,1,0,0,0
+enhanced_crud_act_window_groups_access,Enhanced CRUD Window Action Groups Access,model_enhanced_crud_act_window_groups,,1,0,0,0

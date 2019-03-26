@@ -1,0 +1,112 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# * enhanced_crud
+#
+# Translators:
+# Bluisknot <bluisknot@gmail.com>, 2019
+
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 12.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-02-22 16:00+0000\n"
+"PO-Revision-Date: 2019-02-28 16:00+0000\n"
+"Last-Translator: Bluisknot <bluisknot@gmail.com>, 2019\n"
+"Language-Team: English (https://www.transifex.com/odoo/teams/41243/en/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Language: es\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. module: enhanced_crud
+#. openerp-web
+#: code:addons/enhanced_crud/static/src/xml/enhanced_crud.xml:13
+#: code:addons/enhanced_crud/static/src/xml/enhanced_crud.xml:48
+#: code:addons/enhanced_crud/static/src/js/enhanced_crud.js:11
+#, python-format
+msgid "ECrudAdd"
+msgstr "Add"
+
+#. module: enhanced_crud
+#. openerp-web
+#: code:addons/enhanced_crud/static/src/xml/enhanced_crud.xml:20
+#: code:addons/enhanced_crud/static/src/js/enhanced_crud.js:12
+#, python-format
+msgid "ECrudModify"
+msgstr "Modify"
+
+#. module: enhanced_crud
+#. openerp-web
+#: code:addons/enhanced_crud/static/src/xml/enhanced_crud.xml:27
+#, python-format
+msgid "ECrudDelete"
+msgstr "Delete"
+
+#. module: enhanced_crud
+#. openerp-web
+#: code:addons/enhanced_crud/static/src/xml/enhanced_crud.xml:34
+#, python-format
+msgid "ECrudMore"
+msgstr "More"
+
+#. module: enhanced_crud
+#. openerp-web
+#: code:addons/enhanced_crud/static/src/xml/enhanced_crud.xml:116
+#, python-format
+msgid "ECrudApply"
+msgstr "Apply"
+
+#. module: enhanced_crud
+#. openerp-web
+#: code:addons/enhanced_crud/static/src/js/enhanced_crud.js:19
+#, python-format
+msgid "ECrudWarning"
+msgstr "Warning"
+
+#. module: enhanced_crud
+#. openerp-web
+#: code:addons/enhanced_crud/static/src/js/enhanced_crud.js:20
+#, python-format
+msgid "ECrudReports"
+msgstr "Reports"
+
+#. module: enhanced_crud
+#. openerp-web
+#: code:addons/enhanced_crud/static/src/js/enhanced_crud.js:21
+#, python-format
+msgid "ECrudActions"
+msgstr "Actions"
+
+#. module: enhanced_crud
+#. openerp-web
+#: code:addons/enhanced_crud/static/src/js/enhanced_crud.js:22
+#, python-format
+msgid "ECrudOthers"
+msgstr "Others"
+
+#. module: enhanced_crud
+#. openerp-web
+#: code:addons/enhanced_crud/wizards/enhanced_crud.py:8
+#, python-format
+msgid "ECrudAll"
+msgstr "All"
+
+#. module: enhanced_crud
+#. openerp-web
+#: code:addons/enhanced_crud/wizards/enhanced_crud.py:9
+#, python-format
+msgid "System Window Actions (from base., res., ir., web., etc.)"
+msgstr "System Window Actions (from base., res., ir., web., etc.)"
+
+#. module: enhanced_crud
+#. openerp-web
+#: code:addons/enhanced_crud/wizards/enhanced_crud.py:10
+#, python-format
+msgid "Excluding System Window Actions (not from base., res., ir., web., etc.)"
+msgstr "Excluding System Window Actions (not from base., res., ir., web., etc.)"
+
+#. module: enhanced_crud
+#: model:ir.model,description:enhanced_crud.model_enhanced_crud_act_window_groups
+msgid "Table for the Window Action Groups"
+msgstr "Table for the Window Action Groups"

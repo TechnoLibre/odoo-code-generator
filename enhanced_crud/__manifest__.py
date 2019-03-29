@@ -47,7 +47,6 @@ Key Features
     'qweb': [
         'static/src/xml/enhanced_crud.xml'
     ],
-    'images': ['static/description/icon.png'],
     'installable': True,
     'license': 'LGPL-3'
 }

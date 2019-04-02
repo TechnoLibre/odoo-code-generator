@@ -50,7 +50,7 @@
               parent="code_generator_main_menu"
               action="code_generator_settings_actionwindow"
               groups="code_generator_manager"
-              sequence="2"
+              sequence="1"
     />
 
 </odoo>

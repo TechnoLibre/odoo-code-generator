@@ -112,27 +112,14 @@
         </field>
     </record>
 
-    <record model="ir.actions.client" id="code_generator_dashboard">
-        <field name="name">Tablero</field>
-        <field name="tag">code_generator_dashboard.main</field>
-    </record>
-
     <menuitem id="code_generator_main_menu" name="Code Generator" />
-
-    <menuitem id="code_generator_dashboard_menu"
-              name="Tablero"
-              parent="code_generator_main_menu"
-              action="code_generator_dashboard"
-              groups="base.group_system"
-              sequence="1"
-    />
 
     <menuitem id="code_generator_generator_menu"
               name="Modules"
               parent="code_generator_main_menu"
               action="code_generator_module_actionwindow"
               groups="code_generator_manager"
-              sequence="3"
+              sequence="2"
     />
 
     <record model="ir.actions.server" id="code_generator_module_actionserver">

@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+code_generator_module_managment,Code Generator Module Managment,model_code_generator_module,code_generator_manager,1,1,1,1
+code_generator_module_dependency_managment,Code Generator Module Dependency Managment,model_code_generator_module_dependency,code_generator_manager,1,1,1,1
+code_generator_pyclass_managment,Code Generator Python Class Managment,model_code_generator_pyclass,code_generator_manager,1,1,1,1

@@ -1,0 +1,203 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# * code_generator_db_servers
+#
+# Translators:
+# Bluisknot <bluisknot@gmail.com>, 2019
+
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 12.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-02-22 16:00+0000\n"
+"PO-Revision-Date: 2019-02-28 16:00+0000\n"
+"Last-Translator: Bluisknot <bluisknot@gmail.com>, 2019\n"
+"Language-Team: Spanish (https://www.transifex.com/odoo/teams/41243/es/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Language: es\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. module: code_generator_db_servers
+#: model:ir.ui.menu,name:code_generator_db_servers.code_generator_db_menu
+#: model:ir.ui.menu,name:code_generator_db_servers.code_generator_generator_server_menu
+#: model:ir.actions.act_window,name:code_generator_db_servers.code_generator_db_actionwindow
+#: model_terms:ir.ui.view,arch_db:code_generator_db_servers.code_generator_db_table_search
+msgid "Data Bases"
+msgstr "Bases de Datos"
+
+#. module: code_generator_db_servers
+#. openerp-web
+#: code:addons/code_generator_db_servers/models/code_generator.py:11
+#, python-format
+msgid "The specify port is invalid."
+msgstr "El puerto especificado es inválido."
+
+#. module: code_generator_db_servers
+#. openerp-web
+#: code:addons/code_generator_db_servers/models/code_generator.py:12
+#, python-format
+msgid "Verify that the psycopg package is installed."
+msgstr "Verifique que el paquete psycopg se encuentre instalado."
+
+#. module: code_generator_db_servers
+#. openerp-web
+#: code:addons/code_generator_db_servers/models/code_generator.py:13
+#, python-format
+msgid "Verify that the pymysql package is installed."
+msgstr "Verifique que el paquete pymysql se encuentre instalado."
+
+#. module: code_generator_db_servers
+#. openerp-web
+#: code:addons/code_generator_db_servers/models/code_generator.py:14
+#, python-format
+msgid "Verify that the pymssql package is installed."
+msgstr "Verifique que el paquete pymssql se encuentre instalado."
+
+#. module: code_generator_db_servers
+#. openerp-web
+#: code:addons/code_generator_db_servers/models/code_generator.py:15
+#, python-format
+msgid "A conection problem occur."
+msgstr "Ha ocurrido un problema de conexión."
+
+#. module: code_generator_db_servers
+#. openerp-web
+#: code:addons/code_generator_db_servers/models/code_generator.py:16
+#, python-format
+msgid "A conection problem occur trying to obtain a table fields."
+msgstr "Ha ocurrido un problema de conexión tratando de obtener los campos de una tabla."
+
+#. module: code_generator_db_servers
+#. openerp-web
+#: code:addons/code_generator_db_servers/models/code_generator.py:17
+#, python-format
+msgid "A conection problem occur trying to obtain a table data."
+msgstr "Ha ocurrido un problema de conexión tratando de obtener los datos de una tabla."
+
+#. module: code_generator_db_servers
+#. openerp-web
+#: code:addons/code_generator_db_servers/models/code_generator.py:18
+#, python-format
+msgid "An error occur creating the database."
+msgstr "Ha ocurrido un error a la hora de crear la Base de Datos."
+
+#. module: code_generator_db_servers
+#: model:ir.model.fields,field_description:code_generator_db_servers.field_code_generator_db_type__name
+#: model:ir.model.fields,help:code_generator_db_servers.field_code_generator_db_type__name
+#: model:ir.model.fields,field_description:code_generator_db_servers.field_code_generator_db__m2o_dbtype
+#: model:ir.model.fields,help:code_generator_db_servers.field_code_generator_db__m2o_dbtype
+msgid "Db Type"
+msgstr "Tipo de Servidor"
+
+#. module: code_generator_db_servers
+#: sql_constraint:code.generator.db.type:0
+msgid "The Db Type must be unique."
+msgstr "El tipo de servidor debe ser único"
+
+#. module: code_generator_db_servers
+#: model:ir.model.fields,field_description:code_generator_db_servers.field_code_generator_db__database
+#: model:ir.model.fields,help:code_generator_db_servers.field_code_generator_db__database
+msgid "Db Name"
+msgstr "Nombre de la Base de Datos"
+
+#. module: code_generator_db_servers
+#: model:ir.model.fields,field_description:code_generator_db_servers.field_code_generator_db__schema
+#: model:ir.model.fields,help:code_generator_db_servers.field_code_generator_db__schema
+msgid "Db Name"
+msgstr "Nombre del Esquema"
+
+#. module: code_generator_db_servers
+#: model:ir.model.fields,field_description:code_generator_db_servers.field_code_generator_db__host
+#: model:ir.model.fields,help:code_generator_db_servers.field_code_generator_db__host
+msgid "Ip Address"
+msgstr "Dirección IP"
+
+#. module: code_generator_db_servers
+#: model:ir.model.fields,field_description:code_generator_db_servers.field_code_generator_db__port
+#: model:ir.model.fields,help:code_generator_db_servers.field_code_generator_db__port
+msgid "Port"
+msgstr "Puerto"
+
+#. module: code_generator_db_servers
+#: model:ir.model.fields,field_description:code_generator_db_servers.field_code_generator_db__user
+#: model:ir.model.fields,help:code_generator_db_servers.field_code_generator_db__user
+msgid "User"
+msgstr "Usuario"
+
+#. module: code_generator_db_servers
+#: model:ir.model.fields,field_description:code_generator_db_servers.field_code_generator_db__password
+#: model:ir.model.fields,help:code_generator_db_servers.field_code_generator_db__password
+msgid "Password"
+msgstr "Contraseña"
+
+#. module: code_generator_db_servers
+#: sql_constraint:code.generator.db:0
+msgid "The Db Type, host and port combination must be unique."
+msgstr "La combinación de valores Tipo de servidor, Dirección IP y Puerto debe ser única."
+
+#. module: code_generator_db_servers
+#: model_terms:ir.actions.act_window,help:code_generator_db_servers.code_generator_db_actionwindow
+msgid "Add a new database"
+msgstr "Adicione una nueva Base de Datos"
+
+#. module: code_generator_db_servers
+#: model_terms:ir.actions.act_window,help:code_generator_db_servers.code_generator_db_actionwindow
+msgid "Data Bases whose tables could be imported to Odoo and then be exported into code"
+msgstr "Bases de Datos cuyas tablas podrán ser importadas a Odoo y luego exportadas a código"
+
+#. module: code_generator_db_servers
+#: model:ir.model.fields,field_description:code_generator_db_servers.field_code_generator_db_table__m2o_db
+#: model:ir.model.fields,help:code_generator_db_servers.field_code_generator_db_table__m2o_db
+msgid "Db"
+msgstr "Base de Datos"
+
+#. module: code_generator_db_servers
+#: model:ir.model.fields,field_description:code_generator_db_servers.field_code_generator_db_table__name
+#: model:ir.model.fields,help:code_generator_db_servers.field_code_generator_db_table__name
+msgid "Table"
+msgstr "Tabla"
+
+#. module: code_generator_db_servers
+#: model:ir.model.fields,field_description:code_generator_db_servers.field_code_generator_db_table__table_type
+#: model:ir.model.fields,help:code_generator_db_servers.field_code_generator_db_table__table_type
+#: model_terms:ir.ui.view,arch_db:code_generator_db_servers.code_generator_db_table_search
+msgid "Table Type"
+msgstr "Tipo"
+
+#. module: code_generator_db_servers
+#: model:ir.model.fields,field_description:code_generator_db_servers.field_code_generator_db_table__nomenclator
+msgid "Nomenclator?"
+msgstr "Tipo"
+
+#. module: code_generator_db_servers
+#: model:ir.model.fields,help:code_generator_db_servers.field_code_generator_db_table__nomenclator
+msgid "Set if you want this table to be used as nomenclator"
+msgstr "Establezca si desea usar esta como nomenclador"
+
+#. module: code_generator_db_servers
+#: sql_constraint:code.generator.db.table:0
+msgid "The Db and name combination must be unique."
+msgstr "La combinación de valores Base de Datos y Nombre debe ser única."
+
+#. module: code_generator_db_servers
+#: model:ir.ui.menu,name:code_generator_db_servers.code_generator_generator_table_menu
+#: model:ir.actions.act_window,name:code_generator_db_servers.code_generator_db_table_actionwindow
+msgid "Tables"
+msgstr "Tablas"
+
+#. module: code_generator_db_servers
+#: model_terms:ir.actions.act_window,help:code_generator_db_servers.code_generator_db_table_actionwindow
+msgid "Tables belonging to the inserted Data Bases"
+msgstr "Tablas pertenecientes a las Bases de Datos insertadas"
+
+#. module: code_generator_db_servers
+#: model:ir.actions.server,name:code_generator_db_servers.code_generator_db_table_generate_code_actionserver
+msgid "Generate module"
+msgstr "Generar módulo"
+
+#. module: code_generator_db_servers
+#: model:ir.actions.server,name:code_generator_db_servers.code_generator_db_table_toggle_nomenclators_actionserver
+msgid "Toggle Nomenclator property"
+msgstr "Modificar propiedad Nomenclador"

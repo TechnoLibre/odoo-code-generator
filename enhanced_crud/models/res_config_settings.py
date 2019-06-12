@@ -41,12 +41,12 @@ class EnhancedCrudConfigSettings(models.TransientModel):
         if self.s_window_disposition:
             image_name = 'enhanced_crud_screenshot.png' if self.s_window_disposition == 'new' else \
                 'window_disposition_current.png'
-            image_path = get_module_resource('enhanced_crud', 'static/src/img', image_name)
+            image_path = get_module_resource('enhanced_crud', 'static/description', image_name)
             self.img_window_disposition = tools.image_resize_image_big(base64.b64encode(open(image_path, 'rb').read()))
 
     @api.model
     def _default_image(self):
-        image_path = get_module_resource('enhanced_crud', 'static/src/img', 'enhanced_crud_screenshot.png')
+        image_path = get_module_resource('enhanced_crud', 'static/description', 'enhanced_crud_screenshot.png')
         return tools.image_resize_image_big(base64.b64encode(open(image_path, 'rb').read()))
 
     img_window_disposition = fields.Binary(

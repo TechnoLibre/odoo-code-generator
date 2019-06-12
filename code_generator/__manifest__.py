@@ -19,5 +19,5 @@
         'views/ir_uis.xml',
         'views/res_groups.xml'
     ],
-    'qweb': ['static/src/xml/dashboard.xml']
+    'demo': ['data/code_generator_demo.xml']
 }

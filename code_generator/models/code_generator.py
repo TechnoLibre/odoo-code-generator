@@ -99,9 +99,62 @@ class CodeGeneratorModule(models.Model):
         'm2o_module'
     )
 
+    o2m_model_access = fields.One2many(
+        'ir.model.access',
+        compute='_get_models_info'
+    )
+
+    o2m_model_rules = fields.One2many(
+        'ir.rule',
+        compute='_get_models_info'
+    )
+
+    o2m_model_constraints = fields.One2many(
+        'ir.model.constraint',
+        compute='_get_models_info'
+    )
+
+    o2m_model_views = fields.One2many(
+        'ir.ui.view',
+        compute='_get_models_info'
+    )
+
+    o2m_model_act_window = fields.One2many(
+        'ir.actions.act_window',
+        compute='_get_models_info'
+    )
+
+    o2m_model_act_server = fields.One2many(
+        'ir.actions.server',
+        compute='_get_models_info'
+    )
+
+    o2m_model_serverconstrains = fields.One2many(
+        'ir.model.server_constrain',
+        compute='_get_models_info'
+    )
+
+    o2m_model_reports = fields.One2many(
+        'ir.actions.report',
+        compute='_get_models_info'
+    )
+
+    @api.depends('o2m_models')
+    def _get_models_info(self):
+        for module in self:
+            module.o2m_model_access = module.o2m_models.mapped('access_ids')
+            module.o2m_model_rules = module.o2m_models.mapped('rule_ids')
+            module.o2m_model_constraints = module.o2m_models.mapped('o2m_constraints')
+            module.o2m_model_views = module.o2m_models.mapped('view_ids')
+            module.o2m_model_act_window = module.o2m_models.mapped('o2m_act_window')
+            module.o2m_model_act_server = module.o2m_models.mapped('o2m_server_action')
+            module.o2m_model_serverconstrains = module.o2m_models.mapped('o2m_serverconstrains')
+            module.o2m_model_reports = module.o2m_models.mapped('o2m_reports')
+
     o2m_menus = fields.One2many(
         'ir.ui.menu',
-        'm2o_module'
+        'm2o_module',
+        context={'ir.ui.menu.full_list': True}
     )
 
     @api.depends('name', 'description')

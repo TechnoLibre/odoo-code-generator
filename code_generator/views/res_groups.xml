@@ -12,7 +12,7 @@
             </field>
 
             <notebook position="before">
-                <group name="code_generator_module" string="Code Generator Module">
+                <group name="code_generator_module" string="Code Generator Module" invisible="context.get('hide_m2o_module', False)">
                     <group>
                         <field name="m2o_module" options="{'no_create': True, 'no_edit': True}" class="m2o_module_input" />
                     </group>

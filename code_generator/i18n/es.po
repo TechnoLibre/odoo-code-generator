@@ -269,3 +269,220 @@ msgstr "Mensaje"
 #: model:ir.model.fields,help:code_generator.field_ir_ui_view__m2o_model
 msgid "Model"
 msgstr "Modelo"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.code_generator_module_form
+msgid "Elements"
+msgstr "Elementos"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.code_generator_module_form
+msgid "Models"
+msgstr "Modelos"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.code_generator_module_form
+msgid "Groups"
+msgstr "Grupos"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.code_generator_module_form
+msgid "ACLs"
+msgstr "Control de acceso"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.code_generator_module_form
+msgid "Rules"
+msgstr "Reglas"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.code_generator_module_form
+msgid "SQL Constrains"
+msgstr "Restricciones SQL"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.code_generator_module_form
+msgid "Server Constrains"
+msgstr "Restricciones de Servidor"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.code_generator_module_form
+msgid "Views"
+msgstr "Vistas"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.code_generator_module_form
+msgid "Action Windows"
+msgstr "Acciones de ventana"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.code_generator_module_form
+msgid "Action Servers"
+msgstr "Acciones de servidor"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.code_generator_module_form
+msgid "Reports"
+msgstr "Reportes"
+
+#. module: code_generator
+#. openerp-web
+#: code:addons/code_generator/models/ir_model.py:17
+#, python-format
+msgid "Unable to create the constraint."
+msgstr "Ha sido imposible crear la restricción."
+
+#. module: code_generator
+#. openerp-web
+#: code:addons/code_generator/models/ir_model.py:18
+#, python-format
+msgid "Since you modify the sql constraint definition we must delete it and create a new one, and we were unable to do it."
+msgstr "Teniendo en cuenta que la definición de la restricción ha sido modificada debemos eliminar la restricción existente y crear una nueva, pero ha sido imposible hacerlo."
+
+#. module: code_generator
+#. openerp-web
+#: code:addons/code_generator/models/ir_model.py:19
+#, python-format
+msgid "Unable to modify the constraint."
+msgstr "Ha sido imposible modificar la restricción."
+
+#. module: code_generator
+#. openerp-web
+#: code:addons/code_generator/models/ir_model.py:20
+#, python-format
+msgid "Unable to delete the constraint."
+msgstr "Ha sido imposible eliminar la restricción."
+
+#. module: code_generator
+#: model:ir.model.fields,field_description:code_generator.field_ir_model_server_constrain__constrained
+msgid "Constrained"
+msgstr "Restringidos"
+
+#. module: code_generator
+#: model:ir.model.fields,help:code_generator.field_ir_model_server_constrain__constrained
+msgid "Constrained fields, ej: name, age"
+msgstr "Campos Restringidos, ej: nombre, edad"
+
+#. module: code_generator
+#: model:ir.model.fields,field_description:code_generator.field_ir_model_server_constrain__txt_code
+msgid "Code"
+msgstr "Código"
+
+#. module: code_generator
+#: model:ir.model.fields,help:code_generator.field_ir_model_server_constrain__txt_code
+msgid "Code to execute"
+msgstr "Código a ejecutar"
+
+#. module: code_generator
+#: model:ir.model.fields,field_description:code_generator.field_ir_model_server_constrain__m2o_ir_model
+msgid "Model"
+msgstr "Modelo"
+
+#. module: code_generator
+#: model:ir.model.fields,help:code_generator.field_ir_model_server_constrain__m2o_ir_model
+msgid "Model that will hold this server constrain"
+msgstr "Modelo que acogerá esta restricción del lado del servidor"
+
+#. module: code_generator
+#: model:ir.model.fields,field_description:code_generator.field_ir_model__o2m_serverconstrains
+msgid "Server Constrains"
+msgstr "Restricciones de servidor"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.ir_model_form_inherited
+#: model_terms:ir.ui.view,arch_db:code_generator.code_generator_module_form
+msgid "Server Constrain"
+msgstr "Restricción de servidor"
+
+#. module: code_generator
+#: model:ir.model.fields,help:code_generator.field_ir_model__o2m_serverconstrains
+msgid "Server Constrains attach to this model"
+msgstr "Restricciones del lado del servidor pertenecientes a este modelo"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.ir_model_form_inherited
+msgid "How to define a server constrain"
+msgstr "¿Cómo definir una restricción de servidor?"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.ir_model_form_inherited
+msgid "Server constrains are defined with the fields <strong>Constrained</strong> and <strong>Code</strong>."
+msgstr "Las restrincciones de servidor son definidas a partir de los campos <strong>Restringidos</strong> y <strong>Código</strong>"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.ir_model_form_inherited
+msgid "The field <strong>Constrained</strong> lists the fields that the server constrain will check. It is a comma-separated list of field names, like <code>name, size</code>."
+msgstr "El campo <strong>Restringidos</strong> recoge una lista de campos que serán chequeados en la restricción de servidor. Es un listado de nombres de campos separados por comas, ej: <code>name, size</code>."
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.ir_model_form_inherited
+msgid "The field <strong>Code</strong> is the Python code to use as the server constrain."
+msgstr "El campo <strong>Código</strong> representa el código Python a ser utilizado por la restricción de servidor."
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.ir_model_form_inherited
+msgid "The only predefined variables are"
+msgstr "Las variables predefinidas son"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.ir_model_form_inherited
+msgid "<code>self</code> (the record)"
+msgstr "<code>self</code> (el objeto del modelo)"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.ir_model_form_inherited
+msgid "<code>datetime</code> (Python module)"
+msgstr "<code>datetime</code> (Módulo de Python para trabajo con Fecha y Hora)"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.ir_model_form_inherited
+msgid "<code>dateutil</code> (Python module)"
+msgstr "<code>dateutil</code> (Módulo de Python para trabajo con Fecha)"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.ir_model_form_inherited
+msgid "<code>time</code> (Python module)"
+msgstr "<code>time</code> (Módulo de Python para trabajo con Hora)"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.ir_model_form_inherited
+msgid "<code>re</code> (Python Regular Expression module)"
+msgstr "<code>re</code> (Módulo de Python para trabajo con Expresiones Regulares)"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.ir_model_form_inherited
+msgid "<code>ValidationError</code> (Odoo Exception Class)"
+msgstr "<code>ValidationError</code> (Clase Excepción de Odoo)"
+
+#. module: code_generator
+#: model_terms:ir.ui.view,arch_db:code_generator.ir_model_form_inherited
+msgid "Other features are accessible through <code>self</code>, like <code>self.env</code>, etc."
+msgstr "Otras características están disponibles a través de <code>self</code>, como <code>self.env</code>, etc."
+
+#. module: code_generator
+#. openerp-web
+#: code:addons/code_generator/models/ir_model.py:21
+#, python-format
+msgid "There is a syntax error in your %scode definition."
+msgstr "Error de sintaxis en la definición de código%s."
+
+#. module: code_generator
+#. openerp-web
+#: code:addons/code_generator/models/ir_model.py:22
+#, python-format
+msgid "%s Server constrain "
+msgstr " de la restricción de servidor %s"
+
+#. module: code_generator
+#. openerp-web
+#: code:addons/code_generator/models/ir_model.py:23
+#, python-format
+msgid "You specified a non predefined variable. The predefined variables are self, datetime, dateutil, time, re, ValidationError and the ones accessible through self, like self.env."
+msgstr "Usted ha especificado una variable no predefinida. Las variables predefinidas son self, datetime, dateutil, time, re, ValidationError y las accesibles a través de self, como self.env"
+
+#. module: code_generator
+#. openerp-web
+#: code:addons/code_generator/models/ir_model.py:24
+#, python-format
+msgid "The field Constrained lists the fields that the server constrain will check. It is a comma-separated list of field names, like name, size."
+msgstr "El campo Restringidos recoge una lista de campos que serán chequeados en la restricción de servidor. Es un listado de nombres de campos separados por comas, ej: name, size."

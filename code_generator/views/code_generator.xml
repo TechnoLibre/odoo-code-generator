@@ -54,6 +54,58 @@
                             </tree>
                         </field>
                     </page>
+                    <page string="Elements">
+                        <notebook>
+                            <page string="Groups">
+                                <field name="o2m_groups" context="{'hide_m2o_module': True}" />
+                            </page>
+                            <page string="Models">
+                                <field name="o2m_models" context="{'hide_m2o_module': True}" />
+                            </page>
+                            <page string="ACLs">
+                                <field name="o2m_model_access" />
+                            </page>
+                            <page string="Rules">
+                                <field name="o2m_model_rules" />
+                            </page>
+                            <page string="SQL Constrains">
+                                <field name="o2m_model_constraints" />
+                            </page>
+                            <page string="Server Constrains">
+                                <field name="o2m_model_serverconstrains">
+                                    <tree>
+                                        <field name="m2o_ir_model" />
+                                        <field name="constrained" />
+                                    </tree>
+                                    <form string="Server Constrain">
+                                        <group>
+                                            <group>
+                                                <field name="constrained" />
+                                            </group>
+                                        </group>
+                                        <group>
+                                            <field name="txt_code" widget="ace" options="{'mode': 'python'}" />
+                                        </group>
+                                    </form>
+                                </field>
+                            </page>
+                            <page string="Views">
+                                <field name="o2m_model_views" />
+                            </page>
+                            <page string="Action Windows">
+                                <field name="o2m_model_act_window" />
+                            </page>
+                            <page string="Action Servers">
+                                <field name="o2m_model_act_server" />
+                            </page>
+                            <page string="Menues">
+                                <field name="o2m_menus" context="{'hide_m2o_module': True}" />
+                            </page>
+                            <page string="Reports">
+                                <field name="o2m_model_reports" />
+                            </page>
+                        </notebook>
+                    </page>
                 </notebook>
 
             </notebook>

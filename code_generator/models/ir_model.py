@@ -1,11 +1,191 @@
 # -*- coding: utf-8 -*-
 
 import importlib
+import logging
+import re
 
-from odoo import models, fields, api, _
-from odoo.exceptions import ValidationError, UserError
+from odoo import models, fields, api, _, tools
+from odoo.addons.base.models.ir_model import SAFE_EVAL_BASE
+from odoo.exceptions import ValidationError, UserError, MissingError
+from odoo.tools.safe_eval import safe_eval
+from psycopg2._psycopg import ProgrammingError
 
 from code_generator.controllers.main import MAGIC_FIELDS
+
+_logger = logging.getLogger(__name__)
+
+CONSCREATEUNABLE = _('Unable to create the constraint.')
+CONSDELETECREATEUNABLE = _('Since you modify the sql constraint definition we must delete it and create a new one, and we were unable to do it.')
+CONSMODIFYUNABLE = _('Unable to modify the constraint.')
+CONSDELETEUNABLE = _('Unable to delete the constraint.')
+SYNTAXERRORMSG = _('There is a syntax error in your %scode definition.')
+SERVERCONSTRAIN = _('%s Server constrain ')
+PREDEFINEDVARS = _('You specified a non predefined variable. The predefined variables are self, datetime, dateutil, time, re, ValidationError and the ones accessible through self, like self.env.')
+CONSTRAINEDLS = _('The field Constrained lists the fields that the server constrain will check. It is a comma-separated list of field names, like name, size.')
+
+SAFE_EVAL_BASE['re'] = re
+SAFE_EVAL_BASE['ValidationError'] = ValidationError
+
+SAFE_EVAL_4FUNCTION = SAFE_EVAL_BASE
+SAFE_EVAL_4FUNCTION['api'] = api
+SAFE_EVAL_4FUNCTION['models'] = models
+SAFE_EVAL_4FUNCTION['fields'] = fields
+SAFE_EVAL_4FUNCTION['_'] = _
+
+
+def common_4constrains(el_self, code, message=SYNTAXERRORMSG):
+    """
+
+    :param el_self:
+    :param code:
+    :param message:
+    :return:
+    """
+
+    try:
+        safe_eval(code, SAFE_EVAL_4FUNCTION, {'self': el_self}, mode='exec')
+
+    except ValueError:
+        raise ValidationError(PREDEFINEDVARS)
+
+    except SyntaxError:
+        raise ValidationError(message)
+
+
+def add_constraint(cr, tablename, constraintname, definition):
+    """ Add a constraint on the given table. """
+    query1 = 'ALTER TABLE "{}" ADD CONSTRAINT "{}" {}'.format(tablename, constraintname, definition)
+    query2 = 'COMMENT ON CONSTRAINT "{}" ON "{}" IS %s'.format(constraintname, tablename)
+    try:
+        with cr.savepoint():
+            cr.execute(query1)
+            cr.execute(query2, (definition,))
+            _logger.debug("Table %r: added constraint %r as %s", tablename, constraintname, definition)
+            return True
+    except Exception:
+        msg = "Table %r: unable to add constraint %r!\n" \
+              "If you want to have it, you should update the records and execute manually:\n%s"
+        _logger.warning(msg, tablename, constraintname, query1, exc_info=True)
+        return False
+
+
+def drop_constraint(cr, tablename, constraintname):
+    """ drop the given constraint. """
+    try:
+        with cr.savepoint():
+            cr.execute('ALTER TABLE "{}" DROP CONSTRAINT "{}"'.format(tablename, constraintname))
+            _logger.debug("Table %r: dropped constraint %r", tablename, constraintname)
+            return True
+    except ProgrammingError as proerror:
+        return proerror.pgerror.count('does not exist') or False
+
+    except Exception:
+        _logger.warning("Table %r: unable to drop constraint %r!", tablename, constraintname)
+        return False
+
+
+def sql_constraint(el_self, constraints):
+    cr = el_self._cr
+    foreign_key_re = re.compile(r'\s*foreign\s+key\b.*', re.I)
+
+    def process(key, definition):
+        conname = '%s_%s' % (el_self._table, key)
+        current_definition = tools.constraint_definition(cr, el_self._table, conname)
+        if not current_definition:
+            # constraint does not exists
+            return add_constraint(cr, el_self._table, conname, definition)
+        elif current_definition != definition:
+            # constraint exists but its definition may have changed
+            drop_constraint(cr, el_self._table, conname)
+            return add_constraint(cr, el_self._table, conname, definition)
+
+        else:
+            return True
+
+    result = False
+    for (sql_key, sql_definition, _) in constraints:
+        if foreign_key_re.match(sql_definition):
+            el_self.pool.post_init(process, sql_key, sql_definition)
+        else:
+            result = process(sql_key, sql_definition)
+
+        if not result:
+            break
+
+    return result
+
+
+class IrModelServerConstrain(models.Model):
+    _name = 'ir.model.server_constrain'
+    _description = 'Code Generator Model Server Constrains'
+    _rec_name = 'constrained'
+
+    constrained = fields.Char(
+        string='Constrained',
+        help='Constrained fields, ej: name, age',
+        required=True
+    )
+
+    @api.onchange('constrained')
+    @api.constrains('constrained')
+    def _check_constrained(self):
+        if self.constrained:
+            splitted = self.constrained.split(',')
+            if list(filter(lambda e: e.strip() not in self.env[self.m2o_ir_model.model]._fields.keys(), splitted)):
+                raise ValidationError(CONSTRAINEDLS)
+
+    txt_code = fields.Text(
+        string='Code',
+        help='Code to execute',
+        required=True
+    )
+
+    @api.onchange('txt_code')
+    @api.constrains('txt_code')
+    def _check_txt_code(self):
+        if self.txt_code:
+            constrain_detail = SERVERCONSTRAIN % self.constrained
+            common_4constrains(self.env[self.m2o_ir_model.model], self.txt_code, SYNTAXERRORMSG % constrain_detail)
+
+    m2o_ir_model = fields.Many2one(
+        comodel_name='ir.model',
+        string='Model',
+        help='Model that will hold this server constrain',
+        required=True,
+        domain=[('transient', '=', False)],
+        ondelete='cascade'
+    )
+
+
+class IrActionsReport(models.Model):
+    _inherit = 'ir.actions.report'
+
+    m2o_model = fields.Many2one(
+        comodel_name='ir.model',
+        string='Model',
+        help='Model related with this report',
+        compute='_compute_m2os'
+    )
+
+    m2o_template = fields.Many2one(
+        comodel_name='ir.ui.view',
+        string='Template',
+        help='Template related with this report',
+        compute='_compute_m2os'
+    )
+
+    @api.depends('model', 'report_name')
+    def _compute_m2os(self):
+        for report in self:
+            searched = self.env['ir.model'].search([('model', '=', report.model.strip())])
+            if searched:
+                report.m2o_model = searched[0].id
+
+            stripped = report.report_name.strip()
+            splitted = stripped.split('.')
+            searched = self.env['ir.ui.view'].search([('type', '=', 'qweb'), ('name', '=', splitted[len(splitted) - 1])])
+            if searched:
+                report.m2o_template = searched[0].id
 
 
 class IrModel(models.Model):
@@ -134,6 +314,55 @@ class IrModel(models.Model):
 
         return custommodelclass
 
+    o2m_serverconstrains = fields.One2many(
+        comodel_name='ir.model.server_constrain',
+        inverse_name='m2o_ir_model',
+        string='Server Constrains',
+        help='Server Constrains attach to this model'
+    )
+
+    o2m_reports = fields.One2many(
+        comodel_name='ir.actions.report',
+        inverse_name='m2o_model',
+        string='Reports',
+        help='Reports associated with this model'
+    )
+
+
+class CodeGeneratorBase(models.AbstractModel):
+    _inherit = 'base'
+
+    def _run_safe_eval(self, created=None):
+        """
+
+        :param created:
+        :return:
+        """
+
+        records = created or self
+        for r in records:
+            target_model = self.env['ir.model'].search([('model', '=', r._name)])
+            if target_model and hasattr(self.env, target_model[0]._name) and hasattr(target_model[0], 'o2m_serverconstrains'):
+                codes = target_model.mapped('o2m_serverconstrains').mapped('txt_code')
+                for code in codes:
+                    safe_eval(code, SAFE_EVAL_BASE, {'self': r}, mode="exec")
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        result = super(CodeGeneratorBase, self).create(vals_list)
+
+        self._run_safe_eval(result)
+
+        return result
+
+    @api.multi
+    def write(self, vals):
+        result = super(CodeGeneratorBase, self).write(vals)
+
+        self._run_safe_eval()
+
+        return result
+
 
 class IrModelFields(models.Model):
     _inherit = 'ir.model.fields'
@@ -205,3 +434,48 @@ class IrModelConstraint(models.Model):
         string='Message',
         help='Message'
     )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        imcs = super(IrModelConstraint, self).create(vals_list)
+
+        for imc in imcs:
+            m_target = self.env[imc.model.model]
+            t_constrain = (imc.name, imc.definition, imc.message)
+            if not sql_constraint(m_target, m_target._sql_constraints + [t_constrain]):
+                raise ValidationError(CONSCREATEUNABLE)
+
+        return imcs
+
+    @api.multi
+    def write(self, vals):
+
+        if 'definition' in vals:
+            for imc in self:
+                tablename = self.env[imc.model.model]._table
+                if not drop_constraint(self._cr, tablename, '%s_%s' % (tablename, imc.name)):
+                    raise ValidationError(CONSDELETECREATEUNABLE)
+
+        result = super(IrModelConstraint, self).write(vals)
+
+        for imc in self:
+            m_target = self.env[imc.model.model]
+            t_constrain = (imc.name, imc.definition, imc.message)
+            if not sql_constraint(m_target, [t_constrain]):
+                raise ValidationError(CONSMODIFYUNABLE)
+
+        return result
+
+    @api.multi
+    def unlink(self):
+
+        for imc in self:
+            try:
+                tablename = self.env[imc.model.model]._table
+                if not drop_constraint(self._cr, tablename, '%s_%s' % (tablename, imc.name)):
+                    raise ValidationError(CONSDELETEUNABLE)
+
+            except MissingError:
+                _logger.warning('The registry entry associated with %s no longer exists' % imc.model.model)
+
+        return super(IrModelConstraint, self).unlink()

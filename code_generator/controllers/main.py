@@ -254,6 +254,34 @@ def _jinjateate(file_path, content, mode='wb'):
         jinjaenv.from_string('\n'.join(content)).stream({}).dump(file, encoding='utf-8')
 
 
+def _prepare_compute_constrained_fields(l_fields):
+    """
+
+    :param l_fields:
+    :return:
+    """
+
+    counter = 1
+    prepared = ''
+    for field in l_fields:
+        prepared += '\'%s\'%s' % (field, ', ' if counter < len(l_fields) else '')
+        counter += 1
+
+    return prepared
+
+
+def _get_m2m_groups(m2m_groups):
+    """
+
+    :param m2m_groups:
+    :return:
+    """
+
+    return '<field name="groups_id" eval="[(6,0, [%s])]" />' % ', '.join(
+        m2m_groups.mapped(lambda g: 'ref(%s)' % _get_group_data_name(g))
+    )
+
+
 def _get_model_fields(model):
     """
     Function to obtain the model fields
@@ -346,13 +374,8 @@ def _get_model_fields(model):
             l_model_fields += BLANCK_LINE
 
             l_depends = _get_l_map(lambda e: e.strip(), f2export.depends.split(','))
-            depends_counter = 1
-            depends = ''
-            for depend in l_depends:
-                depends += '\'%s\'%s' % (depend, ', ' if depends_counter < len(l_depends) else '')
-                depends_counter += 1
 
-            l_model_fields.append('%s@api.depends(%s)' % (TAB4, depends))
+            l_model_fields.append('%s@api.depends(%s)' % (TAB4, _prepare_compute_constrained_fields(l_depends)))
             l_model_fields.append('%sdef _compute_%s(self):' % (TAB4, f2export.name))
 
             l_compute = f2export.compute.split('\n')
@@ -365,16 +388,45 @@ def _get_model_fields(model):
     return l_model_fields
 
 
-def _get_model_constraints(model):
+def _get_model_constrains(model):
     """
-    Function to obtain the model constraints
+    Function to obtain the model constrains
     :param model:
     :return:
     """
 
+    l_model_constrains = []
+
+    if model.o2m_serverconstrains:
+
+        l_model_constrains += BLANCK_LINE
+
+        for sconstrain in model.o2m_serverconstrains:
+            l_constrained = _get_l_map(lambda e: e.strip(), sconstrain.constrained.split(','))
+
+            l_model_constrains.append(
+                '%s@api.constrains(%s)' % (TAB4, _prepare_compute_constrained_fields(l_constrained))
+            )
+            l_model_constrains.append('%sdef _check_%s(self):' % (TAB4, '_'.join(l_constrained)))
+
+            l_code = sconstrain.txt_code.split('\n')
+            starting_spaces = 2
+            for line in l_code:
+                if _get_starting_spaces(line) == 2:
+                    starting_spaces += 1
+                l_model_constrains.append('%s%s' % (TAB4 * starting_spaces, line.strip()))
+                starting_spaces = 2
+
+            l_model_constrains += BLANCK_LINE
+
+        l_model_constrains += BLANCK_LINE
+
     if model.o2m_constraints:
 
-        l_model_sql_constraints = ['%s_sql_constraints = [' % TAB4]
+        if not l_model_constrains:
+            l_model_constrains += BLANCK_LINE
+
+        l_model_constrains += ['%s_sql_constraints = [' % TAB4]
 
         constraint_counter = 0
         for constraint in model.o2m_constraints:
@@ -384,18 +436,17 @@ def _get_model_constraints(model):
             constraint_counter += 1
             constraint_separator = ',' if constraint_counter < len(model.o2m_constraints) else ''
 
-            l_model_sql_constraints.append(
+            l_model_constrains.append(
                 '%s(\'%s\', \'%s\', \'%s\')%s' % (
                     TAB8, constraint_name, constraint_definition, constraint_message, constraint_separator
                 )
             )
 
-        l_model_sql_constraints.append('%s]' % TAB4)
+        l_model_constrains.append('%s]' % TAB4)
 
-        return BLANCK_LINE + l_model_sql_constraints + BREAK_LINE
+        l_model_constrains += BREAK_LINE
 
-    else:
-        return BREAK_LINE
+    return l_model_constrains
 
 
 def _get_model_access(model):
@@ -475,9 +526,7 @@ def _get_model_rules(model):
             l_model_rules.append('<field name="active" eval="False" />')
 
         if rule.groups:
-            l_model_rules.append('<field name="groups" eval="[%s]"/>' % ', '.join(
-                rule.groups.mapped(lambda g: '(4, ref(\'%s\'))' % _get_group_data_name(g))
-            ))
+            l_model_rules.append(_get_m2m_groups(rule.groups))
 
         if not rule.perm_read:
             l_model_rules.append('<field name="perm_read" eval="False" />')
@@ -540,7 +589,13 @@ def _set_module_folders(path, module_name):
     wizards_path = '%s/%s' % (module_path, 'wizards')
     _osmakedirs(wizards_path)
 
-    return module_path, data_path, models_path, security_path, views_path, wizards_path
+    #
+    #
+    #
+    reports_path = '%s/%s' % (module_path, 'reports')
+    _osmakedirs(reports_path)
+
+    return module_path, data_path, models_path, security_path, views_path, wizards_path, reports_path
 
 
 def _set_module_security(security_path, module, l_model_rules, l_model_csv_access):
@@ -579,10 +634,11 @@ def _set_module_security(security_path, module, l_model_rules, l_model_csv_acces
 
         l_module_security += ['</data>']
 
-        security_file_path = '%s/%s.xml' % (security_path, module.name)
+        module_name = module.name.lower().strip()
+        security_file_path = '%s/%s.xml' % (security_path, module_name)
         _jinjateate(security_file_path, XML_HEAD + l_module_security + XML_ODOO_CLOSING_TAG)
 
-        l_security_files.append('security/%s.xml' % module.name)
+        l_security_files.append('security/%s.xml' % module_name)
 
     model_access_file_path = '%s/ir.model.access.csv' % security_path
     _jinjateate(model_access_file_path, l_model_csv_access)
@@ -592,13 +648,14 @@ def _set_module_security(security_path, module, l_model_rules, l_model_csv_acces
     return security_file_path, model_access_file_path, l_security_files
 
 
-def _set_model_py_file(model, model_model, wizards_path, models_path):
+def _set_model_py_file(model, model_model, wizards_path, models_path, reports_path):
     """
     Function to set the model files
     :param model:
     :param model_model:
     :param wizards_path:
     :param models_path:
+    :param reports_path:
     :return:
     """
 
@@ -620,9 +677,16 @@ def _set_model_py_file(model, model_model, wizards_path, models_path):
 
     l_model += _get_model_fields(model)
 
-    l_model += _get_model_constraints(model)
+    l_model += _get_model_constrains(model)
 
-    model_file_path = '%s/%s.py' % (wizards_path if model.transient else models_path, model_model)
+    pypath = models_path
+    if model.transient:
+        pypath = wizards_path
+
+    elif model.o2m_reports and request.env[model.model]._abstract:
+        pypath = reports_path
+
+    model_file_path = '%s/%s.py' % (pypath, model_model)
 
     _jinjateate(model_file_path, l_model)
 
@@ -674,6 +738,9 @@ def _set_model_xmlview_file(model, model_model, wizards_path, views_path):
 
             if view.arch_db:
                 l_model_view_file.append('<field name="arch" type="xml">%s</field>' % view.arch_db)
+
+            if view.groups_id:
+                l_model_view_file.append(_get_m2m_groups(view.groups_id))
 
             l_model_view_file.append('</record>\n')
 
@@ -745,6 +812,9 @@ def _set_model_xmlview_file(model, model_model, wizards_path, views_path):
             if act_window.help:
                 l_model_view_file.append('<field name="name" type="html">%s</field>' % act_window.help)
 
+            if act_window.groups_id:
+                l_model_view_file.append(_get_m2m_groups(act_window.groups_id))
+
             l_model_view_file.append('</record>\n')
 
         #
@@ -764,7 +834,7 @@ def _set_model_xmlview_file(model, model_model, wizards_path, views_path):
 
             l_model_view_file.append('<field name="binding_model_id" ref="%s" />' % _get_model_data_name(model))
 
-            if server_action.code == 'code':
+            if server_action.state == 'code':
 
                 l_model_view_file.append('<field name="state">code</field>')
 
@@ -790,6 +860,72 @@ def _set_model_xmlview_file(model, model_model, wizards_path, views_path):
         _jinjateate(xml_file_path, l_model_view_file)
 
         return xml_file_path, ['views/%s.xml' % model_model]
+
+    else:
+        return None, []
+
+
+def _set_model_xmlreport_file(model, model_model, reports_path):
+    """
+
+    :param model:
+    :param model_model:
+    :param reports_path:
+    :return:
+    """
+
+    if model.o2m_reports:
+
+        l_model_report_file = XML_HEAD + BLANCK_LINE
+
+        for report in model.o2m_reports:
+
+            l_model_report_file.append('<template id="%s">' % report.report_name)
+
+            l_model_report_file.append('<field name="arch" type="xml">%s</field>' % report.m2o_template.arch_db)
+
+            l_model_report_file.append('</template>\n')
+
+            l_model_report_file.append('<record model="ir.actions.report" id="%s_actionreport">' % report.report_name)
+
+            l_model_report_file.append('<field name="model">%s</field>' % report.model)
+
+            l_model_report_file.append('<field name="name">%s</field>' % report.report_name)
+
+            l_model_report_file.append('<field name="file">%s</field>' % report.report_name)
+
+            l_model_report_file.append('<field name="string">%s</field>' % report.name)
+
+            l_model_report_file.append('<field name="report_type">%s</field>' % report.report_type)
+
+            if report.print_report_name:
+                l_model_report_file.append('<field name="print_report_name">%s</field>' % report.print_report_name)
+
+            if report.multi:
+                l_model_report_file.append('<field name="multi">%s</field>' % report.multi)
+
+            if report.attachment_use:
+                l_model_report_file.append('<field name="attachment_use">%s</field>' % report.attachment_use)
+
+            if report.attachment:
+                l_model_report_file.append('<field name="attachment">%s</field>' % report.attachment)
+
+            if report.binding_model_id:
+                l_model_report_file.append(
+                    '<field name="binding_model_id" ref="%s" />' % _get_model_data_name(report.binding_model_id)
+                )
+
+            if report.groups_id:
+                l_model_report_file.append(_get_m2m_groups(report.groups_id))
+
+            l_model_report_file.append('</record>')
+
+            l_model_report_file += XML_ODOO_CLOSING_TAG
+
+        xmlreport_file_path = '%s/%s.xml' % (reports_path, model_model)
+        _jinjateate(xmlreport_file_path, l_model_report_file)
+
+        return xmlreport_file_path, ['reports/%s.xml' % model_model]
 
     else:
         return None, []
@@ -909,11 +1045,7 @@ def _set_module_menues(module, views_path):
                 l_module_menues_file.append('<field name="parent_id" ref="%s" />' % _get_menu_data_name(menu.parent_id))
 
             if menu.groups_id:
-                l_module_menues_file.append(
-                    '<field name="groups_id" eval="[(6,0, [%s])]" />' % ', '.join(
-                        menu.groups_id.mapped(lambda g: 'ref(%s)' % _get_group_data_name(g))
-                    )
-                )
+                l_module_menues_file.append(_get_m2m_groups(menu.groups_id))
 
             l_module_menues_file.append('</record>\n')
 
@@ -1013,8 +1145,8 @@ class CodeGeneratorController(http.Controller):
 
         for module in modules:
 
-            module_path, data_path, models_path, security_path, views_path, wizards_path = \
-                _set_module_folders(path, module.name)
+            module_path, data_path, models_path, security_path, views_path, wizards_path, reports_path = \
+                _set_module_folders(path, module.name.lower().strip())
 
             models_init_imports = []
             wizards_init_imports = []
@@ -1028,7 +1160,7 @@ class CodeGeneratorController(http.Controller):
 
                 model_model = _get_model_model(model.model)
 
-                zipy.write(_set_model_py_file(model, model_model, wizards_path, models_path))
+                zipy.write(_set_model_py_file(model, model_model, wizards_path, models_path, reports_path))
 
                 xml_file_path, l_manifest_data_file = \
                     _set_model_xmlview_file(model, model_model, wizards_path, views_path)
@@ -1036,6 +1168,12 @@ class CodeGeneratorController(http.Controller):
                 l_manifest_data_files += l_manifest_data_file
                 if xml_file_path:
                     zipy.write(xml_file_path)
+
+                xmlreport_file_path, l_manifest_data_file = _set_model_xmlreport_file(model, model_model, reports_path)
+
+                l_manifest_data_files += l_manifest_data_file
+                if xmlreport_file_path:
+                    zipy.write(xmlreport_file_path)
 
                 s_data2export = parameters.get_param('code_generator.s_data2export', default='nomenclator')
                 if s_data2export != 'nomenclator' or (s_data2export == 'nomenclator' and model.nomenclator):
@@ -1090,8 +1228,8 @@ class CodeGeneratorController(http.Controller):
 
         bytesio.seek(0)
 
-        basename = 'modules' if morethanone else modules[0].name
-        rootdir = path if morethanone else path + '/' + modules[0].name
+        basename = 'modules' if morethanone else modules[0].name.lower().strip()
+        rootdir = path if morethanone else path + '/' + modules[0].name.lower().strip()
 
         zipy.write_end_record_without_closing()
 

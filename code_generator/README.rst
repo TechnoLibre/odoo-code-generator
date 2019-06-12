@@ -6,7 +6,7 @@ Code Generator v12
 Features
 ========
 * Module creation
-* Associate models, constraints, groups, permissions, views, actions and menues with the created modules
+* Associate models, constraints, groups, permissions, views, actions, reports and menues with the created modules
 * Odoo module folder generation, ready to be used anywhere within your code
 
 Contacts

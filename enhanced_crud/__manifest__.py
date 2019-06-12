@@ -19,7 +19,7 @@
 
 {
     'name': 'Enhanced CRUD',
-    'version': '12.0.0.0.0',
+    'version': '12.0.0',
     'summary': 'The Odoo CRUD operations presented in a different way',
     'description': """
 Enhanced CRUD

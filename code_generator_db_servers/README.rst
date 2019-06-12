@@ -1,6 +1,6 @@
 Code Generator Db Servers v12
 =============================
-* Code Generator Db Servers is a solution to extend the Code Generator Module adding the capability to import into Odoo tables and its content from other databases.
+* Code Generator Db Servers is a solution to extend the Code Generator Module by adding the capability to import into Odoo tables and its content from other databases.
 * It is a Open Source Project for empower Odoo ERP.
 
 Features

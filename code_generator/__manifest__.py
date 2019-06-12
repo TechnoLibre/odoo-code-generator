@@ -2,6 +2,7 @@
 
 {
     'name': 'Code Generator',
+    'version': '12.0.0',
     'summary': 'Code Generator Module',
     'description': 'A solution to export into code most of the things that we can do in Odoo, models, views, groups, '
                    'permissions, menues, etc',

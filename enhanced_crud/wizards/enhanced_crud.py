@@ -3,12 +3,12 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 
-from enhanced_crud.models.enhanced_crud import CURRENTTARGETDOMAIN
 
 ALL = _('ECrudAll')
 SYSTEM = _('System Window Actions (from base., res., ir., web., etc.)')
 NOSYSTEM = _('Excluding System Window Actions (not from base., res., ir., web., etc.)')
 ACTIONSBELONGING = _('Window Actions belonging to %s')
+CURRENTTARGETDOMAIN = [('target', '=', 'current'), ('view_mode', 'not in', ['form', 'tree', 'tree,kanban'])]
 
 
 def current_target_lambda(ir_act_window):

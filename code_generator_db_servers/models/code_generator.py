@@ -6,8 +6,9 @@ import psycopg2
 from odoo import models, fields, api
 from odoo.exceptions import ValidationError
 
-from code_generator.controllers.main import MAGIC_FIELDS
+from odoo.models import MAGIC_COLUMNS
 
+MAGIC_FIELDS = MAGIC_COLUMNS + ['display_name', '__last_update']
 INVALIDPORT = 'The specify port is invalid.'
 PSYCOPGUNINSTALLED = 'Verify that the psycopg package is installed.'
 PYMYSQLUNINSTALLED = 'Verify that the pymysql package is installed.'

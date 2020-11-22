@@ -5,8 +5,8 @@ import base64
 from odoo import api, models, fields, tools
 from odoo.modules import get_module_resource
 
-from enhanced_crud.models.enhanced_crud import CURRENTTARGETDOMAIN
 
+CURRENTTARGETDOMAIN = [('target', '=', 'current'), ('view_mode', 'not in', ['form', 'tree', 'tree,kanban'])]
 dom_IrActionsActWindow = CURRENTTARGETDOMAIN + [('limit', '!=', 0)]
 
 

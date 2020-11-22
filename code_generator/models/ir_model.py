@@ -9,11 +9,11 @@ from odoo.addons.base.models.ir_model import SAFE_EVAL_BASE
 from odoo.exceptions import ValidationError, UserError, MissingError
 from odoo.tools.safe_eval import safe_eval
 from psycopg2._psycopg import ProgrammingError
-
-from code_generator.controllers.main import MAGIC_FIELDS
+from odoo.models import MAGIC_COLUMNS
 
 _logger = logging.getLogger(__name__)
 
+MAGIC_FIELDS = MAGIC_COLUMNS + ['display_name', '__last_update']
 CONSCREATEUNABLE = _('Unable to create the constraint.')
 CONSDELETECREATEUNABLE = _('Since you modify the sql constraint definition we must delete it and create a new one, and we were unable to do it.')
 CONSMODIFYUNABLE = _('Unable to modify the constraint.')

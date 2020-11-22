@@ -1,9 +1,9 @@
 <?xml version= "1.0" ?>
 <odoo>
 
-    <record model="res.groups" id="code_generator_manager">
-        <field name="name">Code Generator / Manager</field>
-        <field name="comment">Code Generator Manager</field>
-    </record>
+  <record model="res.groups" id="code_generator_manager">
+    <field name="name">Code Generator / Manager</field>
+    <field name="comment">Code Generator Manager</field>
+  </record>
 
 </odoo>

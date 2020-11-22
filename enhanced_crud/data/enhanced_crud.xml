@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <data noupdate="1">
+  <data noupdate="1">
 
-        <!-- Window Action Groups -->
-        <function model="enhanced.crud.act_window.groups" name="create_act_window_groups" />
+    <!-- Window Action Groups -->
+    <function model="enhanced.crud.act_window.groups" name="create_act_window_groups"/>
 
-    </data>
+  </data>
 
 </odoo>

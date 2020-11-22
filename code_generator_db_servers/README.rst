@@ -5,7 +5,7 @@ Code Generator Db Servers v12
 
 Features
 ========
-* Data Bases registration from PostgreSQL, MySQL and SQL Server
+* Databases registration from PostgreSQL, MySQL and SQL Server
 * Importation into Odoo of the tables and its content from the registered databases
 
 Contacts

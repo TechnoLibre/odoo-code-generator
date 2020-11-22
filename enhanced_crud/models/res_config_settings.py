@@ -5,8 +5,7 @@ import base64
 from odoo import api, models, fields, tools
 from odoo.modules import get_module_resource
 
-from enhanced_crud.models.enhanced_crud import CURRENTTARGETDOMAIN
-
+CURRENTTARGETDOMAIN = [('target', '=', 'current'), ('view_mode', 'not in', ['form', 'tree', 'tree,kanban'])]
 dom_IrActionsActWindow = CURRENTTARGETDOMAIN + [('limit', '!=', 0)]
 
 
@@ -92,7 +91,6 @@ class EnhancedCrudConfigSettings(models.TransientModel):
 
     @api.multi
     def execute(self):
-
         self.env['ir.actions.act_window'].search(dom_IrActionsActWindow).write(dict(limit=self.s_pagination or 80))
 
         return super(EnhancedCrudConfigSettings, self).execute()

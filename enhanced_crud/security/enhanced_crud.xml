@@ -1,9 +1,9 @@
 <?xml version= "1.0" ?>
 <odoo>
 
-    <record model="res.groups" id="enhanced_crud_manager">
-        <field name="name">Enhanced CRUD / Manager</field>
-        <field name="comment">Enhanced CRUD Manager</field>
-    </record>
+  <record model="res.groups" id="enhanced_crud_manager">
+    <field name="name">Enhanced CRUD / Manager</field>
+    <field name="comment">Enhanced CRUD Manager</field>
+  </record>
 
 </odoo>

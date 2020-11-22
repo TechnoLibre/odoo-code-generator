@@ -1,21 +1,22 @@
 <?xml version= "1.0" ?>
 <odoo>
 
-    <data>
+  <data>
 
-        <template id="enhanced_crud_assets" name="enhanced_crud_main_template" inherit_id="web.assets_backend">
-            <xpath expr="." position="inside">
-                <!-- Enhanced CRUD js -->
-                <script type="text/javascript" src="/enhanced_crud/static/src/js/enhanced_crud.js" />
+    <template id="enhanced_crud_assets" name="enhanced_crud_main_template" inherit_id="web.assets_backend">
+      <xpath expr="." position="inside">
+        <!-- Enhanced CRUD js -->
+        <script type="text/javascript" src="/enhanced_crud/static/src/js/enhanced_crud.js"/>
 
-                <!-- JQuery Context Menu js -->
-                <!--<script type="text/javascript" src="/enhanced_crud/static/libs/jquery/jquery-3.2.1.min.js" />-->
-                <link rel="stylesheet" type="text/css" href="/enhanced_crud/static/src/css/jquery-context-menu/jquery.contextMenu.min.css" />
-                <script type="text/javascript" src="/enhanced_crud/static/libs/jquery-context-menu/jquery.contextMenu.min.js" />
-                <script type="text/javascript" src="/enhanced_crud/static/libs/jquery-ui/jquery.ui.position.min.js" />
-            </xpath>
-        </template>
+        <!-- JQuery Context Menu js -->
+        <!--<script type="text/javascript" src="/enhanced_crud/static/libs/jquery/jquery-3.2.1.min.js" />-->
+        <link rel="stylesheet" type="text/css"
+              href="/enhanced_crud/static/src/css/jquery-context-menu/jquery.contextMenu.min.css"/>
+        <script type="text/javascript" src="/enhanced_crud/static/libs/jquery-context-menu/jquery.contextMenu.min.js"/>
+        <script type="text/javascript" src="/enhanced_crud/static/libs/jquery-ui/jquery.ui.position.min.js"/>
+      </xpath>
+    </template>
 
-    </data>
+  </data>
 
 </odoo>

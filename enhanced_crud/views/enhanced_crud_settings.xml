@@ -1,134 +1,136 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <record model="ir.ui.view" id="enhanced_crud_settings_form">
-        <field name="name">res.config.settings.form.inherit.enhancedcrud</field>
-        <field name="model">res.config.settings</field>
-        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
-        <field name="arch" type="xml">
+  <record model="ir.ui.view" id="enhanced_crud_settings_form">
+    <field name="name">res.config.settings.form.inherit.enhancedcrud</field>
+    <field name="model">res.config.settings</field>
+    <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+    <field name="arch" type="xml">
 
-            <xpath expr="//div[hasclass('settings')]" position="inside">
+      <xpath expr="//div[hasclass('settings')]" position="inside">
 
-                <div class="app_settings_block" data-string="Enhanced CRUD" string="Enhanced CRUD" data-key="enhanced_crud" groups="enhanced_crud.enhanced_crud_manager">
+        <div class="app_settings_block" data-string="Enhanced CRUD" string="Enhanced CRUD" data-key="enhanced_crud"
+             groups="enhanced_crud.enhanced_crud_manager">
 
-                    <h2>Enhanced CRUD</h2>
-                    <div class="row mt16 o_settings_container">
-                        <div class="col-lg-6 o_setting_box">
-                            <div class="o_setting_left_pane">
-                                <field name="boo_apply2any"/>
-                            </div>
+          <h2>Enhanced CRUD</h2>
+          <div class="row mt16 o_settings_container">
+            <div class="col-lg-6 o_setting_box">
+              <div class="o_setting_left_pane">
+                <field name="boo_apply2any"/>
+              </div>
 
-                            <div class="o_setting_right_pane">
-                                <label for="boo_apply2any"/>
-                                <div class="text-muted">
-                                    Set if Enhanced CRUD module js_class attributes must be apply globally.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row mt16 o_settings_container">
-                        <div class="col-12 col-lg-6 o_setting_box">
-                            <div class="o_setting_right_pane">
-                                <label for="s_pagination" />
-                                <div class="row">
-                                    <div class="text-muted col-lg-8">
-                                        Set the default amount of pages to be used in every action window.
-                                    </div>
-                                </div>
-                                <div class="content-group">
-                                    <div class="mt16">
-                                        <field name="s_pagination" />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row mt16 o_settings_container">
-                        <div class="col-lg-6 o_setting_box">
-                            <div class="o_setting_left_pane">
-                                <field name="boo_can_edit_pager"/>
-                            </div>
-
-                            <div class="o_setting_right_pane">
-                                <label for="boo_can_edit_pager"/>
-                                <div class="text-muted">
-                                    Set the Pager 'Can edit' variable value.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row mt16 o_settings_container">
-                        <div class="col-lg-6 o_setting_box">
-                            <div class="o_setting_left_pane">
-                                <field name="boo_on_formdiscarded"/>
-                            </div>
-
-                            <div class="o_setting_right_pane">
-                                <label for="boo_on_formdiscarded"/>
-                                <div class="text-muted">
-                                    Set if changes must be confirm on form discarded.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row mt16 o_settings_container">
-                        <div class="col-lg-6 o_setting_box">
-                            <div class="o_setting_left_pane">
-                                <field name="boo_contextmenu"/>
-                            </div>
-
-                            <div class="o_setting_right_pane">
-                                <label for="boo_contextmenu"/>
-                                <div class="text-muted">
-                                    Set if want a context menu in your list and kanban views.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row mt16 o_settings_container">
-                        <div class="col-12 col-lg-6 o_setting_box">
-                            <div class="o_setting_right_pane">
-                                <label for="s_window_disposition" />
-                                <div class="row">
-                                    <div class="text-muted col-lg-8">
-                                        Set the default Enhanced CRUD window disposition.
-                                    </div>
-                                </div>
-                                <div class="content-group">
-                                    <div class="mt16">
-                                        <field name="s_window_disposition" />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-lg-6 o_setting_box">
-                            <field name="img_window_disposition" widget="image" />
-                        </div>
-                    </div>
-
+              <div class="o_setting_right_pane">
+                <label for="boo_apply2any"/>
+                <div class="text-muted">
+                  Set if Enhanced CRUD module js_class attributes must be apply globally.
                 </div>
+              </div>
+            </div>
+          </div>
+          <div class="row mt16 o_settings_container">
+            <div class="col-12 col-lg-6 o_setting_box">
+              <div class="o_setting_right_pane">
+                <label for="s_pagination"/>
+                <div class="row">
+                  <div class="text-muted col-lg-8">
+                    Set the default amount of pages to be used in every action window.
+                  </div>
+                </div>
+                <div class="content-group">
+                  <div class="mt16">
+                    <field name="s_pagination"/>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row mt16 o_settings_container">
+            <div class="col-lg-6 o_setting_box">
+              <div class="o_setting_left_pane">
+                <field name="boo_can_edit_pager"/>
+              </div>
 
-            </xpath>
+              <div class="o_setting_right_pane">
+                <label for="boo_can_edit_pager"/>
+                <div class="text-muted">
+                  Set the Pager 'Can edit' variable value.
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row mt16 o_settings_container">
+            <div class="col-lg-6 o_setting_box">
+              <div class="o_setting_left_pane">
+                <field name="boo_on_formdiscarded"/>
+              </div>
 
-        </field>
-    </record>
+              <div class="o_setting_right_pane">
+                <label for="boo_on_formdiscarded"/>
+                <div class="text-muted">
+                  Set if changes must be confirm on form discarded.
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row mt16 o_settings_container">
+            <div class="col-lg-6 o_setting_box">
+              <div class="o_setting_left_pane">
+                <field name="boo_contextmenu"/>
+              </div>
 
-    <record model="ir.actions.act_window" id="enhanced_crud_settings_actionwindow">
-        <field name="name">Settings</field>
-        <field name="res_model">res.config.settings</field>
-        <field name="view_mode">form</field>
-        <field name="target">inline</field>
-        <field name="context">{'module' : 'enhanced_crud'}</field>
-    </record>
+              <div class="o_setting_right_pane">
+                <label for="boo_contextmenu"/>
+                <div class="text-muted">
+                  Set if want a context menu in your list and kanban views.
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row mt16 o_settings_container">
+            <div class="col-12 col-lg-6 o_setting_box">
+              <div class="o_setting_right_pane">
+                <label for="s_window_disposition"/>
+                <div class="row">
+                  <div class="text-muted col-lg-8">
+                    Set the default Enhanced CRUD window disposition.
+                  </div>
+                </div>
+                <div class="content-group">
+                  <div class="mt16">
+                    <field name="s_window_disposition"/>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-lg-6 o_setting_box">
+              <field name="img_window_disposition" widget="image"/>
+            </div>
+          </div>
 
-    <menuitem id="enhanced_crud_main_menu" name="Enhanced CRUD" groups="enhanced_crud_manager" sequence="501" web_icon="enhanced_crud,static/description/icon.png" />
+        </div>
 
-    <menuitem id="enhanced_crud_settings_menu"
-              name="Settings"
-              parent="enhanced_crud_main_menu"
-              action="enhanced_crud_settings_actionwindow"
-              groups="enhanced_crud_manager"
-              sequence="1"
-    />
+      </xpath>
+
+    </field>
+  </record>
+
+  <record model="ir.actions.act_window" id="enhanced_crud_settings_actionwindow">
+    <field name="name">Settings</field>
+    <field name="res_model">res.config.settings</field>
+    <field name="view_mode">form</field>
+    <field name="target">inline</field>
+    <field name="context">{'module' : 'enhanced_crud'}</field>
+  </record>
+
+  <menuitem id="enhanced_crud_main_menu" name="Enhanced CRUD" groups="enhanced_crud_manager" sequence="501"
+            web_icon="enhanced_crud,static/description/icon.png"/>
+
+  <menuitem id="enhanced_crud_settings_menu"
+            name="Settings"
+            parent="enhanced_crud_main_menu"
+            action="enhanced_crud_settings_actionwindow"
+            groups="enhanced_crud_manager"
+            sequence="900"
+  />
 
 </odoo>

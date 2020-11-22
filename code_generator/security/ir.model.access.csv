@@ -1,5 +1,7 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 code_generator_module_managment,Code Generator Module Managment,model_code_generator_module,code_generator_manager,1,1,1,1
+code_generator_module_log,Code Generator Module Log,model_code_generator_writer,code_generator_manager,1,1,1,1
 code_generator_module_dependency_managment,Code Generator Module Dependency Managment,model_code_generator_module_dependency,code_generator_manager,1,1,1,1
 code_generator_pyclass_managment,Code Generator Python Class Managment,model_code_generator_pyclass,code_generator_manager,1,1,1,1
 code_generator_irmodelserverconstrain_managment,Code Generator IrModelServerConstrain Managment,model_ir_model_server_constrain,code_generator_manager,1,1,1,1
+access_code_generator_ir_model_fields,access_code_generator_ir_model_fields,model_code_generator_ir_model_fields,code_generator_manager,1,1,1,1

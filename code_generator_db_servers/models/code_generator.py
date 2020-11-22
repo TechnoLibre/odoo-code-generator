@@ -3,11 +3,13 @@
 import re
 
 import psycopg2
-from odoo import models, fields, api
+from odoo import _, models, fields, api
+from datetime import datetime
 from odoo.exceptions import ValidationError
 
-from code_generator.controllers.main import MAGIC_FIELDS
+from odoo.models import MAGIC_COLUMNS
 
+MAGIC_FIELDS = MAGIC_COLUMNS + ['display_name', '__last_update', 'access_url', 'access_token', 'access_warning']
 INVALIDPORT = 'The specify port is invalid.'
 PSYCOPGUNINSTALLED = 'Verify that the psycopg package is installed.'
 PYMYSQLUNINSTALLED = 'Verify that the pymysql package is installed.'
@@ -99,13 +101,10 @@ def _get_db_query_4_tables(sgdb, schema, database):
     :return:
     """
 
-    query = """ SELECT table_name, table_type FROM {t_from} """.format(t_from='information_schema.tables')
+    query = f" SELECT table_name, table_type FROM {'information_schema.tables'} "
 
     if sgdb != 'SQLServer':
-        query += """ WHERE table_schema = '{table_schema}' """.\
-            format(
-                table_schema=schema if sgdb == 'PostgreSQL' else database
-            )
+        query += f" WHERE table_schema = '{schema if sgdb == 'PostgreSQL' else database}' "
 
     return query + """ ORDER BY table_name """
 
@@ -125,12 +124,9 @@ def _get_db_query_4_columns(m2o_db, table_name, schema, database):
     query = """ SELECT * FROM {t_from} WHERE """.format(t_from='information_schema.columns')
 
     if sgdb != 'SQLServer':
-        query += """ table_schema = '{table_schema}' AND """. \
-            format(
-                table_schema=schema if sgdb == 'PostgreSQL' else database
-            )
+        query += f" table_schema = '{schema if sgdb == 'PostgreSQL' else database}' AND "
 
-    return query + """ table_name = '{table_name}' """.format(table_name=table_name)
+    return query + f" table_name = '{table_name}' "
 
 
 def _get_q_4constraints(table_name, column_name, fkey=False, sgdb=None):
@@ -145,39 +141,23 @@ def _get_q_4constraints(table_name, column_name, fkey=False, sgdb=None):
 
     if fkey:
         if sgdb != 'MySQL':
-            return """ SELECT ccu.table_name FROM {t_c} AS tc 
-            JOIN {t_ksu} AS kcu ON tc.constraint_name = kcu.constraint_name 
-            JOIN {t_ccu} AS ccu ON ccu.constraint_name = tc.constraint_name 
-            WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{t_name}' AND kcu.column_name = '{column_name}' """.\
-                format(
-                    t_c='information_schema.table_constraints',
-                    t_ksu='information_schema.key_column_usage',
-                    t_ccu='information_schema.constraint_column_usage',
-                    t_name=table_name,
-                    column_name=column_name
-                )
+            return f""" SELECT ccu.table_name FROM {'information_schema.table_constraints'} AS tc
+            JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
+            JOIN {'information_schema.constraint_column_usage'} AS ccu ON ccu.constraint_name = tc.constraint_name
+            WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table_name}'
+            AND kcu.column_name = '{column_name}' """
 
         else:
-            return """ SELECT kcu.referenced_table_name FROM {t_c} AS tc 
-            JOIN {t_ksu} AS kcu ON tc.constraint_name = kcu.constraint_name 
-            WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{t_name}' AND kcu.column_name = '{column_name}' """. \
-                format(
-                    t_c='information_schema.table_constraints',
-                    t_ksu='information_schema.key_column_usage',
-                    t_name=table_name,
-                    column_name=column_name
-                )
+            return f""" SELECT kcu.referenced_table_name FROM {'information_schema.table_constraints'} AS tc
+            JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
+            WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table_name}'
+            AND kcu.column_name = '{column_name}' """
 
     else:
-        return """ SELECT * FROM {t_c} AS tc 
-        JOIN {t_ksu} AS kcu ON tc.constraint_name = kcu.constraint_name 
-        WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_name = '{t_name}' AND kcu.column_name = '{column_name}' """.\
-            format(
-                t_c='information_schema.table_constraints',
-                t_ksu='information_schema.key_column_usage',
-                t_name=table_name,
-                column_name=column_name
-            )
+        return f""" SELECT * FROM {'information_schema.table_constraints'} AS tc
+        JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
+        WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_name = '{table_name}'
+        AND kcu.column_name = '{column_name}' """
 
 
 def _get_odoo_field_tuple_4insert(name, field_description, ttype, required=False):
@@ -203,17 +183,23 @@ def _get_odoo_ttype(data_type):
     """
 
     odoo_ttype = data_type
-    if data_type == 'smallint' or data_type == 'int' or data_type == 'bit':
+    if data_type == 'smallint' or data_type == 'int' or data_type == 'bit' or data_type == 'tinyint':
         odoo_ttype = 'integer'
 
     elif data_type == 'money':
+        odoo_ttype = 'monetary'
+
+    elif data_type == 'decimal' or data_type == 'double':
         odoo_ttype = 'float'
 
     elif data_type == 'character varying' or data_type == 'varchar':
         odoo_ttype = 'char'
 
-    elif data_type == 'timestamp with time zone' or data_type == 'timestamp':
+    elif data_type == 'timestamp with time zone' or data_type == 'timestamp' or data_type == 'time':
         odoo_ttype = 'datetime'
+
+    elif data_type == 'date':
+        odoo_ttype = 'date'
 
     return odoo_ttype
 
@@ -252,14 +238,14 @@ def _get_table_fields(table_name, m2o_db):
                 column_name = column_name[:63]
 
             cr.execute(_get_q_4constraints(table_name, column_name))
-            if not cr.fetchone():  # if it is not a primary key
+            if m2o_db.accept_primary_key or not cr.fetchone():  # if it is not a primary key
 
                 cr.execute(_get_q_4constraints(table_name, column_name, fkey=True, sgdb=sgdb))
                 is_m2o = cr.fetchone()
 
                 t_odoo_field_4insert = _get_odoo_field_tuple_4insert(
                     column_name,
-                    'Field %s Description' % column_name.capitalize(),
+                    'Field %s' % column_name.capitalize(),
                     'many2one' if is_m2o else _get_odoo_ttype(column_info[7]),
                     column_info[6] == 'NO'
                 )
@@ -270,7 +256,7 @@ def _get_table_fields(table_name, m2o_db):
                 l_fields.append(t_odoo_field_4insert)
 
         if not having_column_name:
-            l_fields.append(_get_odoo_field_tuple_4insert('name', 'Field Name Description', 'char'))
+            l_fields.append(_get_odoo_field_tuple_4insert('name', 'Field Name', 'char'))
 
         return l_fields
 
@@ -297,11 +283,7 @@ def _get_table_data(table_name, m2o_db, model_created_fields):
             user=m2o_db.user,
             password=m2o_db.password
         )
-        query = """ SELECT {model_created_fields} FROM {table_name} """. \
-            format(
-                table_name=table_name,
-                model_created_fields=','.join(model_created_fields)
-            )
+        query = f" SELECT {','.join(model_created_fields)} FROM {table_name} "
         cr.execute(query)
 
         return cr.fetchall()
@@ -315,7 +297,7 @@ class CodeGeneratorDbType(models.Model):
     _description = 'Code Generator Db Type'
 
     name = fields.Char(
-        string='Db Type',
+        string='Db Type Name',
         help='Db Type',
         required=True
     )
@@ -379,6 +361,12 @@ class CodeGeneratorDb(models.Model):
         required=True
     )
 
+    accept_primary_key = fields.Boolean(
+        string='Accept Primary Key',
+        help='Integrate primary key fields in column',
+        default=False,
+    )
+
     _sql_constraints = [
         ('unique_db', 'unique (m2o_dbtype, host, port)', 'The Db Type, host and port combination must be unique.')
     ]
@@ -409,8 +397,9 @@ class CodeGeneratorDb(models.Model):
                         m2o_db=result.id, name=table_info[0], table_type='view' if table_info[1] == 'VIEW' else 'table'
                     ))
 
-            except:
+            except Exception as e:
                 failure += 1
+                print(e)
 
         if len(vals_list) == failure:
             raise ValidationError(CREATEDBPROBLEM)
@@ -427,6 +416,13 @@ class CodeGeneratorDbTable(models.Model):
         'Db',
         required=True,
         ondelete='cascade'
+    )
+
+    o2m_columns = fields.One2many(
+        comodel_name='code.generator.db.column',
+        inverse_name='m2o_table',
+        string="Columns",
+        help="The list of related columns.",
     )
 
     name = fields.Char(
@@ -455,6 +451,21 @@ class CodeGeneratorDbTable(models.Model):
     def toggle_nomenclator(self):
         for table in self:
             table.nomenclator = not table.nomenclator
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for value in vals_list:
+            result = super(CodeGeneratorDbTable, self).create(value)
+            lst_fields = _get_table_fields(result.name, result.m2o_db)
+            for field in lst_fields:
+                column_value = {
+                    'name': field[2].get('name'),
+                    'required': field[2].get('required'),
+                    'column_type': field[2].get('ttype'),
+                    'description': field[2].get('field_description'),
+                    'm2o_table': result.id,
+                }
+                self.env['code.generator.db.column'].create(column_value)
 
     @api.model
     def _conform_model_created_data(self, model_created_fields):
@@ -540,14 +551,13 @@ class CodeGeneratorDbTable(models.Model):
 
                 models_created = models_created.filtered('nomenclator')
                 for model_created in models_created:
+                    model_created_fields = model_created.field_id.filtered(
+                        lambda field: field.name not in MAGIC_FIELDS + ['name']
+                    ).mapped('name')
 
                     foreing_table = self.filtered(
                         lambda t: t.name == self._get_model_name(module_name, model_created.model.replace('.', '_'))
                     )
-
-                    model_created_fields = model_created.field_id.filtered(
-                        lambda field: field.name not in MAGIC_FIELDS + ['name']
-                    ).mapped('name')
 
                     l_foreing_table_data = \
                         _get_table_data(foreing_table.name, foreing_table.m2o_db, model_created_fields)
@@ -558,3 +568,50 @@ class CodeGeneratorDbTable(models.Model):
                             l_foreing_table_data
                         )
                     ))
+
+
+class CodeGeneratorDbColumn(models.Model):
+    _name = 'code.generator.db.column'
+    _description = 'Code Generator Db Column'
+
+    m2o_table = fields.Many2one(
+        'code.generator.db.table',
+        'Table',
+        required=True,
+        ondelete='cascade'
+    )
+
+    name = fields.Char(
+        string='Name',
+        help='Column name',
+        required=True
+    )
+
+    description = fields.Char(
+        string='Description',
+        help='Column description',
+    )
+
+    required = fields.Boolean(
+        string='Required',
+        help='Column required',
+    )
+
+    column_type = fields.Selection(
+        string='Column type',
+        help='Column type',
+        required=True,
+        selection=[
+            ('char', 'Char'),
+            ('text', 'Text'),
+            ('integer', 'Integer'),
+            ('monetary', 'Monetary'),
+            ('float', 'Float'),
+            ('datetime', 'Datetime'),
+            ('date', 'Date'),
+            ('boolean', 'Boolean'),
+            ('html', 'Html'),
+            ('binary', 'Binary'),
+            ('selection', 'Selection'),
+        ]
+    )

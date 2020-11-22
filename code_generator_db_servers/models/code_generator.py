@@ -204,17 +204,23 @@ def _get_odoo_ttype(data_type):
     """
 
     odoo_ttype = data_type
-    if data_type == 'smallint' or data_type == 'int' or data_type == 'bit':
+    if data_type == 'smallint' or data_type == 'int' or data_type == 'bit' or data_type == 'tinyint':
         odoo_ttype = 'integer'
 
     elif data_type == 'money':
+        odoo_ttype = 'monetary'
+
+    elif data_type == 'decimal' or data_type == 'double':
         odoo_ttype = 'float'
 
     elif data_type == 'character varying' or data_type == 'varchar':
         odoo_ttype = 'char'
 
-    elif data_type == 'timestamp with time zone' or data_type == 'timestamp':
+    elif data_type == 'timestamp with time zone' or data_type == 'timestamp' or data_type == 'time':
         odoo_ttype = 'datetime'
+
+    elif data_type == 'date':
+        odoo_ttype = 'date'
 
     return odoo_ttype
 

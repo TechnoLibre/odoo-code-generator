@@ -164,7 +164,7 @@
         </field>
     </record>
 
-    <menuitem id="code_generator_main_menu" name="Code Generator" />
+    <menuitem id="code_generator_main_menu" name="Code Generator" web_icon="code_generator,static/description/icon.png" />
 
     <menuitem id="code_generator_generator_menu"
               name="Modules"

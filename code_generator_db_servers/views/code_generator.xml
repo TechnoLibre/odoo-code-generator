@@ -46,7 +46,7 @@
     </record>
 
     <record model="ir.actions.act_window" id="code_generator_db_actionwindow">
-        <field name="name">Data Bases</field>
+        <field name="name">Databases</field>
         <field name="res_model">code.generator.db</field>
         <field name="view_type">form</field>
         <field name="view_mode">tree,form</field>
@@ -55,19 +55,19 @@
                 Add a new database
             </p>
             <p>
-                Data Bases whose tables could be imported to Odoo and then be exported into code
+                Databases whose tables could be imported to Odoo and then be exported into code
             </p>
         </field>
     </record>
 
     <menuitem id="code_generator_db_menu"
-              name="Data Bases"
+              name="Databases"
               parent="code_generator.code_generator_main_menu"
               sequence="4"
     />
 
     <menuitem id="code_generator_generator_server_menu"
-              name="Data Bases"
+              name="Databases"
               parent="code_generator_db_menu"
               action="code_generator_db_actionwindow"
               groups="code_generator.code_generator_manager"
@@ -93,7 +93,7 @@
             <search>
                 <field name="name" />
                 <group expand="1" string="Group by">
-                    <filter name="group_by_m2o_db" context="{'group_by': 'm2o_db'}" string="Data Bases" help="Data Bases" />
+                    <filter name="group_by_m2o_db" context="{'group_by': 'm2o_db'}" string="Databases" help="Databases" />
                     <filter name="group_by_table_type" context="{'group_by': 'table_type'}" string="Table Type" help="Table Type" />
                 </group>
             </search>
@@ -108,7 +108,7 @@
         <!--<field name="context">{'group_by': ['m2o_db']}</field>-->
         <field name="help" type="html">
             <p class="o_view_nocontent_empty_folder">
-                Tables belonging to the inserted Data Bases
+                Tables belonging to the inserted Databases
             </p>
         </field>
     </record>
@@ -156,7 +156,7 @@
         <field name="view_mode">tree,form</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_empty_folder">
-                Columns belonging to the inserted Data Bases
+                Columns belonging to the inserted Databases
             </p>
         </field>
     </record>

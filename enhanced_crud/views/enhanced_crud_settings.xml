@@ -128,7 +128,7 @@
               parent="enhanced_crud_main_menu"
               action="enhanced_crud_settings_actionwindow"
               groups="enhanced_crud_manager"
-              sequence="1"
+              sequence="900"
     />
 
 </odoo>

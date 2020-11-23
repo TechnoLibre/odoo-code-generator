@@ -24,7 +24,7 @@ msgstr ""
 #: model:ir.ui.menu,name:code_generator_db_servers.code_generator_generator_server_menu
 #: model:ir.actions.act_window,name:code_generator_db_servers.code_generator_db_actionwindow
 #: model_terms:ir.ui.view,arch_db:code_generator_db_servers.code_generator_db_table_search
-msgid "Data Bases"
+msgid "Databases"
 msgstr "Bases de Datos"
 
 #. module: code_generator_db_servers
@@ -144,7 +144,7 @@ msgstr "Adicione una nueva Base de Datos"
 
 #. module: code_generator_db_servers
 #: model_terms:ir.actions.act_window,help:code_generator_db_servers.code_generator_db_actionwindow
-msgid "Data Bases whose tables could be imported to Odoo and then be exported into code"
+msgid "Databases whose tables could be imported to Odoo and then be exported into code"
 msgstr "Bases de Datos cuyas tablas podrán ser importadas a Odoo y luego exportadas a código"
 
 #. module: code_generator_db_servers
@@ -189,7 +189,7 @@ msgstr "Tablas"
 
 #. module: code_generator_db_servers
 #: model_terms:ir.actions.act_window,help:code_generator_db_servers.code_generator_db_table_actionwindow
-msgid "Tables belonging to the inserted Data Bases"
+msgid "Tables belonging to the inserted Databases"
 msgstr "Tablas pertenecientes a las Bases de Datos insertadas"
 
 #. module: code_generator_db_servers

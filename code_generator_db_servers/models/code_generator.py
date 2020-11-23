@@ -100,13 +100,10 @@ def _get_db_query_4_tables(sgdb, schema, database):
     :return:
     """
 
-    query = """ SELECT table_name, table_type FROM {t_from} """.format(t_from='information_schema.tables')
+    query = f" SELECT table_name, table_type FROM {'information_schema.tables'} "
 
     if sgdb != 'SQLServer':
-        query += """ WHERE table_schema = '{table_schema}' """.\
-            format(
-                table_schema=schema if sgdb == 'PostgreSQL' else database
-            )
+        query += f" WHERE table_schema = '{schema if sgdb == 'PostgreSQL' else database}' "
 
     return query + """ ORDER BY table_name """
 
@@ -126,12 +123,9 @@ def _get_db_query_4_columns(m2o_db, table_name, schema, database):
     query = """ SELECT * FROM {t_from} WHERE """.format(t_from='information_schema.columns')
 
     if sgdb != 'SQLServer':
-        query += """ table_schema = '{table_schema}' AND """. \
-            format(
-                table_schema=schema if sgdb == 'PostgreSQL' else database
-            )
+        query += f" table_schema = '{schema if sgdb == 'PostgreSQL' else database}' AND "
 
-    return query + """ table_name = '{table_name}' """.format(table_name=table_name)
+    return query + f" table_name = '{table_name}' "
 
 
 def _get_q_4constraints(table_name, column_name, fkey=False, sgdb=None):
@@ -146,39 +140,23 @@ def _get_q_4constraints(table_name, column_name, fkey=False, sgdb=None):
 
     if fkey:
         if sgdb != 'MySQL':
-            return """ SELECT ccu.table_name FROM {t_c} AS tc 
-            JOIN {t_ksu} AS kcu ON tc.constraint_name = kcu.constraint_name 
-            JOIN {t_ccu} AS ccu ON ccu.constraint_name = tc.constraint_name 
-            WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{t_name}' AND kcu.column_name = '{column_name}' """.\
-                format(
-                    t_c='information_schema.table_constraints',
-                    t_ksu='information_schema.key_column_usage',
-                    t_ccu='information_schema.constraint_column_usage',
-                    t_name=table_name,
-                    column_name=column_name
-                )
+            return f""" SELECT ccu.table_name FROM {'information_schema.table_constraints'} AS tc
+            JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
+            JOIN {'information_schema.constraint_column_usage'} AS ccu ON ccu.constraint_name = tc.constraint_name
+            WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table_name}'
+            AND kcu.column_name = '{column_name}' """
 
         else:
-            return """ SELECT kcu.referenced_table_name FROM {t_c} AS tc 
-            JOIN {t_ksu} AS kcu ON tc.constraint_name = kcu.constraint_name 
-            WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{t_name}' AND kcu.column_name = '{column_name}' """. \
-                format(
-                    t_c='information_schema.table_constraints',
-                    t_ksu='information_schema.key_column_usage',
-                    t_name=table_name,
-                    column_name=column_name
-                )
+            return f""" SELECT kcu.referenced_table_name FROM {'information_schema.table_constraints'} AS tc
+            JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
+            WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table_name}'
+            AND kcu.column_name = '{column_name}' """
 
     else:
-        return """ SELECT * FROM {t_c} AS tc 
-        JOIN {t_ksu} AS kcu ON tc.constraint_name = kcu.constraint_name 
-        WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_name = '{t_name}' AND kcu.column_name = '{column_name}' """.\
-            format(
-                t_c='information_schema.table_constraints',
-                t_ksu='information_schema.key_column_usage',
-                t_name=table_name,
-                column_name=column_name
-            )
+        return f""" SELECT * FROM {'information_schema.table_constraints'} AS tc
+        JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
+        WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_name = '{table_name}'
+        AND kcu.column_name = '{column_name}' """
 
 
 def _get_odoo_field_tuple_4insert(name, field_description, ttype, required=False):
@@ -304,11 +282,7 @@ def _get_table_data(table_name, m2o_db, model_created_fields):
             user=m2o_db.user,
             password=m2o_db.password
         )
-        query = """ SELECT {model_created_fields} FROM {table_name} """. \
-            format(
-                table_name=table_name,
-                model_created_fields=','.join(model_created_fields)
-            )
+        query = f" SELECT {','.join(model_created_fields)} FROM {table_name} "
         cr.execute(query)
 
         return cr.fetchall()
@@ -570,7 +544,6 @@ class CodeGeneratorDbTable(models.Model):
 
                 models_created = models_created.filtered('nomenclator')
                 for model_created in models_created:
-
                     foreing_table = self.filtered(
                         lambda t: t.name == self._get_model_name(module_name, model_created.model.replace('.', '_'))
                     )

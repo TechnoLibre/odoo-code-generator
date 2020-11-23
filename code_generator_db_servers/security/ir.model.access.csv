@@ -2,3 +2,4 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 code_generator_dbtype_managment,Code Generator Db Type Managment,model_code_generator_db_type,code_generator.code_generator_manager,1,1,1,1
 code_generator_db_managment,Code Generator Db Managment,model_code_generator_db,code_generator.code_generator_manager,1,1,1,1
 code_generator_db_table_managment,Code Generator Db Table Managment,model_code_generator_db_table,code_generator.code_generator_manager,1,1,0,0
+code_generator_db_column_managment,Code Generator Db Column Managment,model_code_generator_db_column,code_generator.code_generator_manager,1,1,0,0

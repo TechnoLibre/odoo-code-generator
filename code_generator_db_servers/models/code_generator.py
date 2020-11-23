@@ -322,7 +322,7 @@ class CodeGeneratorDbType(models.Model):
     _description = 'Code Generator Db Type'
 
     name = fields.Char(
-        string='Db Type',
+        string='Db Type Name',
         help='Db Type',
         required=True
     )
@@ -416,8 +416,9 @@ class CodeGeneratorDb(models.Model):
                         m2o_db=result.id, name=table_info[0], table_type='view' if table_info[1] == 'VIEW' else 'table'
                     ))
 
-            except:
+            except Exception as e:
                 failure += 1
+                print(e)
 
         if len(vals_list) == failure:
             raise ValidationError(CREATEDBPROBLEM)
@@ -434,6 +435,13 @@ class CodeGeneratorDbTable(models.Model):
         'Db',
         required=True,
         ondelete='cascade'
+    )
+
+    o2m_columns = fields.One2many(
+        comodel_name='code.generator.db.column',
+        inverse_name='m2o_table',
+        string="Columns",
+        help="The list of related columns.",
     )
 
     name = fields.Char(
@@ -462,6 +470,21 @@ class CodeGeneratorDbTable(models.Model):
     def toggle_nomenclator(self):
         for table in self:
             table.nomenclator = not table.nomenclator
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for value in vals_list:
+            result = super(CodeGeneratorDbTable, self).create(value)
+            lst_fields = _get_table_fields(result.name, result.m2o_db)
+            for field in lst_fields:
+                column_value = {
+                    'name': field[2].get('name'),
+                    'required': field[2].get('required'),
+                    'column_type': field[2].get('ttype'),
+                    'description': field[2].get('field_description'),
+                    'm2o_table': result.id,
+                }
+                self.env['code.generator.db.column'].create(column_value)
 
     @api.model
     def _conform_model_created_data(self, model_created_fields):
@@ -565,3 +588,46 @@ class CodeGeneratorDbTable(models.Model):
                             l_foreing_table_data
                         )
                     ))
+
+
+class CodeGeneratorDbColumn(models.Model):
+    _name = 'code.generator.db.column'
+    _description = 'Code Generator Db Column'
+
+    m2o_table = fields.Many2one(
+        'code.generator.db.table',
+        'Table',
+        required=True,
+        ondelete='cascade'
+    )
+
+    name = fields.Char(
+        string='Name',
+        help='Column name',
+        required=True
+    )
+
+    description = fields.Char(
+        string='Description',
+        help='Column description',
+    )
+
+    required = fields.Boolean(
+        string='Required',
+        help='Column required',
+    )
+
+    column_type = fields.Selection(
+        string='Column type',
+        help='Column type',
+        required=True,
+        selection=[
+            ('char', 'Char'),
+            ('text', 'Text'),
+            ('integer', 'Integer'),
+            ('monetary', 'Monetary'),
+            ('float', 'Float'),
+            ('datetime', 'Datetime'),
+            ('date', 'Date'),
+        ]
+    )

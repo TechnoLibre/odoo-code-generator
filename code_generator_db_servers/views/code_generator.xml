@@ -116,6 +116,54 @@
               sequence="2"
     />
 
+        <record model="ir.ui.view" id="code_generator_db_column_tree">
+        <field name="name">code.generator.db.column.tree</field>
+        <field name="model">code.generator.db.column</field>
+        <field name="arch" type="xml">
+            <tree editable="top">
+                <field name="m2o_table" />
+                <field name="name" />
+                <field name="column_type" />
+                <field name="required" />
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="code_generator_db_column_search">
+        <field name="name">code.generator.db.column.search</field>
+        <field name="model">code.generator.db.column</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" />
+                <group expand="1" string="Group by">
+                    <filter name="group_by_m2o_table" context="{'group_by': 'm2o_table'}" string="Tables" help="Tables" />
+                    <filter name="group_by_column_type" context="{'group_by': 'column_type'}" string="Table Type" help="Column Type" />
+                    <filter name="group_by_required" context="{'group_by': 'required'}" string="Required" help="Columns required" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="code_generator_db_column_actionwindow">
+        <field name="name">Columns</field>
+        <field name="res_model">code.generator.db.column</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_empty_folder">
+                Columns belonging to the inserted Data Bases
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="code_generator_generator_column_menu"
+              name="Columns"
+              parent="code_generator_db_menu"
+              action="code_generator_db_column_actionwindow"
+              groups="code_generator.code_generator_manager"
+              sequence="3"
+    />
+
     <record model="ir.actions.server" id="code_generator_db_table_generate_code_actionserver">
         <field name="name">Generate module</field>
         <field name="model_id" ref="model_code_generator_db_table" />

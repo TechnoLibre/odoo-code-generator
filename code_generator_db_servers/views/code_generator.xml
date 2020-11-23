@@ -21,6 +21,11 @@
                             <field name="password" password="True" />
                         </group>
                     </group>
+                    <group>
+                        <group>
+                            <field name="accept_primary_key"/>
+                        </group>
+                    </group>
                 </sheet>
             </form>
         </field>

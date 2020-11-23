@@ -237,7 +237,7 @@ def _get_table_fields(table_name, m2o_db):
                 column_name = column_name[:63]
 
             cr.execute(_get_q_4constraints(table_name, column_name))
-            if not cr.fetchone():  # if it is not a primary key
+            if m2o_db.accept_primary_key or not cr.fetchone():  # if it is not a primary key
 
                 cr.execute(_get_q_4constraints(table_name, column_name, fkey=True, sgdb=sgdb))
                 is_m2o = cr.fetchone()
@@ -358,6 +358,12 @@ class CodeGeneratorDb(models.Model):
         string='Password',
         help='Password',
         required=True
+    )
+
+    accept_primary_key = fields.Boolean(
+        string='Accept Primary Key',
+        help='Integrate primary key fields in column',
+        default=False,
     )
 
     _sql_constraints = [

@@ -608,5 +608,9 @@ class CodeGeneratorDbColumn(models.Model):
             ('float', 'Float'),
             ('datetime', 'Datetime'),
             ('date', 'Date'),
+            ('boolean', 'Boolean'),
+            ('html', 'Html'),
+            ('binary', 'Binary'),
+            ('selection', 'Selection'),
         ]
     )

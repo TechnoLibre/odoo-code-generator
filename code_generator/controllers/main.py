@@ -203,7 +203,7 @@ def _get_view_data_name(view):
     """
 
     return _get_ir_model_data(view) if _get_ir_model_data(view) else \
-        '%s_%sview>' % (_get_model_model(view.model), view.type)
+        '%s_%sview' % (_get_model_model(view.model), view.type)
 
 
 def _get_action_data_name(action, server=False, creating=False):
@@ -769,7 +769,7 @@ def _set_model_xmlview_file(model, model_model, wizards_path, views_path):
             if act_window.view_id:
                 l_model_view_file.append('<field name="view_id" ref="%s" />' % _get_view_data_name(act_window.view_id))
 
-            if act_window.domain != '[]':
+            if act_window.domain != '[]' and act_window.domain:
                 l_model_view_file.append('<field name="domain">%s</field>' % act_window.domain)
 
             if act_window.context != '{}':
@@ -1022,32 +1022,34 @@ def _set_module_menues(module, views_path):
     """
 
     menues = module.with_context({'ir.ui.menu.full_list': True}).o2m_menus
+    # Expect first menu by id is a root menu
+    menues = sorted(menues, key=lambda menu: menu.id)
     if menues:
 
         l_module_menues_file = XML_HEAD + BLANCK_LINE
 
         for menu in menues:
 
-            l_module_menues_file.append('<record model="ir.ui.menu" id="%s">' % _get_menu_data_name(menu))
+            l_module_menues_file.append('<menuitem id="%s"' % _get_menu_data_name(menu))
 
-            l_module_menues_file.append('<field name="name">%s</field>' % menu.name)
+            l_module_menues_file.append(' name="%s"' % menu.name)
 
             if menu.action:
-                l_module_menues_file.append('<field name="action" ref="%s" />' % _get_action_data_name(menu.action))
+                l_module_menues_file.append(' action="%s"' % _get_action_data_name(menu.action))
 
             if not menu.active:
-                l_module_menues_file.append('<field name="active" eval="False" />')
+                l_module_menues_file.append(' active="False"')
 
             if menu.sequence != 10:
-                l_module_menues_file.append('<field name="sequence">%s</field>' % menu.sequence)
+                l_module_menues_file.append(' sequence="%s"' % menu.sequence)
 
             if menu.parent_id:
-                l_module_menues_file.append('<field name="parent_id" ref="%s" />' % _get_menu_data_name(menu.parent_id))
+                l_module_menues_file.append(' parent="%s"' % _get_menu_data_name(menu.parent_id))
 
             if menu.groups_id:
-                l_module_menues_file.append(_get_m2m_groups(menu.groups_id))
+                l_module_menues_file.append(' groups="%s"' % _get_m2m_groups(menu.groups_id))
 
-            l_module_menues_file.append('</record>\n')
+            l_module_menues_file.append('/>\n')
 
         l_module_menues_file += XML_ODOO_CLOSING_TAG
 

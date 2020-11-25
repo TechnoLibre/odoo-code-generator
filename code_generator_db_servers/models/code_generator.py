@@ -655,7 +655,7 @@ class CodeGeneratorDbTable(models.Model):
             'type': 'ir.actions.act_window',
             'view_mode': "tree,form",
             'view_type': "form",
-            'help': help_str,
+            # 'help': help_str,
             # 'view_id': view_tree.id,
             # 'search_view_id': self.search_view_id.id,
             'context': {},

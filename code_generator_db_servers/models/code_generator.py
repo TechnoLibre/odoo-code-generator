@@ -9,7 +9,7 @@ from odoo.exceptions import ValidationError
 
 from odoo.models import MAGIC_COLUMNS
 
-MAGIC_FIELDS = MAGIC_COLUMNS + ['display_name', '__last_update']
+MAGIC_FIELDS = MAGIC_COLUMNS + ['display_name', '__last_update', 'access_url', 'access_token', 'access_warning']
 INVALIDPORT = 'The specify port is invalid.'
 PSYCOPGUNINSTALLED = 'Verify that the psycopg package is installed.'
 PYMYSQLUNINSTALLED = 'Verify that the pymysql package is installed.'
@@ -411,10 +411,6 @@ class CodeGeneratorDbTable(models.Model):
     _name = 'code.generator.db.table'
     _description = 'Code Generator Db Table'
 
-    generated_root_menu = None
-    generated_parent_menu = None
-    nb_sub_menu = 0
-
     m2o_db = fields.Many2one(
         'code.generator.db',
         'Db',
@@ -553,130 +549,25 @@ class CodeGeneratorDbTable(models.Model):
                     )
                 ))
 
-                # models_created = models_created.filtered('nomenclator')
+                models_created = models_created.filtered('nomenclator')
                 for model_created in models_created:
                     model_created_fields = model_created.field_id.filtered(
                         lambda field: field.name not in MAGIC_FIELDS + ['name']
                     ).mapped('name')
 
-                    view_tree = self._generate_views_models(model_created, model_created_fields, module)
-                    self._generate_model_access(model_created, model_created_fields, module)
-                    self._generate_menu(model_created, model_created_fields, view_tree, module)
+                    foreing_table = self.filtered(
+                        lambda t: t.name == self._get_model_name(module_name, model_created.model.replace('.', '_'))
+                    )
 
-                    if model_created.nomenclator:
-                        foreing_table = self.filtered(
-                            lambda t: t.name == self._get_model_name(module_name, model_created.model.replace('.', '_'))
+                    l_foreing_table_data = \
+                        _get_table_data(foreing_table.name, foreing_table.m2o_db, model_created_fields)
+
+                    self.env[model_created.model].sudo().create(list(
+                        map(
+                            self._conform_model_created_data(model_created_fields),
+                            l_foreing_table_data
                         )
-
-                        l_foreing_table_data = \
-                            _get_table_data(foreing_table.name, foreing_table.m2o_db, model_created_fields)
-
-                        self.env[model_created.model].sudo().create(list(
-                            map(
-                                self._conform_model_created_data(model_created_fields),
-                                l_foreing_table_data
-                            )
-                        ))
-
-    def _generate_views_models(self, model_created, model_created_fields, module):
-        model_name = model_created.model
-        model_name_str = model_name.replace(".", "_")
-        str_fields = "<field name=\"" + "\"/>\n<field name=\"".join(model_created_fields) + "\"/>"
-        arch = f"""<?xml version="1.0"?>
-<tree editable="top">
-    {str_fields}
-</tree>
-"""
-        view_value = self.env['ir.ui.view'].create({
-            'name': f"{model_name_str}_tree",
-            'type': 'tree',
-            'model': model_name,
-            'arch': arch,
-            'm2o_model': model_created.id,
-        })
-
-        return view_value
-
-    def _generate_model_access(self, model_created, model_created_fields, module):
-        # group_id = self.env['res.groups'].search([('name', '=', 'Code Generator / Manager')])
-        # group_id = self.env['res.groups'].search([('name', '=', 'Internal User')])
-        group_id = self.env.ref('base.group_user')
-        model_name = model_created.model
-        model_name_str = model_name.replace(".", "_")
-        v = {
-            'name': _('%s Access %s') % (model_name_str, group_id.full_name),
-            'model_id': model_created.id,
-            'group_id': group_id.id,
-            'perm_read': True,
-            'perm_create': True,
-            'perm_write': True,
-            'perm_unlink': True,
-        }
-
-        access_value = self.env['ir.model.access'].create(v)
-
-    def _generate_menu(self, model_created, model_created_fields, view_tree, module):
-        # group_id = self.env['res.groups'].search([('name', '=', 'Code Generator / Manager')])
-        # group_id = self.env['res.groups'].search([('name', '=', 'Internal User')])
-        group_id = self.env.ref('base.group_user')
-        model_name = model_created.model
-        model_name_str = model_name.replace(".", "_")
-        # Create root if not exist
-        if not self.generated_root_menu:
-            v = {
-                'name': f"root_{model_name_str}",
-                'sequence': 20,
-                'web_icon': 'code_generator,static/description/icon.png',
-                # 'group_id': group_id.id,
-                'm2o_module': module.id,
-            }
-            self.generated_root_menu = self.env['ir.ui.menu'].create(v)
-        if not self.generated_parent_menu:
-            v = {
-                'name': _("Models"),
-                'sequence': 1,
-                'parent_id': self.generated_root_menu.id,
-                # 'group_id': group_id.id,
-                'm2o_module': module.id,
-            }
-            self.generated_parent_menu = self.env['ir.ui.menu'].create(v)
-
-        help_str = f"""<p class="o_view_nocontent_empty_folder">
-        Add a new {model_name_str}
-      </p>
-      <p>
-        Databases whose tables could be imported to Odoo and then be exported into code
-      </p>"""
-
-        # Create action
-        v = {
-            'name': f"{model_name_str}_action_view",
-            'res_model': model_name,
-            'type': 'ir.actions.act_window',
-            'view_mode': "tree,form",
-            'view_type': "form",
-            # 'help': help_str,
-            # 'view_id': view_tree.id,
-            # 'search_view_id': self.search_view_id.id,
-            'context': {},
-            'm2o_res_model': model_created.id,
-        }
-        action_id = self.env['ir.actions.act_window'].create(v)
-
-        # Create menu
-
-        self.nb_sub_menu += 1
-
-        v = {
-            'name': model_name_str,
-            'sequence': self.nb_sub_menu,
-            'parent_id': self.generated_parent_menu.id,
-            'action': 'ir.actions.act_window,%s' % action_id.id,
-            # 'group_id': group_id.id,
-            'm2o_module': module.id,
-        }
-
-        access_value = self.env['ir.ui.menu'].create(v)
+                    ))
 
 
 class CodeGeneratorDbColumn(models.Model):

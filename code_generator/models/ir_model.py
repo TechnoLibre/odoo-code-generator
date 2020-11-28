@@ -13,15 +13,18 @@ from odoo.models import MAGIC_COLUMNS
 
 _logger = logging.getLogger(__name__)
 
-MAGIC_FIELDS = MAGIC_COLUMNS + ['display_name', '__last_update']
+MAGIC_FIELDS = MAGIC_COLUMNS + ['display_name', '__last_update', 'access_url', 'access_token', 'access_warning']
 CONSCREATEUNABLE = _('Unable to create the constraint.')
-CONSDELETECREATEUNABLE = _('Since you modify the sql constraint definition we must delete it and create a new one, and we were unable to do it.')
+CONSDELETECREATEUNABLE = _(
+    'Since you modify the sql constraint definition we must delete it and create a new one, and we were unable to do it.')
 CONSMODIFYUNABLE = _('Unable to modify the constraint.')
 CONSDELETEUNABLE = _('Unable to delete the constraint.')
 SYNTAXERRORMSG = _('There is a syntax error in your %scode definition.')
 SERVERCONSTRAIN = _('%s Server constrain ')
-PREDEFINEDVARS = _('You specified a non predefined variable. The predefined variables are self, datetime, dateutil, time, re, ValidationError and the ones accessible through self, like self.env.')
-CONSTRAINEDLS = _('The field Constrained lists the fields that the server constrain will check. It is a comma-separated list of field names, like name, size.')
+PREDEFINEDVARS = _(
+    'You specified a non predefined variable. The predefined variables are self, datetime, dateutil, time, re, ValidationError and the ones accessible through self, like self.env.')
+CONSTRAINEDLS = _(
+    'The field Constrained lists the fields that the server constrain will check. It is a comma-separated list of field names, like name, size.')
 
 SAFE_EVAL_BASE['re'] = re
 SAFE_EVAL_BASE['ValidationError'] = ValidationError
@@ -149,7 +152,7 @@ class IrModelServerConstrain(models.Model):
 
     m2o_ir_model = fields.Many2one(
         comodel_name='ir.model',
-        string='Model',
+        string='Code generator Model',
         help='Model that will hold this server constrain',
         required=True,
         domain=[('transient', '=', False)],
@@ -162,7 +165,7 @@ class IrActionsReport(models.Model):
 
     m2o_model = fields.Many2one(
         comodel_name='ir.model',
-        string='Model',
+        string='Code generator Model',
         help='Model related with this report',
         compute='_compute_m2os'
     )
@@ -183,7 +186,8 @@ class IrActionsReport(models.Model):
 
             stripped = report.report_name.strip()
             splitted = stripped.split('.')
-            searched = self.env['ir.ui.view'].search([('type', '=', 'qweb'), ('name', '=', splitted[len(splitted) - 1])])
+            searched = self.env['ir.ui.view'].search(
+                [('type', '=', 'qweb'), ('name', '=', splitted[len(splitted) - 1])])
             if searched:
                 report.m2o_template = searched[0].id
 
@@ -282,12 +286,12 @@ class IrModel(models.Model):
 
         try:
             if 'rec_name' in model_data and model_data['rec_name']:
-
-                model_fields = self.field_id.search([('model_id', '=', model_data['id'])]). \
-                    filtered(lambda f: f.name not in MAGIC_FIELDS)
-
-                if model_fields and not model_fields.filtered(lambda f: f.name == model_data['rec_name']):
-                    raise ValidationError(_('The Record Label value must exist within the model fields name.'))
+                # TODO this was commented because it caused stack overflow when running with pydev
+                # model_fields = self.field_id.search([('model_id', '=', model_data['id'])]). \
+                #     filtered(lambda f: f.name not in MAGIC_FIELDS)
+                #
+                # if model_fields and not model_fields.filtered(lambda f: f.name == model_data['rec_name']):
+                #     raise ValidationError(_('The Record Label value must exist within the model fields name.'))
 
                 custommodelclass._rec_name = model_data['rec_name']
 
@@ -314,7 +318,7 @@ class IrModel(models.Model):
 
         return custommodelclass
 
-    o2m_serverconstrains = fields.One2many(
+    o2m_server_constrains = fields.One2many(
         comodel_name='ir.model.server_constrain',
         inverse_name='m2o_ir_model',
         string='Server Constrains',
@@ -342,8 +346,9 @@ class CodeGeneratorBase(models.AbstractModel):
         records = created or self
         for r in records:
             target_model = self.env['ir.model'].search([('model', '=', r._name)])
-            if target_model and hasattr(self.env, target_model[0]._name) and hasattr(target_model[0], 'o2m_serverconstrains'):
-                codes = target_model.mapped('o2m_serverconstrains').mapped('txt_code')
+            if target_model and hasattr(self.env, target_model[0]._name) and hasattr(target_model[0],
+                                                                                     'o2m_server_constrains'):
+                codes = target_model.mapped('o2m_server_constrains').mapped('txt_code')
                 for code in codes:
                     safe_eval(code, SAFE_EVAL_BASE, {'self': r}, mode="exec")
 
@@ -362,6 +367,37 @@ class CodeGeneratorBase(models.AbstractModel):
         self._run_safe_eval()
 
         return result
+
+
+class IrModelUpdatedFields(models.Model):
+    _name = 'code.generator.ir.model.fields'
+    _description = 'Code Generator Fields'
+
+    m2o_module = fields.Many2one(
+        'code.generator.module',
+        string='Module',
+        help="Module",
+        ondelete='cascade'
+    )
+
+    m2o_fields = fields.Many2one(
+        'ir.model.fields',
+        string="Fields"
+    )
+
+    nomenclature_blacklist = fields.Boolean(string="Ignore from nomenclature.", default=False)
+
+    nomenclature_whitelist = fields.Boolean(string="Force to nomenclature.", default=False)
+
+    name = fields.Char(string="Name", help="Name of selected field.", compute="_change_m2o_fields")
+
+    @api.onchange('m2o_fields')
+    def _change_m2o_fields(self):
+        for ir_field in self:
+            if ir_field.m2o_fields:
+                ir_field.name = ir_field.m2o_fields.name
+            else:
+                self.name = False
 
 
 class IrModelFields(models.Model):

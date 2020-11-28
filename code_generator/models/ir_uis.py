@@ -37,7 +37,7 @@ class IrUiView(models.Model):
 
     m2o_model = fields.Many2one(
         'ir.model',
-        string='Model',
+        string='Code generator Model',
         help='Model',
         ondelete='cascade'
     )

@@ -1,24 +1,24 @@
 <?xml version= "1.0" ?>
 <odoo>
 
-    <data noupdate="1">
+  <data noupdate="1">
 
-        <record model="code.generator.db.type" id="code_generator_db_type_pgsql">
-            <field name="name">PostgreSQL</field>
-        </record>
+    <record model="code.generator.db.type" id="code_generator_db_type_pgsql">
+      <field name="name">PostgreSQL</field>
+    </record>
 
-        <record model="code.generator.db.type" id="code_generator_db_type_mysql">
-            <field name="name">MySQL</field>
-        </record>
+    <record model="code.generator.db.type" id="code_generator_db_type_mysql">
+      <field name="name">MySQL</field>
+    </record>
 
-        <record model="code.generator.db.type" id="code_generator_db_type_sqlserver">
-            <field name="name">SQLServer</field>
-        </record>
+    <record model="code.generator.db.type" id="code_generator_db_type_sqlserver">
+      <field name="name">SQLServer</field>
+    </record>
 
-    </data>
+  </data>
 
-    <data>
+  <data>
 
-    </data>
+  </data>
 
 </odoo>

@@ -99,6 +99,18 @@ class CodeGeneratorModule(models.Model):
         'm2o_module'
     )
 
+    o2m_nomenclator_whitelist_fields = fields.One2many(
+        'code.generator.ir.model.fields',
+        'm2o_module',
+        domain=[("nomenclature_whitelist", "=", True)]
+    )
+
+    o2m_nomenclator_blacklist_fields = fields.One2many(
+        'code.generator.ir.model.fields',
+        'm2o_module',
+        domain=[("nomenclature_blacklist", "=", True)]
+    )
+
     o2m_model_access = fields.One2many(
         'ir.model.access',
         compute='_get_models_info'
@@ -119,6 +131,16 @@ class CodeGeneratorModule(models.Model):
         compute='_get_models_info'
     )
 
+    o2m_model_act_url = fields.One2many(
+        comodel_name='ir.actions.act_url',
+        inverse_name='m2o_code_generator'
+    )
+
+    o2m_model_act_todo = fields.One2many(
+        comodel_name='ir.actions.todo',
+        inverse_name='m2o_code_generator'
+    )
+
     o2m_model_act_window = fields.One2many(
         'ir.actions.act_window',
         compute='_get_models_info'
@@ -129,7 +151,7 @@ class CodeGeneratorModule(models.Model):
         compute='_get_models_info'
     )
 
-    o2m_model_serverconstrains = fields.One2many(
+    o2m_model_server_constrains = fields.One2many(
         'ir.model.server_constrain',
         compute='_get_models_info'
     )
@@ -138,6 +160,24 @@ class CodeGeneratorModule(models.Model):
         'ir.actions.report',
         compute='_get_models_info'
     )
+
+    o2m_menus = fields.One2many(
+        'ir.ui.menu',
+        'm2o_module',
+        context={'ir.ui.menu.full_list': True}
+    )
+
+    nomenclator_only = fields.Boolean(string="Only export data", default=False,
+                                      help="Useful to export data with existing model.")
+
+    # Dev binding code
+    enable_sync_code = fields.Boolean(string="Enable Sync Code", default=False,
+                                      help="Will sync with code on drive when generate.")
+
+    # TODO default path actual path of this file
+    path_sync_code = fields.Char(string="Path", help="Path where sync the code.")
+
+    # clean_before_sync_code = fields.Boolean(string="Clean before sync", help="Clean before sync, all will be lost.")
 
     @api.depends('o2m_models')
     def _get_models_info(self):
@@ -148,14 +188,8 @@ class CodeGeneratorModule(models.Model):
             module.o2m_model_views = module.o2m_models.mapped('view_ids')
             module.o2m_model_act_window = module.o2m_models.mapped('o2m_act_window')
             module.o2m_model_act_server = module.o2m_models.mapped('o2m_server_action')
-            module.o2m_model_serverconstrains = module.o2m_models.mapped('o2m_serverconstrains')
+            module.o2m_model_server_constrains = module.o2m_models.mapped('o2m_server_constrains')
             module.o2m_model_reports = module.o2m_models.mapped('o2m_reports')
-
-    o2m_menus = fields.One2many(
-        'ir.ui.menu',
-        'm2o_module',
-        context={'ir.ui.menu.full_list': True}
-    )
 
     @api.depends('name', 'description')
     def _get_desc(self):
@@ -206,8 +240,9 @@ class CodeGeneratorModule(models.Model):
     @api.multi
     def unlink(self):
         o2m_models = self.mapped('o2m_models')
-        o2m_models.mapped('view_ids').unlink()
-        o2m_models.unlink()  # I need to delete the ceated tables
+        if o2m_models:
+            o2m_models.mapped('view_ids').unlink()
+            o2m_models.unlink()  # I need to delete the created tables
         return super(CodeGeneratorModule, self).unlink()
 
 

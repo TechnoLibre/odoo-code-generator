@@ -1,0 +1,48 @@
+<?xml version= "1.0" ?>
+<odoo>
+
+  <record model="ir.ui.view" id="code_generator_module_hook_form_inherit">
+    <field name="name">code.generator.module.form.inherit</field>
+    <field name="model">code.generator.module</field>
+    <field name="inherit_id" ref="code_generator.code_generator_module_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//page[@name='Elements']" position="after">
+        <page string="Hook" name="Hook">
+          <group string="pre_init_hook">
+            <group>
+              <field name="pre_init_hook_show"/>
+            </group>
+            <group string="Feature" attrs="{'invisible': [('pre_init_hook_show', '=', False)]}">
+              <field name="pre_init_hook_feature_general_conf"/>
+            </group>
+          </group>
+          <field name="pre_init_hook_code" attrs="{'invisible': [('pre_init_hook_show', '=', False)]}" nolabel="1"
+                 widget="ace" options="{'mode': 'python'}"/>
+
+          <group string="post_init_hook">
+            <group>
+              <field name="post_init_hook_show"/>
+            </group>
+            <group string="Feature" attrs="{'invisible': [('post_init_hook_show', '=', False)]}">
+              <field name="post_init_hook_feature_general_conf"/>
+            </group>
+          </group>
+          <field name="post_init_hook_code" attrs="{'invisible': [('post_init_hook_show', '=', False)]}" nolabel="1"
+                 widget="ace" options="{'mode': 'python'}"/>
+
+          <group string="uninstall_hook">
+            <group>
+              <field name="uninstall_hook_show"/>
+            </group>
+            <group string="Feature" attrs="{'invisible': [('uninstall_hook_show', '=', False)]}">
+              <field name="uninstall_hook_feature_general_conf"/>
+            </group>
+          </group>
+          <field name="uninstall_hook_code" attrs="{'invisible': [('uninstall_hook_show', '=', False)]}" nolabel="1"
+                 widget="ace" options="{'mode': 'python'}"/>
+        </page>
+      </xpath>
+    </field>
+  </record>
+
+</odoo>

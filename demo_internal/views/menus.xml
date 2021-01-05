@@ -1,0 +1,10 @@
+<?xml version= "1.0" encoding="utf-8"?>
+<odoo>
+  <menuitem id="root_demo_model_2_internal" name="root_demo_model_2_internal" sequence="20"
+            web_icon="demo_internal,static/description/icon.png"/>
+  <menuitem id="models" name="Models" sequence="1" parent="root_demo_model_2_internal"/>
+  <menuitem id="demo_model_2_internal" name="demo_model_2_internal"
+            action="demo_model_2_internal_demo_model_2_internal_action_vi_actionwindow" sequence="1" parent="models"/>
+  <menuitem id="demo_model_internal" name="demo_model_internal"
+            action="demo_model_internal_demo_model_internal_action_view_actionwindow" sequence="2" parent="models"/>
+</odoo>

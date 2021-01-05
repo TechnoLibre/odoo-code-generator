@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+demo_model_2_portal_access_user_types_/_portal,demo_model_2_portal Access User types / Portal,model_demo_model_2_portal,base.group_portal,1,1,1,1
+demo_model_2_portal_access_user_types_/_internal_user,demo_model_2_portal Access User types / Internal User,model_demo_model_2_portal,base.group_user,1,1,1,1
+demo_model_portal_access_user_types_/_portal,demo_model_portal Access User types / Portal,model_demo_model_portal,base.group_portal,1,1,1,1
+demo_model_portal_access_user_types_/_internal_user,demo_model_portal Access User types / Internal User,model_demo_model_portal,base.group_user,1,1,1,1

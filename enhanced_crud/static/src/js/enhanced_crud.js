@@ -46,13 +46,17 @@ odoo.define('enhanced_crud', function (require) {
      * @returns {*}
      * @private
      */
-    function _get_parent_window_disposition (element) {
+    function _get_parent_window_disposition(element) {
         if (element.getParent()) {
             let parent = element.getParent();
             if (parent._window_disposition === undefined) {
                 return _get_parent_window_disposition(parent);
-            } else {return parent;}
-        } else {return null;}
+            } else {
+                return parent;
+            }
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -91,7 +95,7 @@ odoo.define('enhanced_crud', function (require) {
             if (_enhanced_crud_form_controller) {
 
                 // New behaviour
-                let context = this.record.getContext(_.extend({}, this.recordParams, { additionalContext: params.context }));
+                let context = this.record.getContext(_.extend({}, this.recordParams, {additionalContext: params.context}));
                 let event = new OdooEvent(this, 'open_one2many_record', _.extend(params, {
                     domain: this.record.getDomain(this.recordParams),
                     context: context,
@@ -118,7 +122,9 @@ odoo.define('enhanced_crud', function (require) {
      * @private
      */
     function _enhanced_crud_findActionManager(self) {
-        return self.findAncestor(function (a) {return a instanceof ActionManager;}) || null;
+        return self.findAncestor(function (a) {
+            return a instanceof ActionManager;
+        }) || null;
     }
 
     /**
@@ -272,8 +278,8 @@ odoo.define('enhanced_crud', function (require) {
                         let ctx = new Context(
                             _.object(_.reject(_.pairs(env.context), function (pair) {
                                 return pair[0].match('^(?:(?:default_|search_default_|show_).+|' +
-                                                     '.+_view_ref|group_by|group_by_no_leaf|active_id|' +
-                                                     'active_ids|orderedBy)$') !== null;
+                                    '.+_view_ref|group_by|group_by_no_leaf|active_id|' +
+                                    'active_ids|orderedBy)$') !== null;
                             }))
                         );
                         ctx.add(actionData.context || {});
@@ -329,7 +335,7 @@ odoo.define('enhanced_crud', function (require) {
         /**
          * Redefining the _onBreadcrumbClicked method to take into account whether a controllerID with an Enhanced CRUD
          * module special notation (ej: controller_19-recordID:1) exists or not and proceed accordingly
-          * @param ev
+         * @param ev
          * @private
          */
         _onBreadcrumbClicked: function (ev) {
@@ -378,7 +384,9 @@ odoo.define('enhanced_crud', function (require) {
     function _enhanced_crud_destroyContextMenu(attrs, js_class_value) {
         let js_class_in = 'js_class' in attrs;
         if (!js_class_in || (js_class_in && attrs['js_class'] !== js_class_value)) {
-            if ($.contextMenu) {$.contextMenu('destroy', {context: this});}
+            if ($.contextMenu) {
+                $.contextMenu('destroy', {context: this});
+            }
         }
     }
 
@@ -419,7 +427,9 @@ odoo.define('enhanced_crud', function (require) {
                 method: 'enhanced_crud_can_edit_pager'
             }).then(function (response) {
                 self.options.can_edit = response === 'True';
-            }, function () {self.options.can_edit = false;});
+            }, function () {
+                self.options.can_edit = false;
+            });
         },
 
         template: 'EnhancedCrud.pager',
@@ -444,7 +454,7 @@ odoo.define('enhanced_crud', function (require) {
 
         /**
          * Replacing the _updateArrows method to take into account the new buttons
-          * @private
+         * @private
          */
         _updateArrows: function () {
             if (this.state.current_min === 1) {
@@ -481,14 +491,20 @@ odoo.define('enhanced_crud', function (require) {
          */
         trigger_pager_changed: function (current_min, limit) {
             let self = this, currentControllerWidget = _enhanced_crud_findCurrentControllerWidget(self);
-            return self.options.validate().then(function() {
-                if (current_min) {self.state.current_min = current_min;}
-                if (limit) {self.state.limit = limit;}
+            return self.options.validate().then(function () {
+                if (current_min) {
+                    self.state.current_min = current_min;
+                }
+                if (limit) {
+                    self.state.limit = limit;
+                }
                 self._render();
                 self.trigger('pager_changed', _.clone(self.state));
                 return self.state;
             }).then(() => {
-                if (currentControllerWidget.viewType === 'list') {currentControllerWidget._toggleDisabled4ClickableButtons();}
+                if (currentControllerWidget.viewType === 'list') {
+                    currentControllerWidget._toggleDisabled4ClickableButtons();
+                }
             });
         },
 
@@ -497,21 +513,27 @@ odoo.define('enhanced_crud', function (require) {
          * @param event
          * @private
          */
-        _onFirst: function (event) {this.trigger_pager_changed(1);},
+        _onFirst: function (event) {
+            this.trigger_pager_changed(1);
+        },
 
         /**
          * Function to go to the last page
          * @param event
          * @private
          */
-        _onLast: function (event) {this.trigger_pager_changed(this._get_final_current_min());},
+        _onLast: function (event) {
+            this.trigger_pager_changed(this._get_final_current_min());
+        },
 
         /**
          * Function to go to reload the grid
          * @param event
          * @private
          */
-        _onReload: function (event) {this.trigger_pager_changed();},
+        _onReload: function (event) {
+            this.trigger_pager_changed();
+        },
 
         /**
          * Function to execute a pagination page by page
@@ -565,7 +587,7 @@ odoo.define('enhanced_crud', function (require) {
          * @param nextone
          * @private
          */
-        _enhanced_crud_generic_actionwindow: function(record_id=null, action_name=t_4ECrudAdd, prev=null, nextone=null) {
+        _enhanced_crud_generic_actionwindow: function (record_id = null, action_name = t_4ECrudAdd, prev = null, nextone = null) {
             let self = this,
                 form_view = self.actionViews.filter((aView) => aView.type === 'form'),
                 form_view_id = form_view[0].fieldsView.view_id,
@@ -600,7 +622,9 @@ odoo.define('enhanced_crud', function (require) {
                 }
 
                 action['res_id'] = record_id;
-                if (action_name === t_4ECrudAdd) {additional_context['additional_context']['enhanced_crud_copying'] = true;}
+                if (action_name === t_4ECrudAdd) {
+                    additional_context['additional_context']['enhanced_crud_copying'] = true;
+                }
             }
 
             self.do_action(action, additional_context).then(() => {
@@ -622,7 +646,7 @@ odoo.define('enhanced_crud', function (require) {
          * @returns {*}
          * @private
          */
-        _enhanced_crud_action_window_close: function() {
+        _enhanced_crud_action_window_close: function () {
             $('div.modal').modal('hide')
         },
 
@@ -630,7 +654,7 @@ odoo.define('enhanced_crud', function (require) {
          * Function to obtain the value for the window disposition configuration variable
          * @returns {Promise<T | never>}
          */
-        _enhanced_crud_window_disposition: function() {
+        _enhanced_crud_window_disposition: function () {
             let self = this;
             return self._rpc({
                 model: self.modelName,
@@ -642,7 +666,9 @@ odoo.define('enhanced_crud', function (require) {
          * Function to trigger the reload action
          * @private
          */
-        _enhanced_crud_reload: function () {return this.reload();},
+        _enhanced_crud_reload: function () {
+            return this.reload();
+        },
 
         /**
          * Same function as web.Sidebar -> _onItemActionClicked
@@ -651,26 +677,32 @@ odoo.define('enhanced_crud', function (require) {
          * @private
          */
         _onSideBarItemActionClick: function (action, kanbanRecordID) {
-             let self = this, env = self._getSidebarEnv(),
-                 state = this.model.get(this.handle);
-             if (kanbanRecordID) {env.activeIds = [kanbanRecordID];}
-             env = _.extend(env, {domain: state.getDomain()});
-             let activeIdsContext = {
-                 active_id: env.activeIds[0],
-                 active_ids: env.activeIds,
-                 active_model: env.model,
-                 active_domain: env.domain
-             };
-             let context = pyUtils.eval('context', new Context(env.context, activeIdsContext));
+            let self = this, env = self._getSidebarEnv(),
+                state = this.model.get(this.handle);
+            if (kanbanRecordID) {
+                env.activeIds = [kanbanRecordID];
+            }
+            env = _.extend(env, {domain: state.getDomain()});
+            let activeIdsContext = {
+                active_id: env.activeIds[0],
+                active_ids: env.activeIds,
+                active_model: env.model,
+                active_domain: env.domain
+            };
+            let context = pyUtils.eval('context', new Context(env.context, activeIdsContext));
 
-             self._rpc({
-                 route: '/web/action/load',
-                 params: {action_id: action.id, context: context}
-             }).done(function (result) {
-                 result.context = new Context(result.context || {}, activeIdsContext).set_eval_context(context);
-                 result.flags = result.flags || {};
-                 result.flags.new_window = true;
-                 self.do_action(result, {on_close: function () {self._enhanced_crud_reload();}});
+            self._rpc({
+                route: '/web/action/load',
+                params: {action_id: action.id, context: context}
+            }).done(function (result) {
+                result.context = new Context(result.context || {}, activeIdsContext).set_eval_context(context);
+                result.flags = result.flags || {};
+                result.flags.new_window = true;
+                self.do_action(result, {
+                    on_close: function () {
+                        self._enhanced_crud_reload();
+                    }
+                });
             });
         }
 
@@ -690,7 +722,9 @@ odoo.define('enhanced_crud', function (require) {
             let self = this;
             self._super.apply(self, arguments);
             self.hasSidebar = false;
-            self._enhanced_crud_window_disposition().then(function (response) {self._window_disposition = response;});
+            self._enhanced_crud_window_disposition().then(function (response) {
+                self._window_disposition = response;
+            });
         },
 
         /**
@@ -734,7 +768,7 @@ odoo.define('enhanced_crud', function (require) {
          * @returns {*}
          * @private
          */
-        _enhanced_crud_get_current_id: function(event) {
+        _enhanced_crud_get_current_id: function (event) {
             let self = this,
                 record = self.model.get(event.data.id, {raw: true});
             return record ? record.res_id : null;
@@ -774,19 +808,25 @@ odoo.define('enhanced_crud', function (require) {
         _get_other_actions: function () {
             let self = this,
                 other = [{label: _t("Export"), callback: self._onExportData.bind(self)}],
-                reload = () => {self._enhanced_crud_reload();};
+                reload = () => {
+                    self._enhanced_crud_reload();
+                };
             if (self.archiveEnabled) {
                 other.push({
                     label: _t("Archive"),
                     callback: function () {
                         Dialog.confirm(self, _t("Are you sure that you want to archive all the selected records?"), {
-                            confirm_callback: () => {self._onToggleArchiveState(true).then(reload)},
+                            confirm_callback: () => {
+                                self._onToggleArchiveState(true).then(reload)
+                            },
                         });
                     }
                 });
                 other.push({
                     label: _t("Unarchive"),
-                    callback: () => {self._onToggleArchiveState(false).then(reload)}
+                    callback: () => {
+                        self._onToggleArchiveState(false).then(reload)
+                    }
                 });
             }
             return other;
@@ -801,15 +841,19 @@ odoo.define('enhanced_crud', function (require) {
          * @returns {HTMLElement}
          * @private
          */
-         _get_element: function(textNode, callback, element, className) {
-             element = element || 'button';
-             let element_is_button = element === 'button';
-             className = className || 'dropdown-item';
-             element = document.createElement(element);
-             element.classList.add(className);
-             if (element_is_button) {element.onclick = callback;}
-             if (textNode) {element.appendChild(document.createTextNode(textNode));}
-             return element;
+        _get_element: function (textNode, callback, element, className) {
+            element = element || 'button';
+            let element_is_button = element === 'button';
+            className = className || 'dropdown-item';
+            element = document.createElement(element);
+            element.classList.add(className);
+            if (element_is_button) {
+                element.onclick = callback;
+            }
+            if (textNode) {
+                element.appendChild(document.createTextNode(textNode));
+            }
+            return element;
         },
 
         /**
@@ -818,79 +862,93 @@ odoo.define('enhanced_crud', function (require) {
          * @returns {Array}
          */
         set_more_menu: function (just_return) {
-             let self = this,
-                 l_menu = [],
-                 menu = self.$buttons.find('div.dropdown-menu'),
-                 print_len = self.toolbarActions.print.length,
-                 action_len = self.toolbarActions.action.length,
-                 other = self._get_other_actions();
+            let self = this,
+                l_menu = [],
+                menu = self.$buttons.find('div.dropdown-menu'),
+                print_len = self.toolbarActions.print.length,
+                action_len = self.toolbarActions.action.length,
+                other = self._get_other_actions();
 
-             if (print_len) {
-                 l_menu.push([t_4ECrudReports, []]);
-                 if (!just_return) {
-                     menu[0].appendChild(self._get_element(t_4ECrudReports, null, 'span', 'dropdown-item-text'));
-                 }
-                 self.toolbarActions.print.forEach(function (action) {
-                     l_menu[l_menu.length - 1][1].push([action.name, () => {self._onSideBarItemActionClick(action)}]);
-                     if (!just_return) {
-                         menu[0].appendChild(self._get_element(action.name, () => {self._onSideBarItemActionClick(action)}));
-                     }
-                 });
-             }
+            if (print_len) {
+                l_menu.push([t_4ECrudReports, []]);
+                if (!just_return) {
+                    menu[0].appendChild(self._get_element(t_4ECrudReports, null, 'span', 'dropdown-item-text'));
+                }
+                self.toolbarActions.print.forEach(function (action) {
+                    l_menu[l_menu.length - 1][1].push([action.name, () => {
+                        self._onSideBarItemActionClick(action)
+                    }]);
+                    if (!just_return) {
+                        menu[0].appendChild(self._get_element(action.name, () => {
+                            self._onSideBarItemActionClick(action)
+                        }));
+                    }
+                });
+            }
 
-             if (action_len) {
-                 if (print_len && !just_return) {menu[0].appendChild(self._get_element(null, null, 'div', 'dropdown-divider'));}
-                 l_menu.push([t_4ECrudActions, []]);
-                 if (!just_return) {
-                     menu[0].appendChild(self._get_element(t_4ECrudActions, null, 'span', 'dropdown-item-text'));
-                 }
-                 self.toolbarActions.action.forEach(function (action) {
-                     l_menu[l_menu.length - 1][1].push([action.name, () => {self._onSideBarItemActionClick(action)}]);
-                     if (!just_return) {
-                         menu[0].appendChild(self._get_element(action.name, () => {self._onSideBarItemActionClick(action)}));
-                     }
-                 });
-             }
+            if (action_len) {
+                if (print_len && !just_return) {
+                    menu[0].appendChild(self._get_element(null, null, 'div', 'dropdown-divider'));
+                }
+                l_menu.push([t_4ECrudActions, []]);
+                if (!just_return) {
+                    menu[0].appendChild(self._get_element(t_4ECrudActions, null, 'span', 'dropdown-item-text'));
+                }
+                self.toolbarActions.action.forEach(function (action) {
+                    l_menu[l_menu.length - 1][1].push([action.name, () => {
+                        self._onSideBarItemActionClick(action)
+                    }]);
+                    if (!just_return) {
+                        menu[0].appendChild(self._get_element(action.name, () => {
+                            self._onSideBarItemActionClick(action)
+                        }));
+                    }
+                });
+            }
 
-             if (other.length) {
-                 if ((print_len || action_len) && !just_return) {menu[0].appendChild(self._get_element(null, null, 'div', 'dropdown-divider'));}
-                 l_menu.push([t_4ECrudOthers, []]);
-                 if (!just_return) {
-                     menu[0].appendChild(self._get_element(t_4ECrudOthers, null, 'span', 'dropdown-item-text'));
-                 }
-                 other.forEach(function (action) {
-                     if (action.label !== _t('Delete')) {
-                         l_menu[l_menu.length - 1][1].push([action.label, action.callback]);
-                         if (!just_return) {
-                             menu[0].appendChild(self._get_element(action.label, action.callback));
-                         }
-                     }
-                 });
+            if (other.length) {
+                if ((print_len || action_len) && !just_return) {
+                    menu[0].appendChild(self._get_element(null, null, 'div', 'dropdown-divider'));
+                }
+                l_menu.push([t_4ECrudOthers, []]);
+                if (!just_return) {
+                    menu[0].appendChild(self._get_element(t_4ECrudOthers, null, 'span', 'dropdown-item-text'));
+                }
+                other.forEach(function (action) {
+                    if (action.label !== _t('Delete')) {
+                        l_menu[l_menu.length - 1][1].push([action.label, action.callback]);
+                        if (!just_return) {
+                            menu[0].appendChild(self._get_element(action.label, action.callback));
+                        }
+                    }
+                });
 
-                 if ('duplicate' in self.activeActions && self.activeActions.duplicate) {
-                     let duplicateAllThen = () => {
-                         Promise.all(
-                             _.map(
-                                 self.getSelectedIds(),
-                                 (selectedId) => {
-                                     return self._rpc({
-                                         model: self.modelName,
-                                         method: 'copy',
-                                         context: self.model.get(self.handle).getContext(),
-                                         args: [selectedId],
-                                     })
-                                 }
-                             )
-                         ).then(function () {self._enhanced_crud_reload();})
-                     };
-                     l_menu[l_menu.length - 1][1].push([_lt('Duplicate'), duplicateAllThen]);
-                     if (!just_return) {
-                         menu[0].appendChild(self._get_element(_lt('Duplicate'), duplicateAllThen));
-                     }
-                 }
-             }
+                if ('duplicate' in self.activeActions && self.activeActions.duplicate) {
+                    let duplicateAllThen = () => {
+                        Promise.all(
+                            _.map(
+                                self.getSelectedIds(),
+                                (selectedId) => {
+                                    return self._rpc({
+                                        model: self.modelName,
+                                        method: 'copy',
+                                        context: self.model.get(self.handle).getContext(),
+                                        args: [selectedId],
+                                    })
+                                }
+                            )
+                        ).then(function () {
+                            self._enhanced_crud_reload();
+                        })
+                    };
+                    l_menu[l_menu.length - 1][1].push([_lt('Duplicate'), duplicateAllThen]);
+                    if (!just_return) {
+                        menu[0].appendChild(self._get_element(_lt('Duplicate'), duplicateAllThen));
+                    }
+                }
+            }
 
-             return l_menu
+            return l_menu
         },
 
         /**
@@ -922,7 +980,9 @@ odoo.define('enhanced_crud', function (require) {
 
                 });
 
-                setTimeout(function () {self.set_more_menu()});
+                setTimeout(function () {
+                    self.set_more_menu()
+                });
 
             }
         },
@@ -965,8 +1025,12 @@ odoo.define('enhanced_crud', function (require) {
                     self._toggleDisabled4ClickableButtons();
                 });
             }
-            if (this.confirmOnDelete) {Dialog.confirm(this, ids.length > 1 ? t_4MultiDelete : t_4SingleDelete, {confirm_callback: doIt,});}
-            else {doIt();}
+
+            if (this.confirmOnDelete) {
+                Dialog.confirm(this, ids.length > 1 ? t_4MultiDelete : t_4SingleDelete, {confirm_callback: doIt,});
+            } else {
+                doIt();
+            }
 
         },
 
@@ -1025,7 +1089,10 @@ odoo.define('enhanced_crud', function (require) {
                                 if (params.activeActions[i]) {
                                     atleastone = true;
                                     if (i === 'edit') {
-                                        items['modify'] = {"name": t_4ECrudModify + ' ' + t_4SingleElementOption, "icon": "edit"};
+                                        items['modify'] = {
+                                            "name": t_4ECrudModify + ' ' + t_4SingleElementOption,
+                                            "icon": "edit"
+                                        };
                                     } else if (i === 'delete') {
                                         items['delete'] = {"name": _lt('ECrudDelete'), "icon": "delete"};
                                     }
@@ -1034,23 +1101,29 @@ odoo.define('enhanced_crud', function (require) {
 
                             if ('form' in parent._views_toolbars) {
                                 let relate = parent._views_toolbars['form']['relate'];
-                                if (relate.length) {items['sep' + l_menu.length] = '---------'}
+                                if (relate.length) {
+                                    items['sep' + l_menu.length] = '---------'
+                                }
                                 for (let i in relate) {
                                     items[relate[i].name] = {'name': relate[i].name + ' ' + t_4SingleElementOption};
-                                    d_callbacks[relate[i].name] = () => {listControllerWidget._onSideBarItemActionClick(relate[i])}
+                                    d_callbacks[relate[i].name] = () => {
+                                        listControllerWidget._onSideBarItemActionClick(relate[i])
+                                    }
                                 }
                             }
 
                             l_menu.forEach((menu, index) => {
-                                if (atleastone) {items['sep' + index] = '---------'}
-                                let submenues = {};
+                                if (atleastone) {
+                                    items['sep' + index] = '---------'
+                                }
+                                let submenus = {};
                                 menu[1].forEach((submenu) => {
-                                    submenues[submenu[0]] = {name: submenu[0]};
+                                    submenus[submenu[0]] = {name: submenu[0]};
                                     d_callbacks[submenu[0]] = submenu[1]
                                 });
                                 items['fold' + index] = {
                                     name: menu[0],
-                                    items: submenues
+                                    items: submenus
                                 }
                             });
 
@@ -1058,18 +1131,29 @@ odoo.define('enhanced_crud', function (require) {
                                 items: items,
                                 callback: function (key, options) {
                                     if (key === 'modify') {
-                                        listControllerWidget.trigger_up('open_record', { id: options.$trigger.data('id'), target: options.$trigger });
+                                        listControllerWidget.trigger_up('open_record', {
+                                            id: options.$trigger.data('id'),
+                                            target: options.$trigger
+                                        });
 
                                     } else if (key === 'delete') {
                                         let selectedStringIds = self._getSelectedStringIds();
 
                                         if (!selectedStringIds.length) {
-                                           // Just in case...
-                                            Dialog.alert(self, t_4ECrudReloadNeeded, {confirm_callback: () => {parent.do_action('reload')}});
+                                            // Just in case...
+                                            Dialog.alert(self, t_4ECrudReloadNeeded, {
+                                                confirm_callback: () => {
+                                                    parent.do_action('reload')
+                                                }
+                                            });
                                         }
 
-                                        let selectedData = _.filter(listState.data, (e) => {return selectedStringIds.indexOf(e.id) !== -1}),
-                                            selectedIds = _.map(selectedData, (e) => {return e.data.id});
+                                        let selectedData = _.filter(listState.data, (e) => {
+                                                return selectedStringIds.indexOf(e.id) !== -1
+                                            }),
+                                            selectedIds = _.map(selectedData, (e) => {
+                                                return e.data.id
+                                            });
 
                                         Dialog.confirm(self, selectedData.length > 1 ? t_4MultiDelete : t_4SingleDelete, {
                                             confirm_callback: () => {
@@ -1078,7 +1162,9 @@ odoo.define('enhanced_crud', function (require) {
                                                     method: 'unlink',
                                                     context: listState.getContext(),
                                                     args: [selectedIds],
-                                                }).then(function () {listControllerWidget._enhanced_crud_reload();});
+                                                }).then(function () {
+                                                    listControllerWidget._enhanced_crud_reload();
+                                                });
                                             }
                                         })
 
@@ -1089,7 +1175,9 @@ odoo.define('enhanced_crud', function (require) {
                             }
                         },
                         events: {
-                            show: function (options) {self._innerOnSelectRecord(options.$trigger);}
+                            show: function (options) {
+                                self._innerOnSelectRecord(options.$trigger);
+                            }
                         }
                     })
                 }
@@ -1111,13 +1199,16 @@ odoo.define('enhanced_crud', function (require) {
                 let selection = $('tbody .o_list_record_selector input:checked');
                 if (changeSelection && !checked && selection.length) {
                     selection.prop('checked', false);
-                    selection.closest('tr').css('background-color','#f5f5f5');
+                    selection.closest('tr').css('background-color', '#f5f5f5');
                 } else {
-                    $('tbody tr').css('background-color','#f5f5f5');
+                    $('tbody tr').css('background-color', '#f5f5f5');
                 }
-                if (changeSelection) {record_selector_input.prop('checked', !checked);}
-                else {record_selector_input.prop('checked', true);}
-                $(target).css('background-color','#CCC');
+                if (changeSelection) {
+                    record_selector_input.prop('checked', !checked);
+                } else {
+                    record_selector_input.prop('checked', true);
+                }
+                $(target).css('background-color', '#CCC');
                 this._updateSelection();
                 return true;
             }
@@ -1144,7 +1235,9 @@ odoo.define('enhanced_crud', function (require) {
          */
         _getSelectedStringIds: function () {
             let selectedRows = $('tbody .o_list_record_selector input:checked').closest('tr');
-            return _.map(selectedRows, function (row) {return $(row).data('id');});
+            return _.map(selectedRows, function (row) {
+                return $(row).data('id');
+            });
         },
 
         /**
@@ -1159,7 +1252,9 @@ odoo.define('enhanced_crud', function (require) {
         /**
          * Function to unselect rows "manually"
          */
-        _unSelectRows: function () {this.$('.o_list_record_selector input:checked').prop('checked', false);}
+        _unSelectRows: function () {
+            this.$('.o_list_record_selector input:checked').prop('checked', false);
+        }
     });
 
     /**
@@ -1213,7 +1308,9 @@ odoo.define('enhanced_crud', function (require) {
          * @private
          */
         _archive: function (ids, archive) {
-            if (ids.length === 0) {return $.when();}
+            if (ids.length === 0) {
+                return $.when();
+            }
             return this.model.toggleActive(ids, !archive, this.handle).then(this.update.bind(this, {}, {reload: false}));
         },
 
@@ -1223,7 +1320,9 @@ odoo.define('enhanced_crud', function (require) {
          * @param kanbanRecordDbID
          * @private
          */
-        _onToggleArchiveState: function (archive, kanbanRecordDbID) {this._archive([kanbanRecordDbID], archive);},
+        _onToggleArchiveState: function (archive, kanbanRecordDbID) {
+            this._archive([kanbanRecordDbID], archive);
+        },
 
     }));
 
@@ -1249,7 +1348,7 @@ odoo.define('enhanced_crud', function (require) {
                                 items = {},
                                 d_callbacks = {},
                                 atleastone = false,
-                                submenues = {};
+                                submenus = {};
 
                             for (let i in params.activeActions) {
                                 if (params.activeActions[i]) {
@@ -1264,7 +1363,9 @@ odoo.define('enhanced_crud', function (require) {
 
                             if ('form' in parent._views_toolbars) {
                                 let relate = parent._views_toolbars['form']['relate'];
-                                if (relate.length) {items['sep' + Object.keys(items).length] = '---------'}
+                                if (relate.length) {
+                                    items['sep' + Object.keys(items).length] = '---------'
+                                }
                                 for (let i in relate) {
                                     items[relate[i].name] = {'name': relate[i].name};
                                     d_callbacks[relate[i].name] = (kanbanRecordID) => {
@@ -1278,7 +1379,7 @@ odoo.define('enhanced_crud', function (require) {
                                     print = parent._views_toolbars['kanban']['print'];
                                 if (action.length) {
                                     for (let i in action) {
-                                        submenues[action[i].name] = {'name': action[i].name};
+                                        submenus[action[i].name] = {'name': action[i].name};
                                         d_callbacks[action[i].name] = (kanbanRecordID) => {
                                             kanbanControllerWidget._onSideBarItemActionClick(action[i], kanbanRecordID)
                                         }
@@ -1286,13 +1387,13 @@ odoo.define('enhanced_crud', function (require) {
                                     items['sep' + Object.keys(items).length] = '---------';
                                     items['fold' + Object.keys(items).length] = {
                                         name: t_4ECrudActions,
-                                        items: submenues
+                                        items: submenus
                                     }
                                 }
                                 if (print.length) {
-                                    submenues = {};
+                                    submenus = {};
                                     for (let i in print) {
-                                        submenues[print[i].name] = {'name': print[i].name};
+                                        submenus[print[i].name] = {'name': print[i].name};
                                         d_callbacks[print[i].name] = (kanbanRecordID) => {
                                             kanbanControllerWidget._onSideBarItemActionClick(print[i], kanbanRecordID)
                                         }
@@ -1300,14 +1401,16 @@ odoo.define('enhanced_crud', function (require) {
                                     items['sep' + Object.keys(items).length] = '---------';
                                     items['fold' + Object.keys(items).length] = {
                                         name: t_4ECrudReports,
-                                        items: submenues
+                                        items: submenus
                                     }
                                 }
                             }
 
-                            if (Object.keys(items).length) {items['sep' + Object.keys(items).length] = '---------';}
+                            if (Object.keys(items).length) {
+                                items['sep' + Object.keys(items).length] = '---------';
+                            }
                             if (kanbanControllerWidget.archiveEnabled) {
-                                submenues = {
+                                submenus = {
                                     'archive': {name: _t("Archive")},
                                     'unarchive': {name: _t("Unarchive")}
                                 };
@@ -1321,7 +1424,7 @@ odoo.define('enhanced_crud', function (require) {
                             }
                             items['fold' + Object.keys(items).length] = {
                                 name: t_4ECrudOthers,
-                                items: submenues
+                                items: submenus
                             };
 
                             return {
@@ -1338,7 +1441,9 @@ odoo.define('enhanced_crud', function (require) {
                                                     method: 'unlink',
                                                     context: kanbanState.getContext(),
                                                     args: [recordID],
-                                                }).then(function () {kanbanControllerWidget._enhanced_crud_reload();});
+                                                }).then(function () {
+                                                    kanbanControllerWidget._enhanced_crud_reload();
+                                                });
                                             }
                                         })
 
@@ -1348,7 +1453,9 @@ odoo.define('enhanced_crud', function (require) {
                                             method: 'copy',
                                             context: kanbanState.getContext(),
                                             args: [recordID],
-                                        }).then(function () {kanbanControllerWidget._enhanced_crud_reload()});
+                                        }).then(function () {
+                                            kanbanControllerWidget._enhanced_crud_reload()
+                                        });
 
                                     } else {
                                         ['archive', 'unarchive'].indexOf(key) !== -1 ? d_callbacks[key](dbID) : d_callbacks[key](recordID);
@@ -1442,7 +1549,8 @@ odoo.define('enhanced_crud', function (require) {
                 ev.stopPropagation();
                 self._disableButtons();
 
-                let state = self.model.get(self.handle, {raw: true}), view_edit_mode = 'id' in state.data && self.displayName !== t_4ECrudAdd;
+                let state = self.model.get(self.handle, {raw: true}),
+                    view_edit_mode = 'id' in state.data && self.displayName !== t_4ECrudAdd;
 
                 if (self._check_dirty(view_edit_mode)) {
                     self._enableButtons();
@@ -1508,8 +1616,13 @@ odoo.define('enhanced_crud', function (require) {
          */
         _enhanced_crud_form_prev_next_button_click: function (event, new_pos, view_edit_mode, state, offset, limit, next) {
             next = next || false;
-            let self = this, _no_option = () => {self._reload_pager = false; self._enhanced_crud_generic_actionwindow(state.data.id, t_4ECrudModify, !next, next);};
-            if (event.currentTarget.className.indexOf(' disabled') !== -1) {return;}
+            let self = this, _no_option = () => {
+                self._reload_pager = false;
+                self._enhanced_crud_generic_actionwindow(state.data.id, t_4ECrudModify, !next, next);
+            };
+            if (event.currentTarget.className.indexOf(' disabled') !== -1) {
+                return;
+            }
             if (new_pos) {
                 if (self._check_dirty(view_edit_mode, true, next ? t_4ChangeOnNextPagination : t_4ChangeOnPrevPagination,
                     {
@@ -1530,7 +1643,9 @@ odoo.define('enhanced_crud', function (require) {
                             }
                         ]
                     }
-                )) {return;}
+                )) {
+                    return;
+                }
                 self._reload_pager = false;
                 return _no_option();
             }
@@ -1551,7 +1666,8 @@ odoo.define('enhanced_crud', function (require) {
                 }
 
                 self._enhanced_crud_window_disposition().then(function (response) {
-                    let state = self.model.get(self.handle, {raw: true}), view_edit_mode = 'id' in state.data && self.displayName !== t_4ECrudAdd;
+                    let state = self.model.get(self.handle, {raw: true}),
+                        view_edit_mode = 'id' in state.data && self.displayName !== t_4ECrudAdd;
                     self._window_disposition = response;
                     let new_pos = self._window_disposition === 'new';
                     let current_pos = self._window_disposition === 'current';
@@ -1593,7 +1709,9 @@ odoo.define('enhanced_crud', function (require) {
                     if (new_pos) {
                         _enhanced_crud_cancel = () => self._enhanced_crud_action_window_close();
                     } else if (current_pos) {
-                        if (view_edit_mode) {_enhanced_crud_cancel = () => self.trigger_up('history_back');}
+                        if (view_edit_mode) {
+                            _enhanced_crud_cancel = () => self.trigger_up('history_back');
+                        }
                     }
 
                     self.$buttons.on('click', '.o_enhanced_crud_form_prev_button', function (event) {
@@ -1617,7 +1735,9 @@ odoo.define('enhanced_crud', function (require) {
                     self.$buttons.on('click', '.o_enhanced_crud_form_savecopy_button', self._enhancedCrudSave(false, true));
 
                     self.$buttons.on('click', '.o_enhanced_crud_form_savenext_button', function (event) {
-                        if (event.currentTarget.className.indexOf(' disabled') !== -1) {return;}
+                        if (event.currentTarget.className.indexOf(' disabled') !== -1) {
+                            return;
+                        }
                         self._enhancedCrudSave(false, false, false, true, offset, limit)(event);
                     });
                     self.$buttons.find('.o_enhanced_crud_form_savenext_button').toggleClass('disabled', !disable_savenext);
@@ -1723,7 +1843,9 @@ odoo.define('enhanced_crud', function (require) {
                 } else {
                     if (!this._window_disposition || this._window_disposition !== 'new') {
                         return this._setMode('readonly');
-                    } else {return this._setMode('edit');}
+                    } else {
+                        return this._setMode('edit');
+                    }
                 }
             } else {
                 let record = this.model.get(this.handle),

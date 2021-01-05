@@ -3,7 +3,6 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 
-
 ALL = _('ECrudAll')
 SYSTEM = _('System Window Actions (from base., res., ir., web., etc.)')
 NOSYSTEM = _('Excluding System Window Actions (not from base., res., ir., web., etc.)')

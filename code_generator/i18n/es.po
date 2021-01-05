@@ -384,7 +384,7 @@ msgid "Model that will hold this server constrain"
 msgstr "Modelo que acogerá esta restricción del lado del servidor"
 
 #. module: code_generator
-#: model:ir.model.fields,field_description:code_generator.field_ir_model__o2m_serverconstrains
+#: model:ir.model.fields,field_description:code_generator.field_ir_model__o2m_server_constrains
 msgid "Server Constrains"
 msgstr "Restricciones de servidor"
 
@@ -395,7 +395,7 @@ msgid "Server Constrain"
 msgstr "Restricción de servidor"
 
 #. module: code_generator
-#: model:ir.model.fields,help:code_generator.field_ir_model__o2m_serverconstrains
+#: model:ir.model.fields,help:code_generator.field_ir_model__o2m_server_constrains
 msgid "Server Constrains attach to this model"
 msgstr "Restricciones del lado del servidor pertenecientes a este modelo"
 

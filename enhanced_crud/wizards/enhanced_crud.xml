@@ -1,36 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <record model="ir.ui.view" id="enhanced_crud_act_window_link_form">
-        <field name="name">enhanced.crud.act_window.link.form</field>
-        <field name="model">enhanced.crud.act_window.link</field>
-        <field name="arch" type="xml">
-            <form>
-                <group>
-                    <group>
-                        <field name="m2o_act_window_group" options='{"no_create": True}'/>
-                    </group>
-                </group>
-                <footer>
-                    <button string="Accept" name="link_window_actions" type="object" class="btn-primary"/>
-                    <button string="Cancel" class="btn-default" special="cancel"/>
-                </footer>
-            </form>
-        </field>
-    </record>
+  <record model="ir.ui.view" id="enhanced_crud_act_window_link_form">
+    <field name="name">enhanced.crud.act_window.link.form</field>
+    <field name="model">enhanced.crud.act_window.link</field>
+    <field name="arch" type="xml">
+      <form>
+        <group>
+          <group>
+            <field name="m2o_act_window_group" options='{"no_create": True}'/>
+          </group>
+        </group>
+        <footer>
+          <button string="Accept" name="link_window_actions" type="object" class="btn-primary"/>
+          <button string="Cancel" class="btn-default" special="cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
 
-    <record model="ir.actions.act_window" id="enhanced_crud_act_window_link_actionwindow">
-        <field name="name">Associate window actions belonging to the selected apps</field>
-        <field name="view_mode">form</field>
-        <field name="res_model">enhanced.crud.act_window.link</field>
-        <field name="target">new</field>
-    </record>
+  <record model="ir.actions.act_window" id="enhanced_crud_act_window_link_actionwindow">
+    <field name="name">Associate window actions belonging to the selected apps</field>
+    <field name="view_mode">form</field>
+    <field name="res_model">enhanced.crud.act_window.link</field>
+    <field name="target">new</field>
+  </record>
 
-    <menuitem id="enhanced_crud_act_window_menu_link"
-              name="Associate window actions"
-              parent="enhanced_crud_act_window_menu"
-              action="enhanced_crud_act_window_link_actionwindow"
-              sequence="1"
-    />
+  <menuitem id="enhanced_crud_act_window_menu_link"
+            name="Associate window actions"
+            parent="enhanced_crud_act_window_menu"
+            action="enhanced_crud_act_window_link_actionwindow"
+            sequence="1"
+  />
 
 </odoo>

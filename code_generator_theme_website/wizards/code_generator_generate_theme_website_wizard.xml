@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <record id="code_generator_generate_theme_website_form" model="ir.ui.view">
+    <field name="name">Code Generator Generate views</field>
+    <field name="model">code.generator.generate.views.wizard</field>
+    <field name="inherit_id" ref="code_generator.code_generator_generate_views_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//form/sheet/notebook/page[@name='internal_view']" position="after">
+        <page name="Theme website" string="theme_website">
+          <group>
+            <field name="enable_generate_theme_website" attrs="{'invisible': [('enable_generate_all', '=', True)]}"/>
+          </group>
+          <group>
+            <group>
+              <field name="theme_website_primary_color" widget="color"/>
+              <field name="theme_website_secondary_color" widget="color"/>
+              <field name="theme_website_extra_1_color" widget="color"/>
+              <field name="theme_website_extra_2_color" widget="color"/>
+              <field name="theme_website_extra_3_color" widget="color"/>
+              <field name="theme_website_body_color" widget="color"/>
+              <field name="theme_website_menu_color" widget="color"/>
+              <field name="theme_website_footer_color" widget="color"/>
+              <field name="theme_website_text_color" widget="color"/>
+            </group>
+          </group>
+        </page>
+      </xpath>
+    </field>
+  </record>
+
+</odoo>

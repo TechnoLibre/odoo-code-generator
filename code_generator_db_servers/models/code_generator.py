@@ -3,12 +3,13 @@
 import re
 
 import psycopg2
-from odoo import models, fields, api
+from odoo import _, models, fields, api
+from datetime import datetime
 from odoo.exceptions import ValidationError
 
 from odoo.models import MAGIC_COLUMNS
 
-MAGIC_FIELDS = MAGIC_COLUMNS + ['display_name', '__last_update']
+MAGIC_FIELDS = MAGIC_COLUMNS + ['display_name', '__last_update', 'access_url', 'access_token', 'access_warning']
 INVALIDPORT = 'The specify port is invalid.'
 PSYCOPGUNINSTALLED = 'Verify that the psycopg package is installed.'
 PYMYSQLUNINSTALLED = 'Verify that the pymysql package is installed.'
@@ -244,7 +245,7 @@ def _get_table_fields(table_name, m2o_db):
 
                 t_odoo_field_4insert = _get_odoo_field_tuple_4insert(
                     column_name,
-                    'Field %s Description' % column_name.capitalize(),
+                    'Field %s' % column_name.capitalize(),
                     'many2one' if is_m2o else _get_odoo_ttype(column_info[7]),
                     column_info[6] == 'NO'
                 )
@@ -255,7 +256,7 @@ def _get_table_fields(table_name, m2o_db):
                 l_fields.append(t_odoo_field_4insert)
 
         if not having_column_name:
-            l_fields.append(_get_odoo_field_tuple_4insert('name', 'Field Name Description', 'char'))
+            l_fields.append(_get_odoo_field_tuple_4insert('name', 'Field Name', 'char'))
 
         return l_fields
 
@@ -550,13 +551,13 @@ class CodeGeneratorDbTable(models.Model):
 
                 models_created = models_created.filtered('nomenclator')
                 for model_created in models_created:
-                    foreing_table = self.filtered(
-                        lambda t: t.name == self._get_model_name(module_name, model_created.model.replace('.', '_'))
-                    )
-
                     model_created_fields = model_created.field_id.filtered(
                         lambda field: field.name not in MAGIC_FIELDS + ['name']
                     ).mapped('name')
+
+                    foreing_table = self.filtered(
+                        lambda t: t.name == self._get_model_name(module_name, model_created.model.replace('.', '_'))
+                    )
 
                     l_foreing_table_data = \
                         _get_table_data(foreing_table.name, foreing_table.m2o_db, model_created_fields)
@@ -608,5 +609,9 @@ class CodeGeneratorDbColumn(models.Model):
             ('float', 'Float'),
             ('datetime', 'Datetime'),
             ('date', 'Date'),
+            ('boolean', 'Boolean'),
+            ('html', 'Html'),
+            ('binary', 'Binary'),
+            ('selection', 'Selection'),
         ]
     )

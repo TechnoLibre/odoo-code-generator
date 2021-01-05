@@ -1,0 +1,20 @@
+<?xml version= "1.0" encoding="utf-8"?>
+<odoo>
+
+  <record model="ir.ui.view" id="demo_model_2_internal_treeview">
+    <field name="name">demo_model_2_internal_tree</field>
+    <field name="model">demo.model_2.internal</field>
+    <field name="arch" type="xml">
+      <tree editable="top">
+        <field name="model_1"/>
+        <field name="name"/>
+      </tree>
+    </field>
+  </record>
+
+  <record model="ir.actions.act_window" id="demo_model_2_internal_demo_model_2_internal_action_vi_actionwindow">
+    <field name="name">demo_model_2_internal_action_view</field>
+    <field name="res_model">demo.model_2.internal</field>
+  </record>
+
+</odoo>

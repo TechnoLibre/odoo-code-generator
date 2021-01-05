@@ -1,0 +1,27 @@
+<?xml version= "1.0" encoding="utf-8"?>
+<odoo>
+  <record model="helpdesk.ticket" id="helpdesk_ticket_test2">
+    <field name="active">True</field>
+    <field name="assigned_date">2021-01-01 04:44:17</field>
+    <field name="company_id" ref="base.main_company"/>
+    <field name="description">&lt;p&gt;Description 2&lt;/p&gt;</field>
+    <field name="last_stage_update">2021-01-01 04:44:16</field>
+    <field name="name">test2</field>
+    <field name="number">HT00002</field>
+    <field name="priority">1</field>
+    <field name="stage_id" ref="helpdesk_mgmt.helpdesk_ticket_stage_new"/>
+    <field name="unattended">True</field>
+    <field name="user_id" ref="base.user_root"/>
+  </record>
+  <record model="helpdesk.ticket" id="helpdesk_ticket_test1">
+    <field name="active">True</field>
+    <field name="company_id" ref="base.main_company"/>
+    <field name="description">&lt;p&gt;Description 1&lt;/p&gt;</field>
+    <field name="last_stage_update">2021-01-01 04:44:16</field>
+    <field name="name">test1</field>
+    <field name="number">HT00001</field>
+    <field name="priority">1</field>
+    <field name="stage_id" ref="helpdesk_mgmt.helpdesk_ticket_stage_new"/>
+    <field name="unattended">True</field>
+  </record>
+</odoo>

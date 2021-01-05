@@ -309,7 +309,7 @@ class CodeGeneratorWriter(models.Model):
                 cw.emit(f"'license': '{module.license}',")
 
             if module.application:
-                cw.emit(f"'application': 'True',")
+                cw.emit(f"'application': True,")
 
             if module.dependencies_id:
                 lst_depend = module.dependencies_id.mapped(lambda did: f"'{did.depend_id.name}'")

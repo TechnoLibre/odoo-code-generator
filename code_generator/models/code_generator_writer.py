@@ -515,14 +515,39 @@ class CodeGeneratorWriter(models.Model):
 
         application_icon = None
         menus = module.with_context({'ir.ui.menu.full_list': True}).o2m_menus
-        # Expect first menu by id is a root menu
-        menus = sorted(menus, key=lambda menu: menu.id)
-        if not menus:
+        lst_menu = []
+        lst_items = [a for a in menus]
+        # Sorted menu by order of parent asc, and sort child by view_name
+        while lst_items:
+            has_update = False
+            lst_item_cache = []
+            for item in lst_items[:]:
+                # Expect first menu by id is a root menu
+                if not item.parent_id:
+                    lst_menu.append(item)
+                    lst_items.remove(item)
+                    has_update = True
+                elif item.parent_id in lst_menu:
+                    lst_item_cache.append(item)
+                    lst_items.remove(item)
+                    has_update = True
+
+            # Order last run of adding
+            if lst_item_cache:
+                lst_item_cache = sorted(lst_item_cache, key=lambda menu: self._get_menu_data_name(menu))
+                lst_menu += lst_item_cache
+
+            if not has_update:
+                lst_sorted_item = sorted(lst_items, key=lambda menu: self._get_menu_data_name(menu))
+                for item in lst_sorted_item:
+                    lst_menu.append(item)
+
+        if not lst_menu:
             return ""
 
         lst_menu_xml = []
 
-        for menu in menus:
+        for menu in lst_menu:
 
             dct_menu_item = {
                 "id": self._get_menu_data_name(menu),

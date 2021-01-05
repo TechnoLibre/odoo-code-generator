@@ -1,0 +1,7 @@
+<?xml version= "1.0" encoding="utf-8"?>
+<odoo>
+  <record model="demo.model.portal" id="demo_model_portal_fds">
+    <field name="banana">True</field>
+    <field name="name">fds</field>
+  </record>
+</odoo>

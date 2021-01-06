@@ -265,12 +265,14 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
+        lang = "en_US"
+
         cw = CodeWriter()
         with cw.block(delim=('{', '}')):
             cw.emit(f"'name': '{module.shortdesc}',")
 
             if module.category_id:
-                cw.emit(f"'category': '{module.category_id.name}',")
+                cw.emit(f"'category': '{module.category_id.with_context(lang=lang).name}',")
 
             if module.summary and module.summary != 'false':
                 cw.emit(f"'summary': '{module.summary}',")

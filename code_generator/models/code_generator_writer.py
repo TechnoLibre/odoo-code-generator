@@ -1062,6 +1062,15 @@ class CodeGeneratorWriter(models.Model):
                 lst_selection = [f"({a[0]}, _({a[1].strip()}))" for a in lst_selection]
                 dct_field_attribute["selection"] = lst_selection
 
+            if f2export.default:
+                if f2export.default == "True":
+                    dct_field_attribute["default"] = True
+                elif f2export.default == "False":
+                    # Ignore False value
+                    pass
+                else:
+                    dct_field_attribute["default"] = f2export.default
+
             if f2export.related:
                 dct_field_attribute["related"] = f2export.related
 

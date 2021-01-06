@@ -403,6 +403,8 @@ class IrModelUpdatedFields(models.Model):
 class IrModelFields(models.Model):
     _inherit = 'ir.model.fields'
 
+    default = fields.Char(string="Default value")
+
     @api.constrains('name', 'state')
     def _check_name(self):
         for field in self:

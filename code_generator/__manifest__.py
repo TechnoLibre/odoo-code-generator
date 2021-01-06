@@ -23,5 +23,6 @@
         'views/ir_uis.xml',
         'views/res_groups.xml',
     ],
-    'demo': ['data/code_generator_demo.xml']
+    'demo': ['data/code_generator_demo.xml'],
+    'post_init_hook': 'post_init_hook',
 }

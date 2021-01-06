@@ -1034,8 +1034,8 @@ class CodeGeneratorWriter(models.Model):
                 if f2export.ttype == 'one2many' and f2export.relation_field:
                     dct_field_attribute["inverse_name"] = f2export.relation_field
 
-                if f2export.ttype == 'many2one' and f2export.on_delete:
-                    dct_field_attribute["on_delete"] = f2export.on_delete
+                if f2export.ttype == 'many2one' and f2export.on_delete and f2export.on_delete != "set null":
+                    dct_field_attribute["ondelete"] = f2export.on_delete
 
                 if f2export.domain and f2export.domain != '[]':
                     dct_field_attribute["domain"] = f2export.domain

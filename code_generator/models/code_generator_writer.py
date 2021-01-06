@@ -1041,18 +1041,27 @@ class CodeGeneratorWriter(models.Model):
                     dct_field_attribute["domain"] = f2export.domain
 
                 if f2export.ttype == 'many2many':
-                    if f2export.relation_table:
-                        dct_field_attribute["relation"] = f2export.relation_table
-                    if f2export.column1:
-                        dct_field_attribute["column1"] = f2export.column1
-                    if f2export.column2:
-                        dct_field_attribute["column2"] = f2export.column2
+                    # A relation who begin with x_ is an automated relation, ignore it
+                    ignored_relation = False if not f2export.relation_table else f2export.relation_table.startswith(
+                        "x_")
+                    if not ignored_relation:
+                        if f2export.relation_table:
+                            dct_field_attribute["relation"] = f2export.relation_table
+                        if f2export.column1:
+                            dct_field_attribute["column1"] = f2export.column1
+                        if f2export.column2:
+                            dct_field_attribute["column2"] = f2export.column2
 
             if (f2export.ttype == 'char' or f2export.ttype == 'reference') and f2export.size != 0:
                 dct_field_attribute["size"] = f2export.size
 
             if (f2export.ttype == 'reference' or f2export.ttype == 'selection') and f2export.selection:
-                dct_field_attribute["selection"] = f2export.selection
+                # Transform selection
+                # '[("point", "Point"), ("line", "Line"), ("area", "Polygon")]'
+                # [('"point"', '_( "Point")'), ('"line"', '_( "Line")'), ('"area"', '_( "Polygon")')]
+                lst_selection = [a.split(",") for a in f2export.selection.strip('[]').strip('()').split('), (')]
+                lst_selection = [f"({a[0]}, _({a[1]}))" for a in lst_selection]
+                dct_field_attribute["selection"] = lst_selection
 
             if f2export.related:
                 dct_field_attribute["related"] = f2export.related
@@ -1096,7 +1105,7 @@ class CodeGeneratorWriter(models.Model):
                     # TODO find another solution than removing \n, this cause error with cw.CodeWriter
                     new_value = ','.join(value)
                     new_value = new_value.replace('\n', ' ')
-                    lst_field_attribute.append(f"{key}={new_value}")
+                    lst_field_attribute.append(f"{key}=[{new_value}]")
                 else:
                     lst_field_attribute.append(f"{key}={value}")
 

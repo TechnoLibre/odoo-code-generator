@@ -110,15 +110,14 @@ class CodeGeneratorWriter(models.Model):
 
         return class_4inherit
 
-    @staticmethod
-    def _get_odoo_ttype_class(ttype):
+    def _get_odoo_ttype_class(self, ttype):
         """
         Util function to get a field class name from a field type (char -> Char, many2one -> Many2one)
         :param ttype:
         :return:
         """
 
-        return 'fields.%s' % ttype.capitalize()
+        return f'fields.{self._get_class_name(ttype)}'
 
     @staticmethod
     def _get_starting_spaces(compute_line):
@@ -1060,7 +1059,7 @@ class CodeGeneratorWriter(models.Model):
                 # '[("point", "Point"), ("line", "Line"), ("area", "Polygon")]'
                 # [('"point"', '_( "Point")'), ('"line"', '_( "Line")'), ('"area"', '_( "Polygon")')]
                 lst_selection = [a.split(",") for a in f2export.selection.strip('[]').strip('()').split('), (')]
-                lst_selection = [f"({a[0]}, _({a[1]}))" for a in lst_selection]
+                lst_selection = [f"({a[0]}, _({a[1].strip()}))" for a in lst_selection]
                 dct_field_attribute["selection"] = lst_selection
 
             if f2export.related:
@@ -1103,7 +1102,7 @@ class CodeGeneratorWriter(models.Model):
                     lst_field_attribute.append(f"{key}='{value}'")
                 elif type(value) is list:
                     # TODO find another solution than removing \n, this cause error with cw.CodeWriter
-                    new_value = ','.join(value)
+                    new_value = ', '.join(value)
                     new_value = new_value.replace('\n', ' ')
                     lst_field_attribute.append(f"{key}=[{new_value}]")
                 else:

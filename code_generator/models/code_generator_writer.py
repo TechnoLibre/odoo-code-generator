@@ -315,6 +315,14 @@ class CodeGeneratorWriter(models.Model):
                 lst_depend = module.dependencies_id.mapped(lambda did: f"'{did.depend_id.name}'")
                 cw.emit_list(lst_depend, ('[', ']'), before="'depends': ", after=',')
 
+            if module.external_dependencies_id:
+                with cw.block(before="'external_dependencies':", delim=('{', '}'), after=','):
+                    dct_depend = defaultdict(list)
+                    for depend in module.external_dependencies_id:
+                        dct_depend[depend.application_type].append(f"'{depend.depend}'")
+                    for application_type, lst_value in dct_depend.items():
+                        cw.emit_list(lst_value, ('[', ']'), before=f"'{application_type}': ", after=',')
+
             lst_data = self._get_l_map(lambda dfile: f"'{dfile}'", self.code_generator_data.lst_manifest_data_files)
             if lst_data:
                 cw.emit_list(lst_data, ('[', ']'), before="'data': ", after=',')

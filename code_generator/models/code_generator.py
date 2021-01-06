@@ -68,6 +68,12 @@ class CodeGeneratorModule(models.Model):
         readonly=False
     )
 
+    external_dependencies_id = fields.One2many(
+        'code.generator.module.external.dependency',
+        'module_id',
+        readonly=False
+    )
+
     state = fields.Selection(
         readonly=False,
         default='uninstalled'
@@ -244,6 +250,23 @@ class CodeGeneratorModule(models.Model):
             o2m_models.mapped('view_ids').unlink()
             o2m_models.unlink()  # I need to delete the created tables
         return super(CodeGeneratorModule, self).unlink()
+
+
+class CodeGeneratorModuleExternalDependency(models.Model):
+    _name = 'code.generator.module.external.dependency'
+    _description = 'Code Generator Module External Dependency'
+
+    module_id = fields.Many2one(
+        'code.generator.module',
+        'Module',
+        ondelete='cascade'
+    )
+
+    depend = fields.Char(String="Dependency name")
+
+    application_type = fields.Selection(selection=[('python', 'python'),
+                                                   ('bin', 'bin')],
+                                        string='Application Type', default='python')
 
 
 class CodeGeneratorModuleDependency(models.Model):

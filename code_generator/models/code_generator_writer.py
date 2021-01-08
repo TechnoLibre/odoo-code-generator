@@ -1391,6 +1391,23 @@ class CodeGeneratorData:
             print(f"ERROR, cannot order manifest files dependencies : {dct_hold_file}")
         self._lst_manifest_data_files = lst_manifest
 
+    def copy_directory(self, source_directory_path, directory_path):
+        """
+        Copy only directory without manipulation
+        :param source_directory_path:
+        :param directory_path:
+        :return:
+        """
+        absolute_path = os.path.join(self._path, self._module_name, directory_path)
+        # self._check_mkdir_and_create(absolute_path, is_file=False)
+        status = shutil.copytree(source_directory_path, absolute_path)
+
+    def copy_file(self, source_file_path, file_path):
+        with open(source_file_path, "rb") as file_source:
+            content = file_source.read()
+
+        self.write_file_binary(file_path, content)
+
     def write_file_lst_content(self, file_path, lst_content, data_file=False, insert_first=False):
         """
         Function to create a file with some content
@@ -1478,8 +1495,12 @@ class CodeGeneratorData:
             python_module_name = os.path.splitext(os.path.basename(file_path))[0]
             self._dct_import_dir[dir_name].append(python_module_name)
 
-    def _check_mkdir_and_create(self, file_path):
-        self.os_make_dirs(os.path.dirname(file_path))
+    def _check_mkdir_and_create(self, file_path, is_file=True):
+        if is_file:
+            path_dir = os.path.dirname(file_path)
+        else:
+            path_dir = file_path
+        self.os_make_dirs(path_dir)
 
     def sync_code(self, path_sync_code):
         try:

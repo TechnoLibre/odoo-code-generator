@@ -3,6 +3,7 @@
 import base64
 
 import lxml
+import os
 from docutils.core import publish_string
 from odoo import models, fields, api, modules, tools
 from odoo.addons.base.models.ir_module import MyWriter
@@ -84,7 +85,8 @@ class CodeGeneratorModule(models.Model):
     )
 
     license = fields.Selection(
-        readonly=False
+        readonly=False,
+        default='AGPL-3'
     )
 
     application = fields.Boolean(
@@ -180,8 +182,14 @@ class CodeGeneratorModule(models.Model):
     enable_sync_code = fields.Boolean(string="Enable Sync Code", default=False,
                                       help="Will sync with code on drive when generate.")
 
+    @api.model
+    def _default_path_sync_code(self):
+        return os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
+
     # TODO default path actual path of this file
-    path_sync_code = fields.Char(string="Path", help="Path where sync the code.")
+    path_sync_code = fields.Char(string="Directory",
+                                 default=_default_path_sync_code,
+                                 help="Path directory where sync the code, will erase directory and generate new code.")
 
     # clean_before_sync_code = fields.Boolean(string="Clean before sync", help="Clean before sync, all will be lost.")
 

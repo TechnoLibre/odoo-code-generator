@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <record id="code_generator_generate_views_action" model="ir.actions.act_window">
-    <field name="name">Generate views</field>
+    <field name="name">Generate Views</field>
     <field name="type">ir.actions.act_window</field>
     <field name="res_model">code.generator.generate.views.wizard</field>
     <field name="view_mode">form</field>

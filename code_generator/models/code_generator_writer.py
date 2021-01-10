@@ -1502,11 +1502,12 @@ class CodeGeneratorData:
             path_dir = file_path
         self.os_make_dirs(path_dir)
 
-    def sync_code(self, path_sync_code):
+    def sync_code(self, directory, name):
         try:
             # if not os.path.isdir(path_sync_code):
             #     osmakedirs(path_sync_code)
             # if module.clean_before_sync_code:
+            path_sync_code = os.path.join(directory, name)
             if os.path.isdir(path_sync_code):
                 shutil.rmtree(path_sync_code)
             shutil.copytree(self._module_path, path_sync_code)

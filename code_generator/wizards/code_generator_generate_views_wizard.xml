@@ -14,16 +14,16 @@
     <field name="arch" type="xml">
       <form string="Views">
         <sheet>
-          <group invisible="1">
+          <group name="invisible" invisible="1">
             <field name="code_generator_id" invisible="1"/>
             <field name="user_id" options="{'no_open': False}" invisible="1"/>
           </group>
           <group>
-            <group string="Generate">
+            <group name="generate" string="Generate">
               <field name="enable_generate_all"/>
               <field name="all_model"/>
             </group>
-            <group string="Clear">
+            <group name="clear" string="Clear">
               <field name="clear_all_access"/>
               <field name="clear_all_act_window"/>
               <field name="clear_all_menu"/>
@@ -32,8 +32,11 @@
           </group>
           <notebook>
             <page name="internal_view" string="Internal view">
-              <group string="Model" attrs="{'invisible': [('all_model', '=', True)]}">
-                <field name="selected_model_ids" nolabel="1"/>
+              <group string="Model View List" attrs="{'invisible': [('all_model', '=', True)]}">
+                <field name="selected_model_list_view_ids" nolabel="1"/>
+              </group>
+              <group string="Model View Form" attrs="{'invisible': [('all_model', '=', True)]}">
+                <field name="selected_model_form_view_ids" nolabel="1"/>
               </group>
             </page>
           </notebook>

@@ -404,6 +404,16 @@ class IrModelFields(models.Model):
     _inherit = 'ir.model.fields'
 
     default = fields.Char(string="Default value")
+    is_show_whitelist_list_view = fields.Boolean(string="Show in whitelist list view",
+                                                 help="If a field in model is in whitelist, all is not will be hide. "
+                                                      "View list only.")
+    is_hide_blacklist_list_view = fields.Boolean(string="Hide in blacklist list view",
+                                                 help="Hide from view when field is blacklisted. View list only.")
+    is_show_whitelist_form_view = fields.Boolean(string="Show in whitelist list view",
+                                                 help="If a field in model is in whitelist, all is not will be hide. "
+                                                      "View form only.")
+    is_hide_blacklist_form_view = fields.Boolean(string="Hide in blacklist form view",
+                                                 help="Hide from view when field is blacklisted. View form only.")
 
     @api.constrains('name', 'state')
     def _check_name(self):

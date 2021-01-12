@@ -37,6 +37,11 @@
                     type="action"
                     class="btn btn-primary"
                     context="{'default_code_generator_id': id, 'default_user_id': uid}"/>
+            <button name="%(code_generator_add_controller_action)d"
+                    string="Controller"
+                    type="action"
+                    class="btn btn-primary"
+                    context="{'default_code_generator_id': id, 'default_user_id': uid}"/>
           </div>
         </div>
       </xpath>

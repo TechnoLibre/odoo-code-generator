@@ -403,11 +403,11 @@ class CodeGeneratorWriter(models.Model):
         else:
             model = getattr(action, 'res_model') if not server else getattr(action, 'model_id').model
             model_model = self._get_model_model(model)
-            actiontype = 'actionwindow' if not server else 'serveraction'
+            action_type = 'action_window' if not server else 'server_action'
 
-            actionname = self._set_limit_4xmlid('%s' % action.name[:64 - len(model_model) - len(actiontype)])
+            action_name = self._set_limit_4xmlid('%s' % action.name[:64 - len(model_model) - len(action_type)])
 
-            return '%s_%s_%s' % (model_model, self._lower_replace(actionname), actiontype)
+            return '%s_%s_%s' % (model_model, self._lower_replace(action_name), action_type)
 
     def _get_action_act_url_name(self, action):
         """
@@ -598,6 +598,8 @@ class CodeGeneratorWriter(models.Model):
 
         l_model_view_file = XML_HEAD + BLANK_LINE
 
+        lst_id = []
+
         #
         # Views
         #
@@ -605,9 +607,17 @@ class CodeGeneratorWriter(models.Model):
 
             view_type = view.type
 
-            if view_type == "tree":
+            if view_type in ["tree", "form"]:
 
-                l_model_view_file.append('<record model="ir.ui.view" id="%s_%sview">' % (model_model, view_type))
+                str_id = f"{model_model}_view_{view_type}"
+                if str_id in lst_id:
+                    count_id = lst_id.count(str_id)
+                    str_id += str(count_id)
+                lst_id.append(str_id)
+
+                self.code_generator_data.add_view_id(view.name, str_id)
+
+                l_model_view_file.append(f'<record model="ir.ui.view" id="{str_id}">')
 
                 if view.name:
                     l_model_view_file.append('<field name="name">%s</field>' % view.name)
@@ -649,7 +659,6 @@ class CodeGeneratorWriter(models.Model):
                 l_model_view_file.append('</template>\n')
 
             else:
-
                 print(f"Error, view type {view_type} of {view.name} not supported.")
 
         #
@@ -1266,7 +1275,7 @@ class CodeGeneratorWriter(models.Model):
             self.get_lst_file_generate(module)
 
             if module.enable_sync_code:
-                self.code_generator_data.sync_code(module.path_sync_code)
+                self.code_generator_data.sync_code(module.path_sync_code, module.name)
 
         vals["list_path_file"] = ";".join(self.code_generator_data.lst_path_file)
 
@@ -1299,6 +1308,7 @@ class CodeGeneratorData:
         self._lst_manifest_data_files = []
         self._dct_import_dir = defaultdict(list)
         self._lst_extra_module_init_path = []
+        self._dct_view_id = {}
 
     @staticmethod
     def os_make_dirs(path, exist_ok=True):
@@ -1363,12 +1373,19 @@ class CodeGeneratorData:
         return self._static_description_path
 
     @property
+    def dct_view_id(self):
+        return self._dct_view_id
+
+    @property
     def lst_manifest_data_files(self):
         return self._lst_manifest_data_files
 
     @property
     def lst_import_dir(self):
         return list(self._dct_import_dir.keys())
+
+    def add_view_id(self, name, id):
+        self._dct_view_id[name] = id
 
     def add_module_init_path(self, import_line):
         self._lst_extra_module_init_path.append(import_line)

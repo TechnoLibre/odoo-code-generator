@@ -1,0 +1,75 @@
+<?xml version= "1.0" encoding="utf-8"?>
+<odoo>
+
+  <record model="ir.ui.view" id="demo_website_leaflet_map_feature_view_form">
+    <field name="name">demo_website_leaflet_map_feature_form</field>
+    <field name="model">demo.website_leaflet.map.feature</field>
+    <field name="arch" type="xml">
+      <form string="Titre">
+        <sheet>
+          <group>
+            <field name="active"/>
+          </group>
+          <group>
+            <field name="category_id"/>
+          </group>
+          <group>
+            <field name="geo_line" widget="geo_edit_map"/>
+          </group>
+          <group>
+            <field name="geo_point" widget="geo_edit_map"/>
+          </group>
+          <group>
+            <field name="geo_polygon" widget="geo_edit_map"/>
+          </group>
+          <group>
+            <field name="html_text"/>
+          </group>
+          <group>
+            <field name="name"/>
+          </group>
+          <group>
+            <field name="open_popup"/>
+          </group>
+          <group>
+            <field name="type"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record model="ir.ui.view" id="demo_website_leaflet_map_feature_view_form1">
+    <field name="name">demo_website_leaflet_map_feature_geoengine</field>
+    <field name="model">demo.website_leaflet.map.feature</field>
+    <field name="arch" type="xml">
+      <geoengine>
+        <field name="geo_line"/>
+        <field name="geo_point"/>
+        <field name="geo_polygon"/>
+      </geoengine>
+    </field>
+  </record>
+
+  <record model="ir.ui.view" id="demo_website_leaflet_map_feature_view_tree">
+    <field name="name">demo_website_leaflet_map_feature_tree</field>
+    <field name="model">demo.website_leaflet.map.feature</field>
+    <field name="arch" type="xml">
+      <tree>
+        <field name="active"/>
+        <field name="category_id"/>
+        <field name="html_text"/>
+        <field name="name"/>
+        <field name="open_popup"/>
+        <field name="type"/>
+      </tree>
+    </field>
+  </record>
+
+  <record model="ir.actions.act_window" id="demo_website_leaflet_map_feature_demo_website_leafle_action_window">
+    <field name="name">demo_website_leaflet_map_feature_action_view</field>
+    <field name="res_model">demo.website_leaflet.map.feature</field>
+    <field name="view_mode">list,form</field>
+  </record>
+
+</odoo>

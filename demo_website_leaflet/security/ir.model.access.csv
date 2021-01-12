@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+demo_website_leaflet_map_access_user_types_/_internal_user,demo_website_leaflet_map Access User types / Internal User,model_demo_website_leaflet_map,base.group_user,1,1,1,1
+demo_website_leaflet_map_feature_access_user_types_/_internal_user,demo_website_leaflet_map_feature Access User types / Internal User,model_demo_website_leaflet_map_feature,base.group_user,1,1,1,1
+demo_website_leaflet_category_access_user_types_/_internal_user,demo_website_leaflet_category Access User types / Internal User,model_demo_website_leaflet_category,base.group_user,1,1,1,1

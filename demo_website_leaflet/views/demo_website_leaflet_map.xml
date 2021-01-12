@@ -1,0 +1,54 @@
+<?xml version= "1.0" encoding="utf-8"?>
+<odoo>
+
+  <record model="ir.ui.view" id="demo_website_leaflet_map_view_form">
+    <field name="name">demo_website_leaflet_map_form</field>
+    <field name="model">demo.website_leaflet.map</field>
+    <field name="arch" type="xml">
+      <form string="Titre">
+        <sheet>
+          <group>
+            <field name="active"/>
+          </group>
+          <group>
+            <field name="category_id"/>
+          </group>
+          <group>
+            <field name="company_id"/>
+          </group>
+          <group>
+            <field name="description"/>
+          </group>
+          <group>
+            <field name="feature_id"/>
+          </group>
+          <group>
+            <field name="name"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record model="ir.ui.view" id="demo_website_leaflet_map_view_tree">
+    <field name="name">demo_website_leaflet_map_tree</field>
+    <field name="model">demo.website_leaflet.map</field>
+    <field name="arch" type="xml">
+      <tree>
+        <field name="active"/>
+        <field name="category_id"/>
+        <field name="company_id"/>
+        <field name="description"/>
+        <field name="feature_id"/>
+        <field name="name"/>
+      </tree>
+    </field>
+  </record>
+
+  <record model="ir.actions.act_window" id="demo_website_leaflet_map_demo_website_leaflet_map_ac_action_window">
+    <field name="name">demo_website_leaflet_map_action_view</field>
+    <field name="res_model">demo.website_leaflet.map</field>
+    <field name="view_mode">list,form</field>
+  </record>
+
+</odoo>

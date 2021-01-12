@@ -96,7 +96,7 @@ class CodeGeneratorWriter(models.Model):
                 str_search = ""
                 if active_id:
                     str_search = '("active", "=", True)'
-                cw.emit(f"map_feature_ids = request.env[\"{model_id.model}\"].search([{str_search}])")
+                cw.emit(f"map_feature_ids = request.env[\"{model_id.model}\"].sudo().search([{str_search}])")
                 cw.emit("for feature in map_feature_ids:")
                 with cw.indent():
                     cw.emit("value = {}")
@@ -107,6 +107,9 @@ class CodeGeneratorWriter(models.Model):
                     for field_id in lst_fields:
                         cw.emit(f"elif feature.type == \"{field_id.name}\":")
                         with cw.indent():
+                            cw.emit(f"if not feature.{field_id.name}:")
+                            with cw.indent():
+                                cw.emit(f"continue")
                             if field_id.ttype == "geo_polygon":
                                 cw.emit(f"xy = feature.{field_id.name}.exterior.coords.xy")
                             else:
@@ -193,6 +196,10 @@ class CodeGeneratorWriter(models.Model):
         destination_directory = os.path.join("static", "src")
         source_directory = os.path.join(module_path, "static", "src")
         self.code_generator_data.copy_directory(source_directory, destination_directory)
+
+        destination_file = os.path.join(destination_directory, "scss", "leaflet.scss")
+        source_file = os.path.join(source_directory, "scss", "leaflet.scss")
+        self.code_generator_data.copy_file(source_file, destination_file, [("website_leaflet", module.name)])
 
     def _set_website_leaflet_static_javascript_file(self, module):
         """

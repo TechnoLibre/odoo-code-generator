@@ -1444,11 +1444,18 @@ class CodeGeneratorData:
         # self._check_mkdir_and_create(absolute_path, is_file=False)
         status = shutil.copytree(source_directory_path, absolute_path)
 
-    def copy_file(self, source_file_path, file_path):
+    def copy_file(self, source_file_path, file_path, search_and_replace=[]):
         with open(source_file_path, "rb") as file_source:
             content = file_source.read()
 
-        self.write_file_binary(file_path, content)
+        if search_and_replace:
+            # switch binary to string
+            content = content.decode('utf-8')
+            for search, replace in search_and_replace:
+                content = content.replace(search, replace)
+            self.write_file_str(file_path, content)
+        else:
+            self.write_file_binary(file_path, content)
 
     def write_file_lst_content(self, file_path, lst_content, data_file=False, insert_first=False):
         """

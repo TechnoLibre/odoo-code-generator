@@ -16,6 +16,9 @@
 
       <xpath expr="//div[hasclass('oe_title')]" position="replace">
         <div class="oe_title mb32">
+          <group>
+            <field name="name" class="name_input"/>
+          </group>
           <h1>
             <field name="shortdesc" placeholder="Brief Description" class="shortdesc_input"/>
           </h1>
@@ -25,12 +28,17 @@
           </h3>
           <div>
             <button name="%(code_generator_generate_views_action)d"
-                    string="Generate views"
+                    string="Views"
                     type="action"
                     class="btn btn-primary"
                     context="{'default_code_generator_id': id, 'default_user_id': uid}"/>
             <button name="%(code_generator_add_model_action)d"
-                    string="Add model"
+                    string="Model"
+                    type="action"
+                    class="btn btn-primary"
+                    context="{'default_code_generator_id': id, 'default_user_id': uid}"/>
+            <button name="%(code_generator_add_controller_action)d"
+                    string="Controller"
                     type="action"
                     class="btn btn-primary"
                     context="{'default_code_generator_id': id, 'default_user_id': uid}"/>
@@ -49,7 +57,6 @@
                 <field name="enable_sync_code" attrs="{'invisible': [('enable_sync_code', '=', True)]}"/>
               </group>
               <group>
-                <field name="name" class="name_input"/>
                 <field name="license"/>
                 <field name="installed_version"/>
               </group>

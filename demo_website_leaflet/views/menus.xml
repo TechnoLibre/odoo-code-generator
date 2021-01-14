@@ -1,0 +1,12 @@
+<?xml version= "1.0" encoding="utf-8"?>
+<odoo>
+  <menuitem id="root_demo_website_leaflet" name="root_demo_website_leaflet" sequence="20"
+            web_icon="demo_website_leaflet,static/description/icon.png"/>
+  <menuitem id="models" name="Models" sequence="1" parent="root_demo_website_leaflet"/>
+  <menuitem id="demo_website_leaflet_category" name="demo_website_leaflet_category"
+            action="demo_website_leaflet_category_demo_website_leaflet_c_action_window" sequence="3" parent="models"/>
+  <menuitem id="demo_website_leaflet_map" name="demo_website_leaflet_map"
+            action="demo_website_leaflet_map_demo_website_leaflet_map_ac_action_window" sequence="1" parent="models"/>
+  <menuitem id="demo_website_leaflet_map_feature" name="demo_website_leaflet_map_feature"
+            action="demo_website_leaflet_map_feature_demo_website_leafle_action_window" sequence="2" parent="models"/>
+</odoo>

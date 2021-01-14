@@ -1,0 +1,46 @@
+<?xml version= "1.0" encoding="utf-8"?>
+<odoo>
+  <record id="geoengine_vector_layer_demo_website_leaflet_map_feature_geoengine_geo_line"
+          model="geoengine.vector.layer">
+    <field name="geo_field_id" ref="field_demo_website_leaflet_map_feature__geo_line"/>
+    <field name="name">Map Feature Basic geo_line</field>
+    <field name="sequence" eval="6"/>
+    <field name="view_id" ref="demo_website_leaflet_map_feature_view_form1"/>
+    <field name="geo_repr">basic</field>
+    <field name="nb_class" eval="1"/>
+    <field name="begin_color">#FF680A</field>
+  </record>
+  <record id="geoengine_vector_layer_demo_website_leaflet_map_feature_geoengine_geo_point"
+          model="geoengine.vector.layer">
+    <field name="geo_field_id" ref="field_demo_website_leaflet_map_feature__geo_point"/>
+    <field name="name">Map Feature Basic geo_point</field>
+    <field name="sequence" eval="6"/>
+    <field name="view_id" ref="demo_website_leaflet_map_feature_view_form1"/>
+    <field name="geo_repr">basic</field>
+    <field name="nb_class" eval="1"/>
+    <field name="begin_color">#FF680A</field>
+  </record>
+  <record id="geoengine_vector_layer_demo_website_leaflet_map_feature_geoengine_geo_polygon"
+          model="geoengine.vector.layer">
+    <field name="geo_field_id" ref="field_demo_website_leaflet_map_feature__geo_polygon"/>
+    <field name="name">Map Feature Basic geo_polygon</field>
+    <field name="sequence" eval="6"/>
+    <field name="view_id" ref="demo_website_leaflet_map_feature_view_form1"/>
+    <field name="geo_repr">basic</field>
+    <field name="nb_class" eval="1"/>
+    <field name="begin_color">#FF680A</field>
+  </record>
+  <record id="geoengine_raster_layer_demo_website_leaflet_map_feature_geoengine_osm" model="geoengine.raster.layer">
+    <field name="raster_type">osm</field>
+    <field name="name">Map Feature Open Street Map</field>
+    <field name="overlay" eval="0"/>
+    <field name="view_id" ref="demo_website_leaflet_map_feature_view_form1"/>
+  </record>
+  <record id="geoengine_raster_layer_demo_website_leaflet_map_feature_geoengine_d_wms" model="geoengine.raster.layer">
+    <field name="raster_type">d_wms</field>
+    <field name="name">basic</field>
+    <field name="overlay" eval="1"/>
+    <field name="view_id" ref="demo_website_leaflet_map_feature_view_form1"/>
+    <field name="url">vmap0.tiles.osgeo.org/wms/vmap0</field>
+  </record>
+</odoo>

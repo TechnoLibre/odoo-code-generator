@@ -1,0 +1,60 @@
+.leaflet_card_container {
+  //position: relative;
+  width: 50%;
+}
+
+.leaflet_card_image {
+  opacity: 1;
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: .5s ease;
+  backface-visibility: hidden;
+}
+
+.leaflet_card_middle {
+  transition: .5s ease;
+  opacity: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  -ms-transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.leaflet_card_container:hover .leaflet_card_image {
+  opacity: 0.3;
+}
+
+.leaflet_card_container:hover .leaflet_card_middle {
+  opacity: 1;
+}
+
+.leaflet_card_text {
+  //background-color: #4CAF50;
+  color: black;
+  font-size: 16px;
+  //padding: 16px 32px;
+}
+
+.leaflet_card_green_text {
+  background-color: #4CAF50;
+  color: white;
+  font-size: 16px;
+  //padding: 16px 32px;
+}
+
+.leaflet_card_yellow_text {
+  background-color: #ffb74d;
+  color: black;
+  font-size: 16px;
+  //padding: 16px 32px;
+}
+
+.leaflet_card_red_text {
+  background-color: #ff4040;
+  color: black;
+  font-size: 16px;
+  //padding: 16px 32px;
+}

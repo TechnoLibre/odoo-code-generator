@@ -3,7 +3,7 @@ from odoo import _, models, fields, api
 
 class CodeGeneratorAddModelWizard(models.TransientModel):
     _name = "code.generator.add.model.wizard"
-    _description = "Code Generator Add Model Wizard"
+    _description = "Code Generator Model Wizard"
 
     code_generator_id = fields.Many2one(comodel_name="code.generator.module", string="Code Generator", required=True,
                                         ondelete='cascade')

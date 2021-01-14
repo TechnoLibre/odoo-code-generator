@@ -110,15 +110,14 @@ class CodeGeneratorWriter(models.Model):
 
         return class_4inherit
 
-    @staticmethod
-    def _get_odoo_ttype_class(ttype):
+    def _get_odoo_ttype_class(self, ttype):
         """
         Util function to get a field class name from a field type (char -> Char, many2one -> Many2one)
         :param ttype:
         :return:
         """
 
-        return 'fields.%s' % ttype.capitalize()
+        return f'fields.{self._get_class_name(ttype)}'
 
     @staticmethod
     def _get_starting_spaces(compute_line):
@@ -265,12 +264,14 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
+        lang = "en_US"
+
         cw = CodeWriter()
         with cw.block(delim=('{', '}')):
             cw.emit(f"'name': '{module.shortdesc}',")
 
             if module.category_id:
-                cw.emit(f"'category': '{module.category_id.name}',")
+                cw.emit(f"'category': '{module.category_id.with_context(lang=lang).name}',")
 
             if module.summary and module.summary != 'false':
                 cw.emit(f"'summary': '{module.summary}',")
@@ -309,11 +310,19 @@ class CodeGeneratorWriter(models.Model):
                 cw.emit(f"'license': '{module.license}',")
 
             if module.application:
-                cw.emit(f"'application': 'True',")
+                cw.emit(f"'application': True,")
 
             if module.dependencies_id:
                 lst_depend = module.dependencies_id.mapped(lambda did: f"'{did.depend_id.name}'")
                 cw.emit_list(lst_depend, ('[', ']'), before="'depends': ", after=',')
+
+            if module.external_dependencies_id:
+                with cw.block(before="'external_dependencies':", delim=('{', '}'), after=','):
+                    dct_depend = defaultdict(list)
+                    for depend in module.external_dependencies_id:
+                        dct_depend[depend.application_type].append(f"'{depend.depend}'")
+                    for application_type, lst_value in dct_depend.items():
+                        cw.emit_list(lst_value, ('[', ']'), before=f"'{application_type}': ", after=',')
 
             lst_data = self._get_l_map(lambda dfile: f"'{dfile}'", self.code_generator_data.lst_manifest_data_files)
             if lst_data:
@@ -394,11 +403,11 @@ class CodeGeneratorWriter(models.Model):
         else:
             model = getattr(action, 'res_model') if not server else getattr(action, 'model_id').model
             model_model = self._get_model_model(model)
-            actiontype = 'actionwindow' if not server else 'serveraction'
+            action_type = 'action_window' if not server else 'server_action'
 
-            actionname = self._set_limit_4xmlid('%s' % action.name[:64 - len(model_model) - len(actiontype)])
+            action_name = self._set_limit_4xmlid('%s' % action.name[:64 - len(model_model) - len(action_type)])
 
-            return '%s_%s_%s' % (model_model, self._lower_replace(actionname), actiontype)
+            return '%s_%s_%s' % (model_model, self._lower_replace(action_name), action_type)
 
     def _get_action_act_url_name(self, action):
         """
@@ -506,14 +515,39 @@ class CodeGeneratorWriter(models.Model):
 
         application_icon = None
         menus = module.with_context({'ir.ui.menu.full_list': True}).o2m_menus
-        # Expect first menu by id is a root menu
-        menus = sorted(menus, key=lambda menu: menu.id)
-        if not menus:
+        lst_menu = []
+        lst_items = [a for a in menus]
+        # Sorted menu by order of parent asc, and sort child by view_name
+        while lst_items:
+            has_update = False
+            lst_item_cache = []
+            for item in lst_items[:]:
+                # Expect first menu by id is a root menu
+                if not item.parent_id:
+                    lst_menu.append(item)
+                    lst_items.remove(item)
+                    has_update = True
+                elif item.parent_id in lst_menu:
+                    lst_item_cache.append(item)
+                    lst_items.remove(item)
+                    has_update = True
+
+            # Order last run of adding
+            if lst_item_cache:
+                lst_item_cache = sorted(lst_item_cache, key=lambda menu: self._get_menu_data_name(menu))
+                lst_menu += lst_item_cache
+
+            if not has_update:
+                lst_sorted_item = sorted(lst_items, key=lambda menu: self._get_menu_data_name(menu))
+                for item in lst_sorted_item:
+                    lst_menu.append(item)
+
+        if not lst_menu:
             return ""
 
         lst_menu_xml = []
 
-        for menu in menus:
+        for menu in lst_menu:
 
             dct_menu_item = {
                 "id": self._get_menu_data_name(menu),
@@ -564,6 +598,8 @@ class CodeGeneratorWriter(models.Model):
 
         l_model_view_file = XML_HEAD + BLANK_LINE
 
+        lst_id = []
+
         #
         # Views
         #
@@ -571,9 +607,17 @@ class CodeGeneratorWriter(models.Model):
 
             view_type = view.type
 
-            if view_type == "tree":
+            if view_type in ["tree", "form"]:
 
-                l_model_view_file.append('<record model="ir.ui.view" id="%s_%sview">' % (model_model, view_type))
+                str_id = f"{model_model}_view_{view_type}"
+                if str_id in lst_id:
+                    count_id = lst_id.count(str_id)
+                    str_id += str(count_id)
+                lst_id.append(str_id)
+
+                self.code_generator_data.add_view_id(view.name, str_id)
+
+                l_model_view_file.append(f'<record model="ir.ui.view" id="{str_id}">')
 
                 if view.name:
                     l_model_view_file.append('<field name="name">%s</field>' % view.name)
@@ -615,7 +659,6 @@ class CodeGeneratorWriter(models.Model):
                 l_model_view_file.append('</template>\n')
 
             else:
-
                 print(f"Error, view type {view_type} of {view.name} not supported.")
 
         #
@@ -1024,25 +1067,43 @@ class CodeGeneratorWriter(models.Model):
                 if f2export.ttype == 'one2many' and f2export.relation_field:
                     dct_field_attribute["inverse_name"] = f2export.relation_field
 
-                if f2export.ttype == 'many2one' and f2export.on_delete:
-                    dct_field_attribute["on_delete"] = f2export.on_delete
+                if f2export.ttype == 'many2one' and f2export.on_delete and f2export.on_delete != "set null":
+                    dct_field_attribute["ondelete"] = f2export.on_delete
 
                 if f2export.domain and f2export.domain != '[]':
                     dct_field_attribute["domain"] = f2export.domain
 
                 if f2export.ttype == 'many2many':
-                    if f2export.relation_table:
-                        dct_field_attribute["relation"] = f2export.relation_table
-                    if f2export.column1:
-                        dct_field_attribute["column1"] = f2export.column1
-                    if f2export.column2:
-                        dct_field_attribute["column2"] = f2export.column2
+                    # A relation who begin with x_ is an automated relation, ignore it
+                    ignored_relation = False if not f2export.relation_table else f2export.relation_table.startswith(
+                        "x_")
+                    if not ignored_relation:
+                        if f2export.relation_table:
+                            dct_field_attribute["relation"] = f2export.relation_table
+                        if f2export.column1:
+                            dct_field_attribute["column1"] = f2export.column1
+                        if f2export.column2:
+                            dct_field_attribute["column2"] = f2export.column2
 
             if (f2export.ttype == 'char' or f2export.ttype == 'reference') and f2export.size != 0:
                 dct_field_attribute["size"] = f2export.size
 
             if (f2export.ttype == 'reference' or f2export.ttype == 'selection') and f2export.selection:
-                dct_field_attribute["selection"] = f2export.selection
+                # Transform selection
+                # '[("point", "Point"), ("line", "Line"), ("area", "Polygon")]'
+                # [('"point"', '_( "Point")'), ('"line"', '_( "Line")'), ('"area"', '_( "Polygon")')]
+                lst_selection = [a.split(",") for a in f2export.selection.strip('[]').strip('()').split('), (')]
+                lst_selection = [f"({a[0]}, _({a[1].strip()}))" for a in lst_selection]
+                dct_field_attribute["selection"] = lst_selection
+
+            if f2export.default:
+                if f2export.default == "True":
+                    dct_field_attribute["default"] = True
+                elif f2export.default == "False":
+                    # Ignore False value
+                    pass
+                else:
+                    dct_field_attribute["default"] = f2export.default
 
             if f2export.related:
                 dct_field_attribute["related"] = f2export.related
@@ -1084,9 +1145,9 @@ class CodeGeneratorWriter(models.Model):
                     lst_field_attribute.append(f"{key}='{value}'")
                 elif type(value) is list:
                     # TODO find another solution than removing \n, this cause error with cw.CodeWriter
-                    new_value = ','.join(value)
+                    new_value = ', '.join(value)
                     new_value = new_value.replace('\n', ' ')
-                    lst_field_attribute.append(f"{key}={new_value}")
+                    lst_field_attribute.append(f"{key}=[{new_value}]")
                 else:
                     lst_field_attribute.append(f"{key}={value}")
 
@@ -1214,7 +1275,7 @@ class CodeGeneratorWriter(models.Model):
             self.get_lst_file_generate(module)
 
             if module.enable_sync_code:
-                self.code_generator_data.sync_code(module.path_sync_code)
+                self.code_generator_data.sync_code(module.path_sync_code, module.name)
 
         vals["list_path_file"] = ";".join(self.code_generator_data.lst_path_file)
 
@@ -1247,6 +1308,7 @@ class CodeGeneratorData:
         self._lst_manifest_data_files = []
         self._dct_import_dir = defaultdict(list)
         self._lst_extra_module_init_path = []
+        self._dct_view_id = {}
 
     @staticmethod
     def os_make_dirs(path, exist_ok=True):
@@ -1311,12 +1373,19 @@ class CodeGeneratorData:
         return self._static_description_path
 
     @property
+    def dct_view_id(self):
+        return self._dct_view_id
+
+    @property
     def lst_manifest_data_files(self):
         return self._lst_manifest_data_files
 
     @property
     def lst_import_dir(self):
         return list(self._dct_import_dir.keys())
+
+    def add_view_id(self, name, id):
+        self._dct_view_id[name] = id
 
     def add_module_init_path(self, import_line):
         self._lst_extra_module_init_path.append(import_line)
@@ -1363,6 +1432,30 @@ class CodeGeneratorData:
         if dct_hold_file:
             print(f"ERROR, cannot order manifest files dependencies : {dct_hold_file}")
         self._lst_manifest_data_files = lst_manifest
+
+    def copy_directory(self, source_directory_path, directory_path):
+        """
+        Copy only directory without manipulation
+        :param source_directory_path:
+        :param directory_path:
+        :return:
+        """
+        absolute_path = os.path.join(self._path, self._module_name, directory_path)
+        # self._check_mkdir_and_create(absolute_path, is_file=False)
+        status = shutil.copytree(source_directory_path, absolute_path)
+
+    def copy_file(self, source_file_path, file_path, search_and_replace=[]):
+        with open(source_file_path, "rb") as file_source:
+            content = file_source.read()
+
+        if search_and_replace:
+            # switch binary to string
+            content = content.decode('utf-8')
+            for search, replace in search_and_replace:
+                content = content.replace(search, replace)
+            self.write_file_str(file_path, content)
+        else:
+            self.write_file_binary(file_path, content)
 
     def write_file_lst_content(self, file_path, lst_content, data_file=False, insert_first=False):
         """
@@ -1451,14 +1544,19 @@ class CodeGeneratorData:
             python_module_name = os.path.splitext(os.path.basename(file_path))[0]
             self._dct_import_dir[dir_name].append(python_module_name)
 
-    def _check_mkdir_and_create(self, file_path):
-        self.os_make_dirs(os.path.dirname(file_path))
+    def _check_mkdir_and_create(self, file_path, is_file=True):
+        if is_file:
+            path_dir = os.path.dirname(file_path)
+        else:
+            path_dir = file_path
+        self.os_make_dirs(path_dir)
 
-    def sync_code(self, path_sync_code):
+    def sync_code(self, directory, name):
         try:
             # if not os.path.isdir(path_sync_code):
             #     osmakedirs(path_sync_code)
             # if module.clean_before_sync_code:
+            path_sync_code = os.path.join(directory, name)
             if os.path.isdir(path_sync_code):
                 shutil.rmtree(path_sync_code)
             shutil.copytree(self._module_path, path_sync_code)

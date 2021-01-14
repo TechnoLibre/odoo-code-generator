@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <record id="code_generator_add_model_action" model="ir.actions.act_window">
-    <field name="name">Add model</field>
+    <field name="name">Model</field>
     <field name="type">ir.actions.act_window</field>
     <field name="res_model">code.generator.add.model.wizard</field>
     <field name="view_mode">form</field>

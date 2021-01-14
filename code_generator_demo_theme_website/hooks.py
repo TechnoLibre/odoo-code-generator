@@ -8,7 +8,7 @@ def post_init_hook(cr, e):
     with api.Environment.manage():
         env = api.Environment(cr, SUPERUSER_ID, {})
 
-        path_module_generate = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', MODULE_NAME))
+        # path_module_generate = os.path.normpath(os.path.join(os.path.dirname(__file__), '..'))
 
         # Add code generator
         value = {
@@ -22,7 +22,7 @@ def post_init_hook(cr, e):
             'category_id': env.ref("base.module_category_theme").id,
             'sequence': 900,
             "enable_sync_code": True,
-            "path_sync_code": path_module_generate,
+            # "path_sync_code": path_module_generate,
         }
         code_generator_id = env["code.generator.module"].create(value)
 

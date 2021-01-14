@@ -16,6 +16,7 @@
         'security/ir.model.access.csv',
         'wizards/code_generator_generate_views_wizard.xml',
         'wizards/code_generator_add_model_wizard.xml',
+        'wizards/code_generator_add_controller_wizard.xml',
         'views/code_generator.xml',
         'views/code_generator_settings.xml',
         'views/ir_actions.xml',
@@ -23,5 +24,6 @@
         'views/ir_uis.xml',
         'views/res_groups.xml',
     ],
-    'demo': ['data/code_generator_demo.xml']
+    'demo': ['data/code_generator_demo.xml'],
+    'post_init_hook': 'post_init_hook',
 }

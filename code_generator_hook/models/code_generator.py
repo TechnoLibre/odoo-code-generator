@@ -43,3 +43,10 @@ class CodeGeneratorModule(models.Model):
 
     uninstall_hook_feature_code_generator = fields.Boolean(
         string="Code generator uninstall_hook", help="Add code to use the code generator on uninstall_hook.")
+
+    # Functionality
+    enable_template_code_generator_demo = fields.Boolean(string="Functions code generator demo",
+                                                         help="Support help to use code generator "
+                                                              "with functionality variables.")
+
+    enable_template_model = fields.Boolean(string="Functions models", help="Add model example.")

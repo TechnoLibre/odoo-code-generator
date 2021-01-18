@@ -1,5 +1,6 @@
 from odoo import _, api, models, fields, SUPERUSER_ID
 
+# TODO HUMAN: change my module_name to create a specific demo functionality
 MODULE_NAME = "code_generator_demo"
 
 
@@ -7,6 +8,7 @@ def post_init_hook(cr, e):
     with api.Environment.manage():
         env = api.Environment(cr, SUPERUSER_ID, {})
 
+        # The path of the actual file
         # path_module_generate = os.path.normpath(os.path.join(os.path.dirname(__file__), '..'))
 
         short_name = MODULE_NAME.replace("_", " ").title()
@@ -28,6 +30,10 @@ def post_init_hook(cr, e):
         value["post_init_hook_feature_code_generator"] = True
         value["uninstall_hook_feature_code_generator"] = True
         value["hook_constant_code"] = f'MODULE_NAME = "{MODULE_NAME}"'
+
+        # TODO HUMAN: enable your functionality to generate
+        value["enable_template_code_generator_demo"] = True
+        value["enable_template_model"] = True
 
         code_generator_id = env["code.generator.module"].create(value)
 

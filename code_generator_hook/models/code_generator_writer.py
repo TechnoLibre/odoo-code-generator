@@ -103,6 +103,11 @@ class CodeGeneratorWriter(models.Model):
                             cw.emit("value[\"uninstall_hook_feature_code_generator\"] = True")
                             cw.emit("value[\"hook_constant_code\"] = f'MODULE_NAME = \"{MODULE_NAME}\"'")
                             cw.emit()
+                            # If enable_template_code_generator_demo
+                            cw.emit("# TODO HUMAN: enable your functionality to generate")
+                            cw.emit('value["enable_template_code_generator_demo"] = True')
+                            cw.emit('value["enable_template_model"] = False')
+                            cw.emit()
                             cw.emit("code_generator_id = env[\"code.generator.module\"].create(value)")
                             cw.emit()
                             cw.emit("# Add dependencies")

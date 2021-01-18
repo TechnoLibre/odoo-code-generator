@@ -1092,9 +1092,12 @@ class CodeGeneratorWriter(models.Model):
                 # Transform selection
                 # '[("point", "Point"), ("line", "Line"), ("area", "Polygon")]'
                 # [('"point"', '_( "Point")'), ('"line"', '_( "Line")'), ('"area"', '_( "Polygon")')]
-                lst_selection = [a.split(",") for a in f2export.selection.strip('[]').strip('()').split('), (')]
-                lst_selection = [f"({a[0]}, _({a[1].strip()}))" for a in lst_selection]
-                dct_field_attribute["selection"] = lst_selection
+                if f2export.selection != '[]':
+                    lst_selection = [a.split(",") for a in f2export.selection.strip('[]').strip('()').split('), (')]
+                    lst_selection = [f"({a[0]}, _({a[1].strip()}))" for a in lst_selection]
+                    dct_field_attribute["selection"] = lst_selection
+                else:
+                    dct_field_attribute["selection"] = []
 
             if f2export.default:
                 if f2export.default == "True":

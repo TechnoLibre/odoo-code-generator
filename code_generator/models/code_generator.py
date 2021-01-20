@@ -186,7 +186,6 @@ class CodeGeneratorModule(models.Model):
     def _default_path_sync_code(self):
         return os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-    # TODO default path actual path of this file
     path_sync_code = fields.Char(string="Directory",
                                  default=_default_path_sync_code,
                                  help="Path directory where sync the code, will erase directory and generate new code.")

@@ -1307,7 +1307,7 @@ class CodeGeneratorData:
         self._static_description_path = os.path.join('static', 'description')
         self._lst_manifest_data_files = []
         self._dct_import_dir = defaultdict(list)
-        self._lst_extra_module_init_path = []
+        self._dct_extra_module_init_path = defaultdict(list)
         self._dct_view_id = {}
 
     @staticmethod
@@ -1387,8 +1387,8 @@ class CodeGeneratorData:
     def add_view_id(self, name, id):
         self._dct_view_id[name] = id
 
-    def add_module_init_path(self, import_line):
-        self._lst_extra_module_init_path.append(import_line)
+    def add_module_init_path(self, component, import_line):
+        self._dct_extra_module_init_path[component].append(import_line)
 
     def _get_lst_files_data_depends(self, lst_meta):
         set_files = set()
@@ -1577,6 +1577,6 @@ class CodeGeneratorData:
                     cw.emit(f"from . import {module}")
             elif lst_module:
                 cw.emit(f"from . import {', '.join(lst_module)}")
-                for extra_import in self._lst_extra_module_init_path:
-                    cw.emit(extra_import)
+            for extra_import in self._dct_extra_module_init_path.get(component, []):
+                cw.emit(extra_import)
             self.write_file_str(init_path, cw.render())

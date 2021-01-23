@@ -27,7 +27,8 @@ def post_init_hook(cr, e):
 
         # TODO HUMAN: enable your functionality to generate
         value["enable_template_code_generator_demo"] = True
-        value["enable_template_model"] = False
+        value["template_model_name"] = ""
+        value["enable_template_wizard_view"] = False
         value["post_init_hook_show"] = True
         value["uninstall_hook_show"] = True
         value["post_init_hook_feature_code_generator"] = True
@@ -41,6 +42,7 @@ def post_init_hook(cr, e):
         code_generator_id = env["code.generator.module"].create(value)
 
         # Add dependencies
+        # TODO HUMAN: update your dependencies
         lst_depend = [
             "code_generator",
             "code_generator_hook",

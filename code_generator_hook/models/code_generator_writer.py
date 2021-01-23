@@ -104,11 +104,14 @@ class CodeGeneratorWriter(models.Model):
                             if module.enable_template_code_generator_demo:
                                 cw.emit(f'value["enable_template_code_generator_demo"] = '
                                         f'{module.enable_template_code_generator_demo}')
-                            cw.emit('value["enable_template_model"] = False')
-                            cw.emit("value[\"post_init_hook_show\"] = True")
-                            cw.emit("value[\"uninstall_hook_show\"] = True")
-                            cw.emit("value[\"post_init_hook_feature_code_generator\"] = True")
-                            cw.emit("value[\"uninstall_hook_feature_code_generator\"] = True")
+                                cw.emit('value["template_model_name"] = ""')
+                                cw.emit('value["enable_template_wizard_view"] = False')
+                            cw.emit(f"value[\"post_init_hook_show\"] = {module.enable_template_code_generator_demo}")
+                            cw.emit(f"value[\"uninstall_hook_show\"] = {module.enable_template_code_generator_demo}")
+                            cw.emit(f"value[\"post_init_hook_feature_code_generator\"] = "
+                                    f"{module.enable_template_code_generator_demo}")
+                            cw.emit(f"value[\"uninstall_hook_feature_code_generator\"] = "
+                                    f"{module.enable_template_code_generator_demo}")
                             cw.emit()
                             if module.enable_template_code_generator_demo:
                                 cw.emit("new_module_name = MODULE_NAME")
@@ -122,20 +125,86 @@ class CodeGeneratorWriter(models.Model):
                             cw.emit()
                             cw.emit("code_generator_id = env[\"code.generator.module\"].create(value)")
                             cw.emit()
-                            cw.emit("# Add dependencies")
-                            with cw.block(before='lst_depend =', delim=('[', ']')):
-                                cw.emit("\"code_generator\",")
-                                cw.emit("\"code_generator_hook\",")
-                            cw.emit(
-                                "lst_dependencies = env[\"ir.module.module\"].search([(\"name\", \"in\", lst_depend)])")
-                            cw.emit("for depend in lst_dependencies:")
-                            with cw.indent():
-                                with cw.block(before='value =', delim=('{', '}')):
-                                    cw.emit("\"module_id\": code_generator_id.id,")
-                                    cw.emit("\"depend_id\": depend.id,")
-                                    cw.emit("\"name\": depend.display_name,")
-                                cw.emit("env[\"code.generator.module.dependency\"].create(value)")
-                            cw.emit()
+                            if module.dependencies_id:
+                                cw.emit("# Add dependencies")
+                                cw.emit("# TODO HUMAN: update your dependencies")
+                                with cw.block(before='lst_depend =', delim=('[', ']')):
+                                    for depend in module.dependencies_id:
+                                        cw.emit(f'"{depend.depend_id.name}",')
+                                cw.emit("lst_dependencies = env[\"ir.module.module\"]"
+                                        ".search([(\"name\", \"in\", lst_depend)])")
+                                cw.emit("for depend in lst_dependencies:")
+                                with cw.indent():
+                                    with cw.block(before='value =', delim=('{', '}')):
+                                        cw.emit("\"module_id\": code_generator_id.id,")
+                                        cw.emit("\"depend_id\": depend.id,")
+                                        cw.emit("\"name\": depend.display_name,")
+                                    cw.emit("env[\"code.generator.module.dependency\"].create(value)")
+                                cw.emit()
+                            if module.template_model_name:
+                                for model_name in module.template_model_name.split(";"):
+                                    model_model = model_name.replace("_", ".")
+                                    title_model_model = model_name.replace("_", " ").title()
+                                    variable_model_model = f"model_{model_name}"
+                                    cw.emit(f"# Add {title_model_model}")
+                                    cw.emit("value = {")
+                                    with cw.indent():
+                                        cw.emit(f"\"name\": \"{model_name}\",")
+                                        cw.emit(f"\"model\": \"{model_model}\",")
+                                        cw.emit("\"m2o_module\": code_generator_id.id,")
+                                        cw.emit("\"rec_name\": None,")
+                                        cw.emit("\"nomenclator\": True,")
+                                    cw.emit("}")
+                                    cw.emit(f"{variable_model_model} = env[\"ir.model\"].create(value)")
+                                    cw.emit("")
+                                    cw.emit("value_field_boolean = {")
+                                    with cw.indent():
+                                        cw.emit("\"name\": \"field_boolean\",")
+                                        cw.emit("\"model\": \"demo.model\",")
+                                        cw.emit("\"field_description\": \"field description\",")
+                                        cw.emit("\"ttype\": \"boolean\",")
+                                        cw.emit(f"\"model_id\": {variable_model_model}.id,")
+                                    cw.emit("}")
+                                    cw.emit("env[\"ir.model.fields\"].create(value_field_boolean)")
+                                    cw.emit()
+                                    cw.emit("# FIELD TYPE Many2one")
+                                    cw.emit("#value_field_many2one = {")
+                                    with cw.indent():
+                                        cw.emit("#\"name\": \"field_many2one\",")
+                                        cw.emit("#\"model\": \"demo.model\",")
+                                        cw.emit("#\"field_description\": \"field description\",")
+                                        cw.emit("#\"ttype\": \"many2one\",")
+                                        cw.emit('#"comodel_name": "model.name",')
+                                        cw.emit('#"relation": "model.name",')
+                                        cw.emit(f"#\"model_id\": {variable_model_model}.id,")
+                                    cw.emit("#}")
+                                    cw.emit("#env[\"ir.model.fields\"].create(value_field_many2one)")
+                                    cw.emit("")
+                                    cw.emit("# Hack to solve field name")
+                                    cw.emit("field_x_name = env[\"ir.model.fields\"].search([('model_id', '=', "
+                                            f"{variable_model_model}.id), ('name', '=', 'x_name')])")
+                                    cw.emit("field_x_name.name = \"name\"")
+                                    cw.emit(f"{variable_model_model}.rec_name = \"name\"")
+                                    cw.emit("")
+                                    cw.emit("# Add data nomenclator")
+                                    cw.emit("value = {")
+                                    with cw.indent():
+                                        cw.emit("\"field_boolean\": True,")
+                                        cw.emit("\"name\": \"demo\",")
+                                    cw.emit("}")
+                                    cw.emit(f"env[\"{model_model}\"].create(value)")
+                                    cw.emit()
+                            if module.enable_template_wizard_view:
+                                cw.emit("# Generate view")
+                                cw.emit("wizard_view = env['code.generator.generate.views.wizard'].create({")
+                                with cw.indent():
+                                    cw.emit("'code_generator_id': code_generator_id.id,")
+                                    cw.emit("'enable_generate_all': False,")
+                                    cw.emit("'enable_generate_portal': True,")
+                                cw.emit("})")
+                                cw.emit("")
+                                cw.emit("wizard_view.button_generate_views()")
+                                cw.emit()
                             cw.emit("# Generate module")
                             cw.emit("value = {")
                             with cw.indent():

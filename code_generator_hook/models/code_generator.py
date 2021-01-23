@@ -49,4 +49,7 @@ class CodeGeneratorModule(models.Model):
                                                          help="Support help to use code generator "
                                                               "with functionality variables.")
 
-    enable_template_model = fields.Boolean(string="Functions models", help="Add model example.")
+    template_model_name = fields.Char(string="Functions models", help="Add model from list, separate by ';' and "
+                                                                      "generate template.")
+
+    enable_template_wizard_view = fields.Boolean(string="Template wizard", help="Add template wizard.")

@@ -33,7 +33,7 @@ def post_init_hook(cr, e):
 
         # TODO HUMAN: enable your functionality to generate
         value["enable_template_code_generator_demo"] = True
-        value["enable_template_model"] = True
+        value["enable_template_model"] = False
 
         code_generator_id = env["code.generator.module"].create(value)
 

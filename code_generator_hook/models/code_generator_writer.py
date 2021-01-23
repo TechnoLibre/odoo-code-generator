@@ -49,6 +49,8 @@ class CodeGeneratorWriter(models.Model):
 
         # Add constant
         if module.hook_constant_code:
+            if module.enable_template_code_generator_demo:
+                cw.emit("# TODO HUMAN: change my module_name to create a specific demo functionality")
             for line in module.hook_constant_code.split('\n'):
                 cw.emit(line)
 
@@ -76,6 +78,7 @@ class CodeGeneratorWriter(models.Model):
                     if post_init_hook_feature_code_generator:
                         with cw.indent():
                             cw.emit()
+                            cw.emit("# The path of the actual file")
                             cw.emit("# path_module_generate = os.path.normpath(os.path.join(os.path.dirname"
                                     "(__file__), '..'))")
                             cw.emit()
@@ -103,9 +106,9 @@ class CodeGeneratorWriter(models.Model):
                             cw.emit("value[\"uninstall_hook_feature_code_generator\"] = True")
                             cw.emit("value[\"hook_constant_code\"] = f'MODULE_NAME = \"{MODULE_NAME}\"'")
                             cw.emit()
-                            # If enable_template_code_generator_demo
                             cw.emit("# TODO HUMAN: enable your functionality to generate")
-                            cw.emit('value["enable_template_code_generator_demo"] = True')
+                            cw.emit(f'value["enable_template_code_generator_demo"] = '
+                                    f'{module.enable_template_code_generator_demo}')
                             cw.emit('value["enable_template_model"] = False')
                             cw.emit()
                             cw.emit("code_generator_id = env[\"code.generator.module\"].create(value)")

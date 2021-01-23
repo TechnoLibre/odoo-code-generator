@@ -100,16 +100,25 @@ class CodeGeneratorWriter(models.Model):
                                 cw.emit("# \"path_sync_code\": path_module_generate,")
                             cw.emit("}")
                             cw.emit()
+                            cw.emit("# TODO HUMAN: enable your functionality to generate")
+                            if module.enable_template_code_generator_demo:
+                                cw.emit(f'value["enable_template_code_generator_demo"] = '
+                                        f'{module.enable_template_code_generator_demo}')
+                            cw.emit('value["enable_template_model"] = False')
                             cw.emit("value[\"post_init_hook_show\"] = True")
                             cw.emit("value[\"uninstall_hook_show\"] = True")
                             cw.emit("value[\"post_init_hook_feature_code_generator\"] = True")
                             cw.emit("value[\"uninstall_hook_feature_code_generator\"] = True")
-                            cw.emit("value[\"hook_constant_code\"] = f'MODULE_NAME = \"{MODULE_NAME}\"'")
                             cw.emit()
-                            cw.emit("# TODO HUMAN: enable your functionality to generate")
-                            cw.emit(f'value["enable_template_code_generator_demo"] = '
-                                    f'{module.enable_template_code_generator_demo}')
-                            cw.emit('value["enable_template_model"] = False')
+                            if module.enable_template_code_generator_demo:
+                                cw.emit("new_module_name = MODULE_NAME")
+                                cw.emit('if not value["enable_template_code_generator_demo"] and "code_generator_" '
+                                        'in MODULE_NAME:')
+                                with cw.indent():
+                                    cw.emit('new_module_name = MODULE_NAME[len("code_generator_"):]')
+                                cw.emit("value[\"hook_constant_code\"] = f'MODULE_NAME = \"{new_module_name}\"'")
+                            else:
+                                cw.emit("value[\"hook_constant_code\"] = f'MODULE_NAME = \"{MODULE_NAME}\"'")
                             cw.emit()
                             cw.emit("code_generator_id = env[\"code.generator.module\"].create(value)")
                             cw.emit()

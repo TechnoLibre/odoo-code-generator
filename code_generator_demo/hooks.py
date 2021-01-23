@@ -25,15 +25,18 @@ def post_init_hook(cr, e):
             # "path_sync_code": path_module_generate,
         }
 
+        # TODO HUMAN: enable your functionality to generate
+        value["enable_template_code_generator_demo"] = True
+        value["enable_template_model"] = False
         value["post_init_hook_show"] = True
         value["uninstall_hook_show"] = True
         value["post_init_hook_feature_code_generator"] = True
         value["uninstall_hook_feature_code_generator"] = True
-        value["hook_constant_code"] = f'MODULE_NAME = "{MODULE_NAME}"'
 
-        # TODO HUMAN: enable your functionality to generate
-        value["enable_template_code_generator_demo"] = True
-        value["enable_template_model"] = False
+        new_module_name = MODULE_NAME
+        if not value["enable_template_code_generator_demo"] and "code_generator_" in MODULE_NAME:
+            new_module_name = MODULE_NAME[len("code_generator_"):]
+        value["hook_constant_code"] = f'MODULE_NAME = "{new_module_name}"'
 
         code_generator_id = env["code.generator.module"].create(value)
 

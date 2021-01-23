@@ -4,7 +4,7 @@
     'author': 'TechnoLibre',
     'website': 'https://technolibre.ca',
     'license': 'AGPL-3',
-    'application': 'True',
+    'application': True,
     'data': [
         'security/ir.model.access.csv',
         'views/demo_model_2_internal.xml',

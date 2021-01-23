@@ -38,6 +38,7 @@ def post_init_hook(cr, e):
         new_module_name = MODULE_NAME
         if not value["enable_template_code_generator_demo"] and "code_generator_" in MODULE_NAME:
             new_module_name = MODULE_NAME[len("code_generator_"):]
+            value["template_module_name"] = new_module_name
         value["hook_constant_code"] = f'MODULE_NAME = "{new_module_name}"'
 
         code_generator_id = env["code.generator.module"].create(value)

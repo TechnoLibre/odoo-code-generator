@@ -1,7 +1,9 @@
 from odoo import models, fields, api
 
 from code_writer import CodeWriter
+from odoo.models import MAGIC_COLUMNS
 
+MAGIC_FIELDS = MAGIC_COLUMNS + ['display_name', '__last_update', 'access_url', 'access_token', 'access_warning', 'name']
 BREAK_LINE = ['\n']
 FROM_ODOO_IMPORTS_SUPERUSER = ['from odoo import _, api, models, fields, SUPERUSER_ID']
 MODEL_SUPERUSER_HEAD = FROM_ODOO_IMPORTS_SUPERUSER + BREAK_LINE
@@ -33,6 +35,30 @@ class CodeGeneratorWriter(models.Model):
 
         if module.uninstall_hook_show:
             cw.emit(f"'uninstall_hook': 'uninstall_hook',")
+
+    def _write_sync_template(self, module, model_model, cw, var_model_model):
+        field_ids = self.env["ir.model.fields"].search([('model', '=', model_model)])
+        f2exports = field_ids.filtered(lambda field: field.name not in MAGIC_FIELDS)
+        for field_id in f2exports:
+            var_value_field_name = f"value_field_{field_id.name}"
+            with cw.block(before=f"{var_value_field_name} =", delim=('{', '}')):
+                cw.emit(f'"name": "{field_id.name}",')
+                cw.emit(f'"model": "{model_model}",')
+                cw.emit(f'"field_description": "{field_id.field_description}",')
+                cw.emit(f'"ttype": "{field_id.ttype}",')
+                if field_id.ttype == "many2one":
+                    cw.emit(f'"comodel_name": "{field_id.relation}",')
+                    cw.emit(f'"relation": "{field_id.relation}",')
+                cw.emit(f'"model_id": {var_model_model}.id,')
+            cw.emit(f'env["ir.model.fields"].create({var_value_field_name})')
+            cw.emit()
+
+        if f2exports:
+            cw.emit('# Hack to solve field name')
+            cw.emit(f'field_x_name = env["ir.model.fields"].search([("model_id", "=", {var_model_model}.id), '
+                    f'("name", "=", "x_name")])')
+            cw.emit('field_x_name.name = "name"')
+            cw.emit(f'{var_model_model}.rec_name = "name"')
 
     def _set_hook_file(self, module):
         """
@@ -102,16 +128,16 @@ class CodeGeneratorWriter(models.Model):
                             cw.emit()
                             cw.emit("# TODO HUMAN: enable your functionality to generate")
                             if module.enable_template_code_generator_demo:
-                                cw.emit(f'value["enable_template_code_generator_demo"] = '
+                                cw.emit('value["enable_template_code_generator_demo"] = '
                                         f'{module.enable_template_code_generator_demo}')
                                 cw.emit('value["template_model_name"] = ""')
                                 cw.emit('value["enable_template_wizard_view"] = False')
-                            cw.emit('value["enable_sync_template"] = False')
+                            cw.emit(f'value["enable_sync_template"] = {module.enable_sync_template}')
                             cw.emit(f"value[\"post_init_hook_show\"] = {module.enable_template_code_generator_demo}")
                             cw.emit(f"value[\"uninstall_hook_show\"] = {module.enable_template_code_generator_demo}")
-                            cw.emit(f"value[\"post_init_hook_feature_code_generator\"] = "
+                            cw.emit("value[\"post_init_hook_feature_code_generator\"] = "
                                     f"{module.enable_template_code_generator_demo}")
-                            cw.emit(f"value[\"uninstall_hook_feature_code_generator\"] = "
+                            cw.emit("value[\"uninstall_hook_feature_code_generator\"] = "
                                     f"{module.enable_template_code_generator_demo}")
                             cw.emit()
                             if module.enable_template_code_generator_demo:
@@ -120,6 +146,7 @@ class CodeGeneratorWriter(models.Model):
                                         'in MODULE_NAME:')
                                 with cw.indent():
                                     cw.emit('new_module_name = MODULE_NAME[len("code_generator_"):]')
+                                    cw.emit('value["template_module_name"] = new_module_name')
                                 cw.emit("value[\"hook_constant_code\"] = f'MODULE_NAME = \"{new_module_name}\"'")
                             else:
                                 cw.emit("value[\"hook_constant_code\"] = f'MODULE_NAME = \"{MODULE_NAME}\"'")
@@ -143,8 +170,8 @@ class CodeGeneratorWriter(models.Model):
                                     cw.emit("env[\"code.generator.module.dependency\"].create(value)")
                                 cw.emit()
                             if module.template_model_name:
-                                for model_name in module.template_model_name.split(";"):
-                                    model_model = model_name.replace("_", ".")
+                                for model_model in module.template_model_name.split(";"):
+                                    model_name = model_model.replace(".", "_")
                                     title_model_model = model_name.replace("_", " ").title()
                                     variable_model_model = f"model_{model_name}"
                                     cw.emit(f"# Add {title_model_model}")
@@ -158,35 +185,41 @@ class CodeGeneratorWriter(models.Model):
                                     cw.emit("}")
                                     cw.emit(f"{variable_model_model} = env[\"ir.model\"].create(value)")
                                     cw.emit("")
-                                    cw.emit("value_field_boolean = {")
-                                    with cw.indent():
-                                        cw.emit("\"name\": \"field_boolean\",")
-                                        cw.emit("\"model\": \"demo.model\",")
-                                        cw.emit("\"field_description\": \"field description\",")
-                                        cw.emit("\"ttype\": \"boolean\",")
-                                        cw.emit(f"\"model_id\": {variable_model_model}.id,")
-                                    cw.emit("}")
-                                    cw.emit("env[\"ir.model.fields\"].create(value_field_boolean)")
+                                    cw.emit("##### Begin Field")
+                                    if module.enable_sync_template:
+                                        self._write_sync_template(module, model_model, cw, variable_model_model)
+                                    else:
+                                        cw.emit("value_field_boolean = {")
+                                        with cw.indent():
+                                            cw.emit("\"name\": \"field_boolean\",")
+                                            cw.emit("\"model\": \"demo.model\",")
+                                            cw.emit("\"field_description\": \"field description\",")
+                                            cw.emit("\"ttype\": \"boolean\",")
+                                            cw.emit(f"\"model_id\": {variable_model_model}.id,")
+                                        cw.emit("}")
+                                        cw.emit("env[\"ir.model.fields\"].create(value_field_boolean)")
+                                        cw.emit()
+                                        cw.emit("# FIELD TYPE Many2one")
+                                        cw.emit("#value_field_many2one = {")
+                                        with cw.indent():
+                                            cw.emit("#\"name\": \"field_many2one\",")
+                                            cw.emit("#\"model\": \"demo.model\",")
+                                            cw.emit("#\"field_description\": \"field description\",")
+                                            cw.emit("#\"ttype\": \"many2one\",")
+                                            cw.emit('#"comodel_name": "model.name",')
+                                            cw.emit('#"relation": "model.name",')
+                                            cw.emit(f"#\"model_id\": {variable_model_model}.id,")
+                                        cw.emit("#}")
+                                        cw.emit("#env[\"ir.model.fields\"].create(value_field_many2one)")
+                                        cw.emit("")
+                                        cw.emit("# Hack to solve field name")
+                                        cw.emit("field_x_name = env[\"ir.model.fields\"].search([('model_id', '=', "
+                                                f"{variable_model_model}.id), ('name', '=', 'x_name')])")
+                                        cw.emit("field_x_name.name = \"name\"")
+                                        cw.emit(f"{variable_model_model}.rec_name = \"name\"")
+                                        cw.emit("")
+                                    cw.emit("##### End Field")
                                     cw.emit()
-                                    cw.emit("# FIELD TYPE Many2one")
-                                    cw.emit("#value_field_many2one = {")
-                                    with cw.indent():
-                                        cw.emit("#\"name\": \"field_many2one\",")
-                                        cw.emit("#\"model\": \"demo.model\",")
-                                        cw.emit("#\"field_description\": \"field description\",")
-                                        cw.emit("#\"ttype\": \"many2one\",")
-                                        cw.emit('#"comodel_name": "model.name",')
-                                        cw.emit('#"relation": "model.name",')
-                                        cw.emit(f"#\"model_id\": {variable_model_model}.id,")
-                                    cw.emit("#}")
-                                    cw.emit("#env[\"ir.model.fields\"].create(value_field_many2one)")
-                                    cw.emit("")
-                                    cw.emit("# Hack to solve field name")
-                                    cw.emit("field_x_name = env[\"ir.model.fields\"].search([('model_id', '=', "
-                                            f"{variable_model_model}.id), ('name', '=', 'x_name')])")
-                                    cw.emit("field_x_name.name = \"name\"")
-                                    cw.emit(f"{variable_model_model}.rec_name = \"name\"")
-                                    cw.emit("")
                                     cw.emit("# Add data nomenclator")
                                     cw.emit("value = {")
                                     with cw.indent():

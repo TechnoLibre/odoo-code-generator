@@ -56,3 +56,7 @@ class CodeGeneratorModule(models.Model):
 
     enable_sync_template = fields.Boolean(string="Sync generated code",
                                           help="Read generated code to fill the generator with fields.")
+
+    template_module_name = fields.Char(string="Generated module name",
+                                       help="Can be empty in case of code_generator_demo, else it's the module name "
+                                            "goal to generate.")

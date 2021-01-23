@@ -53,3 +53,6 @@ class CodeGeneratorModule(models.Model):
                                                                       "generate template.")
 
     enable_template_wizard_view = fields.Boolean(string="Template wizard", help="Add template wizard.")
+
+    enable_sync_template = fields.Boolean(string="Sync generated code",
+                                          help="Read generated code to fill the generator with fields.")

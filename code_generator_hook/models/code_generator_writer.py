@@ -106,6 +106,7 @@ class CodeGeneratorWriter(models.Model):
                                         f'{module.enable_template_code_generator_demo}')
                                 cw.emit('value["template_model_name"] = ""')
                                 cw.emit('value["enable_template_wizard_view"] = False')
+                            cw.emit('value["enable_sync_template"] = False')
                             cw.emit(f"value[\"post_init_hook_show\"] = {module.enable_template_code_generator_demo}")
                             cw.emit(f"value[\"uninstall_hook_show\"] = {module.enable_template_code_generator_demo}")
                             cw.emit(f"value[\"post_init_hook_feature_code_generator\"] = "

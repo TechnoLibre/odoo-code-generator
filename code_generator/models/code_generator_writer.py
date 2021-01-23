@@ -927,8 +927,8 @@ class CodeGeneratorWriter(models.Model):
                                                             XML_HEAD + l_module_security + XML_ODOO_CLOSING_TAG,
                                                             data_file=True, insert_first=True)
 
-        model_access_file_path = os.path.join(self.code_generator_data.security_path, 'ir.model.access.csv')
         if len(l_model_csv_access) > 1:
+            model_access_file_path = os.path.join(self.code_generator_data.security_path, 'ir.model.access.csv')
             self.code_generator_data.write_file_lst_content(model_access_file_path, l_model_csv_access, data_file=True,
                                                             insert_first=True)
 

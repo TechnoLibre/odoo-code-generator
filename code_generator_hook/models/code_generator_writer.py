@@ -36,24 +36,44 @@ class CodeGeneratorWriter(models.Model):
         if module.uninstall_hook_show:
             cw.emit(f"'uninstall_hook': 'uninstall_hook',")
 
-    def _write_sync_template(self, module, model_model, cw, var_model_model):
-        field_ids = self.env["ir.model.fields"].search([('model', '=', model_model)])
-        f2exports = field_ids.filtered(lambda field: field.name not in MAGIC_FIELDS)
+    def _write_sync_template(self, module, model_model, cw, var_model_model, lst_keep_f2exports,
+                             lst_force_f2exports=None):
+        if lst_force_f2exports:
+            f2exports = lst_force_f2exports
+        else:
+            f2exports = self.env["ir.model.fields"].search(
+                [('model', '=', model_model), ('name', 'not in', MAGIC_FIELDS)])
         for field_id in f2exports:
+            if not lst_force_f2exports and field_id.ttype == "one2many":
+                # TODO refactor, simplify this with a struct
+                lst_keep_f2exports.append((field_id, model_model, var_model_model))
+                continue
             var_value_field_name = f"value_field_{field_id.name}"
             with cw.block(before=f"{var_value_field_name} =", delim=('{', '}')):
                 cw.emit(f'"name": "{field_id.name}",')
                 cw.emit(f'"model": "{model_model}",')
                 cw.emit(f'"field_description": "{field_id.field_description}",')
                 cw.emit(f'"ttype": "{field_id.ttype}",')
-                if field_id.ttype == "many2one":
+                if field_id.ttype in ["many2one", "many2many", "one2many"]:
                     cw.emit(f'"comodel_name": "{field_id.relation}",')
                     cw.emit(f'"relation": "{field_id.relation}",')
+                    if field_id.ttype == "one2many":
+                        field_many2one_ids = self.env["ir.model.fields"].search(
+                            [('model', '=', field_id.relation), ('ttype', '=', 'many2one'),
+                             ('name', 'not in', MAGIC_FIELDS)])
+                        if len(field_many2one_ids) == 1:
+                            cw.emit(f'"relation_field": "{field_many2one_ids.name}",')
+                        else:
+                            print("Error, cannot support this situation, where is the many2one?")
+                elif field_id.ttype == "selection":
+                    cw.emit(f'"selection": str(list()),')
                 cw.emit(f'"model_id": {var_model_model}.id,')
             cw.emit(f'env["ir.model.fields"].create({var_value_field_name})')
             cw.emit()
 
-        if f2exports:
+        if lst_force_f2exports:
+            lst_force_f2exports.clear()
+        elif f2exports:
             cw.emit('# Hack to solve field name')
             cw.emit(f'field_x_name = env["ir.model.fields"].search([("model_id", "=", {var_model_model}.id), '
                     f'("name", "=", "x_name")])')
@@ -68,6 +88,7 @@ class CodeGeneratorWriter(models.Model):
         """
 
         cw = CodeWriter()
+        lst_keep_f2exports = []
 
         for line in MODEL_SUPERUSER_HEAD:
             str_line = line.strip()
@@ -170,7 +191,11 @@ class CodeGeneratorWriter(models.Model):
                                     cw.emit("env[\"code.generator.module.dependency\"].create(value)")
                                 cw.emit()
                             if module.template_model_name:
-                                for model_model in module.template_model_name.split(";"):
+                                lst_model = module.template_model_name.split(";")
+                                len_model = len(lst_model)
+                                i = -1
+                                for model_model in lst_model:
+                                    i += 1
                                     model_name = model_model.replace(".", "_")
                                     title_model_model = model_name.replace("_", " ").title()
                                     variable_model_model = f"model_{model_name}"
@@ -187,7 +212,8 @@ class CodeGeneratorWriter(models.Model):
                                     cw.emit("")
                                     cw.emit("##### Begin Field")
                                     if module.enable_sync_template:
-                                        self._write_sync_template(module, model_model, cw, variable_model_model)
+                                        self._write_sync_template(module, model_model, cw, variable_model_model,
+                                                                  lst_keep_f2exports)
                                     else:
                                         cw.emit("value_field_boolean = {")
                                         with cw.indent():
@@ -218,6 +244,15 @@ class CodeGeneratorWriter(models.Model):
                                         cw.emit("field_x_name.name = \"name\"")
                                         cw.emit(f"{variable_model_model}.rec_name = \"name\"")
                                         cw.emit("")
+                                    if i >= len_model - 1 and lst_keep_f2exports:
+                                        cw.emit("")
+                                        cw.emit("# Added one2many field, many2many need to be creat before add "
+                                                "one2many")
+                                        for field_id, model_model, variable_model_model in lst_keep_f2exports:
+                                            # Finish to print one2many move at the end
+                                            self._write_sync_template(module, model_model, cw, variable_model_model,
+                                                                      lst_keep_f2exports,
+                                                                      lst_force_f2exports=[field_id])
                                     cw.emit("##### End Field")
                                     cw.emit()
                                     cw.emit("# Add data nomenclator")

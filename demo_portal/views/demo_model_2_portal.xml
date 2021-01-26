@@ -18,8 +18,35 @@
         </t>
         <t t-set="card_body">
           <div class="row">
-            <div class="col-12 col-md-6 mb-2 mb-md-0">Banana demo-
-              <span t-field="demo_model_portal.banana"/>
+            <div class="col-12 col-md-6 mb-2 mb-md-0">Binary demo-
+              <span t-field="demo_model_portal.demo_binary"/>
+            </div>
+            <div class="col-12 col-md-6 mb-2 mb-md-0">Boolean demo-
+              <span t-field="demo_model_portal.demo_boolean"/>
+            </div>
+            <div class="col-12 col-md-6 mb-2 mb-md-0">Char demo-
+              <span t-field="demo_model_portal.demo_char"/>
+            </div>
+            <div class="col-12 col-md-6 mb-2 mb-md-0">Date demo-
+              <span t-field="demo_model_portal.demo_date"/>
+            </div>
+            <div class="col-12 col-md-6 mb-2 mb-md-0">Datetime demo-
+              <span t-field="demo_model_portal.demo_date_time"/>
+            </div>
+            <div class="col-12 col-md-6 mb-2 mb-md-0">Float demo-
+              <span t-field="demo_model_portal.demo_float"/>
+            </div>
+            <div class="col-12 col-md-6 mb-2 mb-md-0">HTML demo-
+              <span t-field="demo_model_portal.demo_html"/>
+            </div>
+            <div class="col-12 col-md-6 mb-2 mb-md-0">Integer demo-
+              <span t-field="demo_model_portal.demo_integer"/>
+            </div>
+            <div class="col-12 col-md-6 mb-2 mb-md-0">Many2many demo-
+              <span t-field="demo_model_portal.demo_many2many"/>
+            </div>
+            <div class="col-12 col-md-6 mb-2 mb-md-0">Selection demo-
+              <span t-field="demo_model_portal.demo_selection"/>
             </div>
           </div>
         </t>
@@ -44,8 +71,8 @@
         </t>
         <t t-set="card_body">
           <div class="row">
-            <div class="col-12 col-md-6 mb-2 mb-md-0">Model 1-
-              <span t-field="demo_model_2_portal.model_1"/>
+            <div class="col-12 col-md-6 mb-2 mb-md-0">Many2one-
+              <span t-field="demo_model_2_portal.demo_many2one"/>
             </div>
           </div>
         </t>
@@ -53,12 +80,29 @@
     </t>
   </template>
 
-  <record model="ir.ui.view" id="demo_model_2_portal_treeview">
+  <record model="ir.ui.view" id="demo_model_2_portal_view_form">
+    <field name="name">demo_model_2_portal_form</field>
+    <field name="model">demo.model_2.portal</field>
+    <field name="arch" type="xml">
+      <form string="Titre">
+        <sheet>
+          <group>
+            <field name="demo_many2one"/>
+          </group>
+          <group>
+            <field name="name"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record model="ir.ui.view" id="demo_model_2_portal_view_tree">
     <field name="name">demo_model_2_portal_tree</field>
     <field name="model">demo.model_2.portal</field>
     <field name="arch" type="xml">
-      <tree editable="top">
-        <field name="model_1"/>
+      <tree>
+        <field name="demo_many2one"/>
         <field name="name"/>
       </tree>
     </field>
@@ -150,9 +194,10 @@
     </xpath>
   </template>
 
-  <record model="ir.actions.act_window" id="demo_model_2_portal_demo_model_2_portal_action_view_actionwindow">
+  <record model="ir.actions.act_window" id="demo_model_2_portal_demo_model_2_portal_action_view_action_window">
     <field name="name">demo_model_2_portal_action_view</field>
     <field name="res_model">demo.model_2.portal</field>
+    <field name="view_mode">list,form</field>
   </record>
 
 </odoo>

@@ -6,6 +6,30 @@ class DemoModelPortal(models.Model):
     _name = 'demo.model.portal'
     _description = 'demo_model_portal'
 
-    banana = fields.Boolean(string='Banana demo')
+    demo_binary = fields.Binary(string='Binary demo')
+
+    demo_boolean = fields.Boolean(string='Boolean demo')
+
+    demo_char = fields.Char(string='Char demo')
+
+    demo_date = fields.Date(string='Date demo')
+
+    demo_date_time = fields.Datetime(string='Datetime demo')
+
+    demo_float = fields.Float(string='Float demo')
+
+    demo_html = fields.Html(string='HTML demo')
+
+    demo_integer = fields.Integer(string='Integer demo')
+
+    demo_many2many = fields.Many2many(
+        string='Many2many demo',
+        comodel_name='demo.model_2.portal',
+    )
+
+    demo_selection = fields.Selection(
+        string='Selection demo',
+        selection=[],
+    )
 
     name = fields.Char(string='Name')

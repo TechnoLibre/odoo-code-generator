@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-
 from odoo import _, api, models, fields, SUPERUSER_ID
-import os
 
 MODULE_NAME = "demo_portal"
 
@@ -10,23 +7,51 @@ def post_init_hook(cr, e):
     with api.Environment.manage():
         env = api.Environment(cr, SUPERUSER_ID, {})
 
+        # The path of the actual file
         # path_module_generate = os.path.normpath(os.path.join(os.path.dirname(__file__), '..'))
+
+        short_name = MODULE_NAME.replace("_", " ").title()
 
         # Add code generator
         value = {
-            "shortdesc": "Demo portal",
+            "shortdesc": short_name,
             "name": MODULE_NAME,
             "license": "AGPL-3",
             "author": "TechnoLibre",
             "website": "https://technolibre.ca",
             "application": True,
-
             "enable_sync_code": True,
             # "path_sync_code": path_module_generate,
         }
+
+        # TODO HUMAN: enable your functionality to generate
+        value["enable_sync_template"] = True
+        value["post_init_hook_show"] = False
+        value["uninstall_hook_show"] = False
+        value["post_init_hook_feature_code_generator"] = False
+        value["uninstall_hook_feature_code_generator"] = False
+
+        value["hook_constant_code"] = f'MODULE_NAME = "{MODULE_NAME}"'
+
         code_generator_id = env["code.generator.module"].create(value)
 
-        # Add model demo portal
+        # Add dependencies
+        # TODO HUMAN: update your dependencies
+        lst_depend = [
+            "code_generator",
+            "code_generator_hook",
+            "code_generator_portal",
+        ]
+        lst_dependencies = env["ir.module.module"].search([("name", "in", lst_depend)])
+        for depend in lst_dependencies:
+            value = {
+                "module_id": code_generator_id.id,
+                "depend_id": depend.id,
+                "name": depend.display_name,
+            }
+            env["code.generator.module.dependency"].create(value)
+
+        # Add Demo Model Portal
         value = {
             "name": "demo_model_portal",
             "model": "demo.model.portal",
@@ -34,30 +59,136 @@ def post_init_hook(cr, e):
             "rec_name": None,
             "nomenclator": True,
         }
-        model_demo_1 = env["ir.model"].create(value)
+        model_demo_model_portal = env["ir.model"].create(value)
 
-        value_field_banana = {
-            "name": "banana",
+        ##### Begin Field
+        # value_field_currency_id = {
+        #     "name": "currency_id",
+        #     "model": "demo.model.portal",
+        #     "field_description": "Currency",
+        #     "ttype": "many2one",
+        #     "comodel_name": "res.currency",
+        #     "relation": "res.currency",
+        #     "model_id": model_demo_model_portal.id,
+        # }
+        # env["ir.model.fields"].create(value_field_currency_id)
+
+        value_field_demo_binary = {
+            "name": "demo_binary",
             "model": "demo.model.portal",
-            "field_description": "Banana demo",
-            "ttype": "boolean",
-            "model_id": model_demo_1.id,
+            "field_description": "Binary demo",
+            "ttype": "binary",
+            "model_id": model_demo_model_portal.id,
         }
-        model_demo_1_field_banana = env["ir.model.fields"].create(value_field_banana)
+        env["ir.model.fields"].create(value_field_demo_binary)
+
+        value_field_demo_boolean = {
+            "name": "demo_boolean",
+            "model": "demo.model.portal",
+            "field_description": "Boolean demo",
+            "ttype": "boolean",
+            "model_id": model_demo_model_portal.id,
+        }
+        env["ir.model.fields"].create(value_field_demo_boolean)
+
+        value_field_demo_char = {
+            "name": "demo_char",
+            "model": "demo.model.portal",
+            "field_description": "Char demo",
+            "ttype": "char",
+            "model_id": model_demo_model_portal.id,
+        }
+        env["ir.model.fields"].create(value_field_demo_char)
+
+        value_field_demo_date = {
+            "name": "demo_date",
+            "model": "demo.model.portal",
+            "field_description": "Date demo",
+            "ttype": "date",
+            "model_id": model_demo_model_portal.id,
+        }
+        env["ir.model.fields"].create(value_field_demo_date)
+
+        value_field_demo_date_time = {
+            "name": "demo_date_time",
+            "model": "demo.model.portal",
+            "field_description": "Datetime demo",
+            "ttype": "datetime",
+            "model_id": model_demo_model_portal.id,
+        }
+        env["ir.model.fields"].create(value_field_demo_date_time)
+
+        value_field_demo_float = {
+            "name": "demo_float",
+            "model": "demo.model.portal",
+            "field_description": "Float demo",
+            "ttype": "float",
+            "model_id": model_demo_model_portal.id,
+        }
+        env["ir.model.fields"].create(value_field_demo_float)
+
+        value_field_demo_html = {
+            "name": "demo_html",
+            "model": "demo.model.portal",
+            "field_description": "HTML demo",
+            "ttype": "html",
+            "model_id": model_demo_model_portal.id,
+        }
+        env["ir.model.fields"].create(value_field_demo_html)
+
+        value_field_demo_integer = {
+            "name": "demo_integer",
+            "model": "demo.model.portal",
+            "field_description": "Integer demo",
+            "ttype": "integer",
+            "model_id": model_demo_model_portal.id,
+        }
+        env["ir.model.fields"].create(value_field_demo_integer)
+
+        value_field_demo_many2many = {
+            "name": "demo_many2many",
+            "model": "demo.model.portal",
+            "field_description": "Many2many demo",
+            "comodel_name": "demo.model_2.portal",
+            "relation": "demo.model_2.portal",
+            "ttype": "many2many",
+            "model_id": model_demo_model_portal.id,
+        }
+        env["ir.model.fields"].create(value_field_demo_many2many)
+
+        # value_field_demo_monetary = {
+        #     "name": "demo_monetary",
+        #     "model": "demo.model.portal",
+        #     "field_description": "Monetary demo",
+        #     "ttype": "monetary",
+        #     "model_id": model_demo_model_portal.id,
+        # }
+        # env["ir.model.fields"].create(value_field_demo_monetary)
+
+        value_field_demo_selection = {
+            "name": "demo_selection",
+            "model": "demo.model.portal",
+            "field_description": "Selection demo",
+            "ttype": "selection",
+            "selection": str(list()),
+            "model_id": model_demo_model_portal.id,
+        }
+        env["ir.model.fields"].create(value_field_demo_selection)
 
         # Hack to solve field name
-        field_x_name = env["ir.model.fields"].search([('model_id', '=', model_demo_1.id), ('name', '=', 'x_name')])
+        field_x_name = env["ir.model.fields"].search([("model_id", "=", model_demo_model_portal.id), ("name", "=", "x_name")])
         field_x_name.name = "name"
-        model_demo_1.rec_name = "name"
+        model_demo_model_portal.rec_name = "name"
+        ##### End Field
 
-        # Add data
-        value = {
-            "banana": True,
-            "name": "fds",
-        }
-        data_1 = env["demo.model.portal"].create(value)
+        # Add data nomenclator
+        # value = {
+        #     "field_boolean": True,
+        #     "name": "demo",
+        # }
+        # env["demo.model.portal"].create(value)
 
-        # Add model demo_2 portal
+        # Add Demo Model 2 Portal
         value = {
             "name": "demo_model_2_portal",
             "model": "demo.model_2.portal",
@@ -65,31 +196,32 @@ def post_init_hook(cr, e):
             "rec_name": None,
             "nomenclator": True,
         }
-        model_demo_2 = env["ir.model"].create(value)
+        model_demo_model_2_portal = env["ir.model"].create(value)
 
-        # Add model demo portal FIELDS
-        value_field_name = {
-            "name": "model_1",
+        ##### Begin Field
+        value_field_demo_many2one = {
+            "name": "demo_many2one",
             "model": "demo.model_2.portal",
-            "field_description": "Model 1",
+            "field_description": "Many2one",
             "ttype": "many2one",
             "comodel_name": "demo.model.portal",
             "relation": "demo.model.portal",
-            "model_id": model_demo_2.id,
+            "model_id": model_demo_model_2_portal.id,
         }
-        model_demo_1_field_name = env["ir.model.fields"].create(value_field_name)
+        env["ir.model.fields"].create(value_field_demo_many2one)
 
         # Hack to solve field name
-        field_x_name = env["ir.model.fields"].search([('model_id', '=', model_demo_2.id), ('name', '=', 'x_name')])
+        field_x_name = env["ir.model.fields"].search([("model_id", "=", model_demo_model_2_portal.id), ("name", "=", "x_name")])
         field_x_name.name = "name"
-        model_demo_2.rec_name = "name"
+        model_demo_model_2_portal.rec_name = "name"
+        ##### End Field
 
-        # Add data
-        value = {
-            "model_1": data_1.id,
-            "name": "fds",
-        }
-        data_2 = env["demo.model_2.portal"].create(value)
+        # Add data nomenclator
+        # value = {
+        #     "field_boolean": True,
+        #     "name": "demo",
+        # }
+        # env["demo.model_2.portal"].create(value)
 
         # Generate view
         wizard_view = env['code.generator.generate.views.wizard'].create({
@@ -110,7 +242,6 @@ def post_init_hook(cr, e):
 def uninstall_hook(cr, e):
     with api.Environment.manage():
         env = api.Environment(cr, SUPERUSER_ID, {})
-
-        code_generator_id = env["code.generator.module"].search([('name', '=', MODULE_NAME)])
+        code_generator_id = env["code.generator.module"].search([("name", "=", MODULE_NAME)])
         if code_generator_id:
             code_generator_id.unlink()

@@ -1,20 +1,74 @@
 <?xml version= "1.0" encoding="utf-8"?>
 <odoo>
 
-  <record model="ir.ui.view" id="demo_model_portal_treeview">
+  <record model="ir.ui.view" id="demo_model_portal_view_form">
+    <field name="name">demo_model_portal_form</field>
+    <field name="model">demo.model.portal</field>
+    <field name="arch" type="xml">
+      <form string="Titre">
+        <sheet>
+          <group>
+            <field name="demo_binary"/>
+          </group>
+          <group>
+            <field name="demo_boolean"/>
+          </group>
+          <group>
+            <field name="demo_char"/>
+          </group>
+          <group>
+            <field name="demo_date"/>
+          </group>
+          <group>
+            <field name="demo_date_time"/>
+          </group>
+          <group>
+            <field name="demo_float"/>
+          </group>
+          <group>
+            <field name="demo_html"/>
+          </group>
+          <group>
+            <field name="demo_integer"/>
+          </group>
+          <group>
+            <field name="demo_many2many"/>
+          </group>
+          <group>
+            <field name="demo_selection"/>
+          </group>
+          <group>
+            <field name="name"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record model="ir.ui.view" id="demo_model_portal_view_tree">
     <field name="name">demo_model_portal_tree</field>
     <field name="model">demo.model.portal</field>
     <field name="arch" type="xml">
-      <tree editable="top">
-        <field name="banana"/>
+      <tree>
+        <field name="demo_binary"/>
+        <field name="demo_boolean"/>
+        <field name="demo_char"/>
+        <field name="demo_date"/>
+        <field name="demo_date_time"/>
+        <field name="demo_float"/>
+        <field name="demo_html"/>
+        <field name="demo_integer"/>
+        <field name="demo_many2many"/>
+        <field name="demo_selection"/>
         <field name="name"/>
       </tree>
     </field>
   </record>
 
-  <record model="ir.actions.act_window" id="demo_model_portal_demo_model_portal_action_view_actionwindow">
+  <record model="ir.actions.act_window" id="demo_model_portal_demo_model_portal_action_view_action_window">
     <field name="name">demo_model_portal_action_view</field>
     <field name="res_model">demo.model.portal</field>
+    <field name="view_mode">list,form</field>
   </record>
 
 </odoo>

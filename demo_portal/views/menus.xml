@@ -1,10 +1,10 @@
 <?xml version= "1.0" encoding="utf-8"?>
 <odoo>
-  <menuitem id="root_demo_model_2_portal" name="root_demo_model_2_portal" sequence="20"
+  <menuitem id="root_demo_portal" name="root_demo_portal" sequence="20"
             web_icon="demo_portal,static/description/icon.png"/>
-  <menuitem id="models" name="Models" sequence="1" parent="root_demo_model_2_portal"/>
+  <menuitem id="models" name="Models" sequence="1" parent="root_demo_portal"/>
   <menuitem id="demo_model_2_portal" name="demo_model_2_portal"
-            action="demo_model_2_portal_demo_model_2_portal_action_view_actionwindow" sequence="1" parent="models"/>
+            action="demo_model_2_portal_demo_model_2_portal_action_view_action_window" sequence="1" parent="models"/>
   <menuitem id="demo_model_portal" name="demo_model_portal"
-            action="demo_model_portal_demo_model_portal_action_view_actionwindow" sequence="2" parent="models"/>
+            action="demo_model_portal_demo_model_portal_action_view_action_window" sequence="2" parent="models"/>
 </odoo>

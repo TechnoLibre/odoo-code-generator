@@ -45,6 +45,9 @@
             <div class="col-12 col-md-6 mb-2 mb-md-0">Many2many demo-
               <span t-field="demo_model_portal.demo_many2many"/>
             </div>
+            <div class="col-12 col-md-6 mb-2 mb-md-0">One2Many demo-
+              <span t-field="demo_model_portal.demo_one2many"/>
+            </div>
             <div class="col-12 col-md-6 mb-2 mb-md-0">Selection demo-
               <span t-field="demo_model_portal.demo_selection"/>
             </div>

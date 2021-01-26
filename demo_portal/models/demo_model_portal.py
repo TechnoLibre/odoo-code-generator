@@ -27,6 +27,12 @@ class DemoModelPortal(models.Model):
         comodel_name='demo.model_2.portal',
     )
 
+    demo_one2many = fields.One2many(
+        string='One2Many demo',
+        comodel_name='demo.model_2.portal',
+        inverse_name='demo_many2one',
+    )
+
     demo_selection = fields.Selection(
         string='Selection demo',
         selection=[],

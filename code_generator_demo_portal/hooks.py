@@ -62,17 +62,6 @@ def post_init_hook(cr, e):
         model_demo_model_portal = env["ir.model"].create(value)
 
         ##### Begin Field
-        # value_field_currency_id = {
-        #     "name": "currency_id",
-        #     "model": "demo.model.portal",
-        #     "field_description": "Currency",
-        #     "ttype": "many2one",
-        #     "comodel_name": "res.currency",
-        #     "relation": "res.currency",
-        #     "model_id": model_demo_model_portal.id,
-        # }
-        # env["ir.model.fields"].create(value_field_currency_id)
-
         value_field_demo_binary = {
             "name": "demo_binary",
             "model": "demo.model.portal",
@@ -149,21 +138,12 @@ def post_init_hook(cr, e):
             "name": "demo_many2many",
             "model": "demo.model.portal",
             "field_description": "Many2many demo",
+            "ttype": "many2many",
             "comodel_name": "demo.model_2.portal",
             "relation": "demo.model_2.portal",
-            "ttype": "many2many",
             "model_id": model_demo_model_portal.id,
         }
         env["ir.model.fields"].create(value_field_demo_many2many)
-
-        # value_field_demo_monetary = {
-        #     "name": "demo_monetary",
-        #     "model": "demo.model.portal",
-        #     "field_description": "Monetary demo",
-        #     "ttype": "monetary",
-        #     "model_id": model_demo_model_portal.id,
-        # }
-        # env["ir.model.fields"].create(value_field_demo_monetary)
 
         value_field_demo_selection = {
             "name": "demo_selection",
@@ -180,13 +160,6 @@ def post_init_hook(cr, e):
         field_x_name.name = "name"
         model_demo_model_portal.rec_name = "name"
         ##### End Field
-
-        # Add data nomenclator
-        # value = {
-        #     "field_boolean": True,
-        #     "name": "demo",
-        # }
-        # env["demo.model.portal"].create(value)
 
         # Add Demo Model 2 Portal
         value = {
@@ -214,14 +187,21 @@ def post_init_hook(cr, e):
         field_x_name = env["ir.model.fields"].search([("model_id", "=", model_demo_model_2_portal.id), ("name", "=", "x_name")])
         field_x_name.name = "name"
         model_demo_model_2_portal.rec_name = "name"
-        ##### End Field
 
-        # Add data nomenclator
-        # value = {
-        #     "field_boolean": True,
-        #     "name": "demo",
-        # }
-        # env["demo.model_2.portal"].create(value)
+        # Added one2many field, many2many need to be creat before add one2many
+        value_field_demo_one2many = {
+            "name": "demo_one2many",
+            "model": "demo.model.portal",
+            "field_description": "One2Many demo",
+            "ttype": "one2many",
+            "comodel_name": "demo.model_2.portal",
+            "relation": "demo.model_2.portal",
+            "relation_field": "demo_many2one",
+            "model_id": model_demo_model_portal.id,
+        }
+        env["ir.model.fields"].create(value_field_demo_one2many)
+
+        ##### End Field
 
         # Generate view
         wizard_view = env['code.generator.generate.views.wizard'].create({

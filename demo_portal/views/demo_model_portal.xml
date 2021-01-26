@@ -35,6 +35,9 @@
             <field name="demo_many2many"/>
           </group>
           <group>
+            <field name="demo_one2many"/>
+          </group>
+          <group>
             <field name="demo_selection"/>
           </group>
           <group>
@@ -59,6 +62,7 @@
         <field name="demo_html"/>
         <field name="demo_integer"/>
         <field name="demo_many2many"/>
+        <field name="demo_one2many"/>
         <field name="demo_selection"/>
         <field name="name"/>
       </tree>

@@ -255,14 +255,16 @@ class CodeGeneratorWriter(models.Model):
                                                                       lst_force_f2exports=[field_id])
                                     cw.emit("##### End Field")
                                     cw.emit()
-                                    cw.emit("# Add data nomenclator")
-                                    cw.emit("value = {")
-                                    with cw.indent():
-                                        cw.emit("\"field_boolean\": True,")
-                                        cw.emit("\"name\": \"demo\",")
-                                    cw.emit("}")
-                                    cw.emit(f"env[\"{model_model}\"].create(value)")
-                                    cw.emit()
+                                    # TODO add data nomenclator, research data from model
+                                    # TODO By default, no data will be nomenclator
+                                    # cw.emit("# Add data nomenclator")
+                                    # cw.emit("value = {")
+                                    # with cw.indent():
+                                    #     cw.emit("\"field_boolean\": True,")
+                                    #     cw.emit("\"name\": \"demo\",")
+                                    # cw.emit("}")
+                                    # cw.emit(f"env[\"{model_model}\"].create(value)")
+                                    # cw.emit()
                             if module.enable_template_wizard_view:
                                 cw.emit("# Generate view")
                                 cw.emit("wizard_view = env['code.generator.generate.views.wizard'].create({")

@@ -43,3 +43,20 @@ class CodeGeneratorModule(models.Model):
 
     uninstall_hook_feature_code_generator = fields.Boolean(
         string="Code generator uninstall_hook", help="Add code to use the code generator on uninstall_hook.")
+
+    # Functionality
+    enable_template_code_generator_demo = fields.Boolean(string="Functions code generator demo",
+                                                         help="Support help to use code generator "
+                                                              "with functionality variables.")
+
+    template_model_name = fields.Char(string="Functions models", help="Add model from list, separate by ';' and "
+                                                                      "generate template.")
+
+    enable_template_wizard_view = fields.Boolean(string="Template wizard", help="Add template wizard.")
+
+    enable_sync_template = fields.Boolean(string="Sync generated code",
+                                          help="Read generated code to fill the generator with fields.")
+
+    template_module_name = fields.Char(string="Generated module name",
+                                       help="Can be empty in case of code_generator_demo, else it's the module name "
+                                            "goal to generate.")

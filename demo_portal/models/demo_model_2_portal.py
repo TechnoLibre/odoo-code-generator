@@ -6,10 +6,9 @@ class DemoModel2Portal(models.Model):
     _name = 'demo.model_2.portal'
     _description = 'demo_model_2_portal'
 
-    model_1 = fields.Many2one(
-        string='Model 1',
+    demo_many2one = fields.Many2one(
+        string='Many2one',
         comodel_name='demo.model.portal',
-        on_delete='set null',
     )
 
     name = fields.Char(string='Name')

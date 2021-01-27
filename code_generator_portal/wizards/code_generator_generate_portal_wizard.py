@@ -30,14 +30,6 @@ def _get_field_by_user(model):
 class CodeGeneratorGeneratePortalWizard(models.TransientModel):
     _inherit = "code.generator.generate.views.wizard"
 
-    # @api.model
-    # def default_get(self, fields):
-    #     result = super(CodeGeneratorGeneratePortalWizard, self).default_get(fields)
-    #     code_generator_id = self.env["code.generator.module"].browse(result.get("code_generator_id"))
-    #     lst_model_id = [a.id for a in code_generator_id.o2m_models]
-    #     result["selected_model_portal_ids"] = [(6, 0, lst_model_id)]
-    #     return result
-
     selected_model_portal_ids = fields.Many2many(comodel_name="ir.model")
 
     enable_generate_portal = fields.Boolean(
@@ -56,7 +48,7 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
 
         model_portal_mixin = self.env["ir.model"].search([("model", "=", "portal.mixin")])
 
-        o2m_models = self.code_generator_id.o2m_models if self.all_model else self.selected_model_portal_ids
+        o2m_models = self.code_generator_id.o2m_models if self.all_model else self.selected_model_ids
         self.generate_portal_menu_entry(o2m_models, self.code_generator_id.name)
         self.generate_portal_home_entry(o2m_models, self.code_generator_id.name)
         self.generate_portal_list_model(o2m_models, self.code_generator_id.name)
@@ -494,3 +486,25 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
 
         view_value = self.env['ir.ui.view'].create(value)
         return view_value
+
+    def _generate_model_access(self, model_created):
+        if self.enable_generate_all or self.enable_generate_portal:
+            # group_id = self.env['res.groups'].search([('name', '=', 'Code Generator / Manager')])
+            # group_id = self.env['res.groups'].search([('name', '=', 'Internal User')])
+            lang = "en_US"
+            group_id = self.env.ref('base.group_portal').with_context(lang=lang)
+            model_name = model_created.model
+            model_name_str = model_name.replace(".", "_")
+            v = {
+                'name': '%s Access %s' % (model_name_str, group_id.full_name),
+                'model_id': model_created.id,
+                'group_id': group_id.id,
+                'perm_read': True,
+                'perm_create': True,
+                'perm_write': True,
+                'perm_unlink': True,
+            }
+
+            access_value = self.env['ir.model.access'].create(v)
+
+        super(CodeGeneratorGeneratePortalWizard, self)._generate_model_access(model_created)

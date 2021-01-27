@@ -1,7 +1,0 @@
-<?xml version= "1.0" encoding="utf-8"?>
-<odoo>
-  <record model="demo.model_2.portal" id="demo_model_2_portal_fds">
-    <field name="model_1" ref="demo_model_portal_fds"/>
-    <field name="name">fds</field>
-  </record>
-</odoo>

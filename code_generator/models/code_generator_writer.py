@@ -927,8 +927,8 @@ class CodeGeneratorWriter(models.Model):
                                                             XML_HEAD + l_module_security + XML_ODOO_CLOSING_TAG,
                                                             data_file=True, insert_first=True)
 
-        model_access_file_path = os.path.join(self.code_generator_data.security_path, 'ir.model.access.csv')
         if len(l_model_csv_access) > 1:
+            model_access_file_path = os.path.join(self.code_generator_data.security_path, 'ir.model.access.csv')
             self.code_generator_data.write_file_lst_content(model_access_file_path, l_model_csv_access, data_file=True,
                                                             insert_first=True)
 
@@ -1092,9 +1092,12 @@ class CodeGeneratorWriter(models.Model):
                 # Transform selection
                 # '[("point", "Point"), ("line", "Line"), ("area", "Polygon")]'
                 # [('"point"', '_( "Point")'), ('"line"', '_( "Line")'), ('"area"', '_( "Polygon")')]
-                lst_selection = [a.split(",") for a in f2export.selection.strip('[]').strip('()').split('), (')]
-                lst_selection = [f"({a[0]}, _({a[1].strip()}))" for a in lst_selection]
-                dct_field_attribute["selection"] = lst_selection
+                if f2export.selection != '[]':
+                    lst_selection = [a.split(",") for a in f2export.selection.strip('[]').strip('()').split('), (')]
+                    lst_selection = [f"({a[0]}, _({a[1].strip()}))" for a in lst_selection]
+                    dct_field_attribute["selection"] = lst_selection
+                else:
+                    dct_field_attribute["selection"] = []
 
             if f2export.default:
                 if f2export.default == "True":

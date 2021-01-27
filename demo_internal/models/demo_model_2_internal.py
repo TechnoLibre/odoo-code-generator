@@ -8,7 +8,6 @@ class DemoModel2Internal(models.Model):
     model_1 = fields.Many2one(
         string='Model 1',
         comodel_name='demo.model.internal',
-        on_delete='set null',
     )
 
     name = fields.Char(string='Name')

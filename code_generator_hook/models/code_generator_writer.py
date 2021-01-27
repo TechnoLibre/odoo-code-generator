@@ -163,10 +163,20 @@ class CodeGeneratorWriter(models.Model):
                             cw.emit()
                             if module.enable_template_code_generator_demo:
                                 cw.emit("new_module_name = MODULE_NAME")
-                                cw.emit('if not value["enable_template_code_generator_demo"] and "code_generator_" '
-                                        'in MODULE_NAME:')
+                                cw.emit('if MODULE_NAME != "code_generator_demo" and "code_generator_" in MODULE_NAME:')
                                 with cw.indent():
-                                    cw.emit('new_module_name = MODULE_NAME[len("code_generator_"):]')
+                                    cw.emit('if "code_generator_template" in MODULE_NAME:')
+                                    with cw.indent():
+                                        cw.emit('if value["enable_template_code_generator_demo"]:')
+                                        with cw.indent():
+                                            cw.emit('new_module_name = f"code_generator_{MODULE_NAME['
+                                                    'len(\'code_generator_template_\'):]}"')
+                                        cw.emit("else:")
+                                        with cw.indent():
+                                            cw.emit('new_module_name = MODULE_NAME[len("code_generator_template_"):]')
+                                    cw.emit('else:')
+                                    with cw.indent():
+                                        cw.emit('new_module_name = MODULE_NAME[len("code_generator_"):]')
                                     cw.emit('value["template_module_name"] = new_module_name')
                                 cw.emit("value[\"hook_constant_code\"] = f'MODULE_NAME = \"{new_module_name}\"'")
                             else:

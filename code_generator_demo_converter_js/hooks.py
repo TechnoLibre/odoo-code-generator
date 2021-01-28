@@ -179,7 +179,7 @@ def generate_model_from_js():
     js2py.translate_file(filename_js, path_py)
     sys.path.append(temp_dir_path)
     try:
-        import file_to_convert
+        import file_to_convert  # pylint: disable=W0404
     except Exception as e:
         raise e
     lst_extract_info = file_to_convert.file_to_convert.content

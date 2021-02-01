@@ -161,6 +161,7 @@ def extract_field_from_html(content):
 def generate_model_from_js():
     assert URL_JS, "Need to fill constant URL_JS"
     lst_data = []
+    lst_translation = []
     # ignore KEEP_CACHE, or delete it if necessary
     temp_dir_path = tempfile.mkdtemp()
     print(f"Debug temp dir {temp_dir_path}")
@@ -198,6 +199,7 @@ def generate_model_from_js():
         data["data_en"] = download_url_and_get_content(new_en_url, temp_dir_path)
         data["title_fr"] = convert_html_to_text(info.FrTitle)
         data["title_en"] = info.EnTitle
+        lst_translation.append((data["title_en"], data["title_fr"]))
         child_info = dct_extract_info.get(KEY_CHILD)
         if child_info:
             lst_child = []
@@ -212,7 +214,9 @@ def generate_model_from_js():
                 dct_child["data_en"] = download_url_and_get_content(new_en_url, temp_dir_path)
                 dct_child["title_fr"] = convert_html_to_text(sub_link.FrTitle)
                 dct_child["title_en"] = sub_link.EnTitle
+                lst_translation.append((dct_child["title_en"], dct_child["title_fr"]))
                 dct_child["fields"] = extract_field_from_html(dct_child["data_en"])
+                dct_child["fields_fr"] = extract_field_from_html(dct_child["data_fr"])
                 sub_child_info = dct_sub_link.get(KEY_CHILD)
                 if sub_child_info:
                     print(sub_child_info)
@@ -223,17 +227,50 @@ def generate_model_from_js():
         data_obj = namedtuple("ObjectName", data.keys())(*data.values())
         lst_data.append(data_obj)
 
-    return lst_data
+    return lst_data, lst_translation
+
+
+def generate_i18n(module_name, module_path, lst_translation):
+    i18n_path = os.path.join(module_path, "i18n")
+    os.makedirs(i18n_path, exist_ok=True)
+    translation_file = os.path.join(i18n_path, f"{module_name}.pot")
+    with open(translation_file, "w") as file:
+        file.write('# Translation for Odoo Server."\n')
+        file.write('msgid ""\n')
+        file.write('msgstr ""\n')
+        file.write('"Project-Id-Version: Odoo Server 12.0"\n')
+        file.write('\n')
+        for txt_en, _ in lst_translation:
+            new_txt_en = txt_en.replace("\n", "\\n").replace('"', '\\"')
+            file.write(f"#. module: {module_name}\n")
+            file.write(f"#:\n")
+            file.write(f'msgid "{new_txt_en}"\n')
+            file.write('msgstr ""\n\n')
+
+    translation_file = os.path.join(i18n_path, f"fr_CA.po")
+    with open(translation_file, "w") as file:
+        file.write('# Translation for Odoo Server."\n')
+        file.write('msgid ""\n')
+        file.write('msgstr ""\n')
+        file.write('"Project-Id-Version: Odoo Server 12.0"\n')
+        file.write('\n')
+        for txt_en, txt_fr in lst_translation:
+            new_txt_en = txt_en.replace("\n", "\\n").replace('"', '\\"')
+            new_txt_fr = txt_fr.replace("\n", "\\n").replace('"', '\\"')
+            file.write(f"#. module: {module_name}\n")
+            file.write(f"#:\n")
+            file.write(f'msgid "{new_txt_en}"\n')
+            file.write(f'msgstr "{new_txt_fr}"\n\n')
 
 
 def post_init_hook(cr, e):
     with api.Environment.manage():
         env = api.Environment(cr, SUPERUSER_ID, {})
 
-        lst_data = generate_model_from_js()
+        lst_data, lst_translation = generate_model_from_js()
 
         # The path of the actual file
-        # path_module_generate = os.path.normpath(os.path.join(os.path.dirname(__file__), '..'))
+        path_module_generate = os.path.normpath(os.path.join(os.path.dirname(__file__), '..'))
 
         short_name = MODULE_NAME.replace("_", " ").title()
 
@@ -290,7 +327,9 @@ def post_init_hook(cr, e):
             ##### Begin Field
             for child in data.child:
                 # TODO create group
+                i = -1
                 for field in child.fields:
+                    i += 1
                     # name = convert_text_to_variable_name(child.title_en)
                     value_field_demo_html = {
                         "name": field.name,
@@ -300,6 +339,13 @@ def post_init_hook(cr, e):
                         "ttype": field.ttype,
                         "model_id": model_data.id,
                     }
+
+                    try:
+                        field_fr = child.fields_fr[i]
+                        lst_translation.append((field.description, field_fr.description))
+                        lst_translation.append((field.help, field_fr.help))
+                    except Exception as e:
+                        print(e)
                     try:
                         env["ir.model.fields"].create(value_field_demo_html)
                     except Exception as e:
@@ -349,6 +395,9 @@ def post_init_hook(cr, e):
             "code_generator_ids": code_generator_id.ids
         }
         code_generator_writer = env["code.generator.writer"].create(value)
+
+        new_module_path = os.path.join(path_module_generate, MODULE_NAME)
+        generate_i18n(MODULE_NAME, new_module_path, lst_translation)
 
 
 def uninstall_hook(cr, e):

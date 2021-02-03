@@ -480,6 +480,10 @@ class CodeGeneratorWriter(models.Model):
                             )))
                         child = E.field({"name": rfield.name, "eval": f"[(6,0, [{field_eval}])]"})
 
+                    elif rfield.related == "view_id.arch" or (rfield.name == "arch" and rfield.model == "ir.ui.view"):
+                        root = ET.fromstring(record_value)
+                        child = E.field({"name": rfield.name, "type": "xml"}, root)
+
                     else:
                         child = E.field({"name": rfield.name}, str(record_value))
 

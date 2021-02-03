@@ -51,22 +51,34 @@ class CodeGeneratorAddModelWizard(models.TransientModel):
 
         is_nomenclator = self.option_adding == "nomenclator"
         lst_field_id = [a.id for a in self.field_ids]
+        lst_ignore_model = ["website_theme_install"]
         for model_id in self.model_ids:
             # model_name = model_id.model
-            module_name = model_id.modules
 
-            # Add dependency
-            # check not exist before added
-            module_id = self.env["ir.module.module"].search([("name", "=", module_name)])
-            dependencies_len = self.env["code.generator.module.dependency"].search_count(
-                [("module_id", "=", self.code_generator_id.id), ("depend_id", "=", module_id.id)])
-            if not dependencies_len:
-                value_dependencies = {
-                    "module_id": self.code_generator_id.id,
-                    "depend_id": module_id.id,
-                    "name": module_id.display_name,
-                }
-                self.env["code.generator.module.dependency"].create(value_dependencies)
+            # Ignore base model
+            if model_id.model not in ("ir.ui.view",):
+                module_name = model_id.modules
+                lst_module_name = []
+                if "," in module_name:
+                    lst_module_name = [a.strip() for a in module_name.split(",")]
+                else:
+                    lst_module_name.append(module_name)
+
+                for module_name in lst_module_name:
+                    if module_name in lst_ignore_model:
+                        continue
+                    # Add dependency
+                    # check not exist before added
+                    module_id = self.env["ir.module.module"].search([("name", "=", module_name)])
+                    dependencies_len = self.env["code.generator.module.dependency"].search_count(
+                        [("module_id", "=", self.code_generator_id.id), ("depend_id", "=", module_id.id)])
+                    if not dependencies_len:
+                        value_dependencies = {
+                            "module_id": self.code_generator_id.id,
+                            "depend_id": module_id.id,
+                            "name": module_id.display_name,
+                        }
+                        self.env["code.generator.module.dependency"].create(value_dependencies)
 
             if is_nomenclator:
                 self.code_generator_id.nomenclator_only = True

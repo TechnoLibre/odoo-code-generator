@@ -1,4 +1,4 @@
-<?xml version= "1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <record model="ir.actions.act_url" id="action_website">
     <field name="name">Website</field>

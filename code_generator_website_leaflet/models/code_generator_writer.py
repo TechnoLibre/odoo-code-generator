@@ -9,7 +9,7 @@ import os
 
 BREAK_LINE = ['\n']
 BREAK_LINE_OFF = '\n'
-XML_VERSION_HEADER = '<?xml version= "1.0" encoding="utf-8"?>' + BREAK_LINE_OFF
+XML_VERSION_HEADER = '<?xml version="1.0" encoding="utf-8"?>' + BREAK_LINE_OFF
 
 
 class CodeGeneratorWriter(models.Model):

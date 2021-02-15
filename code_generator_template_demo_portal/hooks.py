@@ -29,6 +29,7 @@ def post_init_hook(cr, e):
         value["enable_template_code_generator_demo"] = False
         value["template_model_name"] = "demo.model.portal;demo.model_2.portal"
         value["enable_template_wizard_view"] = True
+        value["enable_template_website_snippet_view"] = False
         value["enable_sync_template"] = True
         value["post_init_hook_show"] = True
         value["uninstall_hook_show"] = True

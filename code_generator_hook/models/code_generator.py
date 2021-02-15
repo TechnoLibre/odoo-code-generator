@@ -54,6 +54,10 @@ class CodeGeneratorModule(models.Model):
 
     enable_template_wizard_view = fields.Boolean(string="Template wizard", help="Add template wizard.")
 
+    enable_template_website_snippet_view = fields.Boolean(string="Template website snippet",
+                                                          help="Add template website snippet, block drag and drop in "
+                                                               "website builder.")
+
     enable_sync_template = fields.Boolean(string="Sync generated code",
                                           help="Read generated code to fill the generator with fields.")
 

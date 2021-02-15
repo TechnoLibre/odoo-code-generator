@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl). -->
+<odoo>
+  <!-- Snippets -->
+  <template id="s_demo_website_snippet" name="Demo Website Snippet">
+    <section class="o_demo_website_snippet">
+      <div class="container">
+        <div class="text-center demo_website_snippet_value">Hello</div>
+      </div>
+    </section>
+  </template>
+  <!-- Add snippets to menu -->
+  <template id="snippets" inherit_id="website.snippets">
+    <xpath expr="//div[@id='snippet_effect']/div[hasclass('o_panel_body')]" position="inside">
+      <t t-snippet="demo_website_snippet.s_demo_website_snippet" t-thumbnail="/demo_website_snippet/static/description/icon.png"/>
+    </xpath>
+  </template>
+  <!-- Add stylesheet and Javascript -->
+  <template id="assets_frontend" inherit_id="website.assets_frontend">
+    <xpath expr="//link[last()]" position="after">
+      <link rel="stylesheet" type="text/scss" href="/demo_website_snippet/static/src/scss/demo_website_snippet.scss"/>
+    </xpath>
+    <xpath expr="//script[last()]" position="after">
+      <script type="text/javascript" src="/demo_website_snippet/static/src/js/website.demo_website_snippet.animation.js"/>
+    </xpath>
+  </template>
+</odoo>

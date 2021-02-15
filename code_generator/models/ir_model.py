@@ -280,6 +280,12 @@ class IrModel(models.Model):
         help='Set this if you want this model as a nomenclator'
     )
 
+    expression_export_data = fields.Char(
+        string='Expression export data',
+        help='Set an expression to apply filter when exporting data. example ("website_id", "in", [1,2]). '
+             'Keep it empty to export all data.'
+    )
+
     @api.model
     def _instanciate(self, model_data):
         custommodelclass = super(IrModel, self)._instanciate(model_data)

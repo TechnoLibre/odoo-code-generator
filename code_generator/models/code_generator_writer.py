@@ -17,7 +17,7 @@ MODULE_NAME = 'code_generator'
 BLANK_LINE = ['']
 BREAK_LINE_OFF = '\n'
 BREAK_LINE = ['\n']
-XML_VERSION_HEADER = '<?xml version= "1.0" encoding="utf-8"?>' + BREAK_LINE_OFF
+XML_VERSION_HEADER = '<?xml version="1.0" encoding="utf-8"?>' + BREAK_LINE_OFF
 XML_VERSION = ['<?xml version= "1.0" encoding="utf-8"?>']
 XML_ODOO_OPENING_TAG = ['<odoo>']
 XML_HEAD = XML_VERSION + XML_ODOO_OPENING_TAG

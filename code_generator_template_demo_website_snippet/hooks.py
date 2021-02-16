@@ -1,7 +1,7 @@
 from odoo import _, api, models, fields, SUPERUSER_ID
 
 # TODO HUMAN: change my module_name to create a specific demo functionality
-MODULE_NAME = "code_generator_demo_portal"
+MODULE_NAME = "code_generator_demo_website_snippet"
 
 
 def post_init_hook(cr, e):
@@ -27,18 +27,24 @@ def post_init_hook(cr, e):
 
         # TODO HUMAN: enable your functionality to generate
         value["enable_template_code_generator_demo"] = False
-        value["template_model_name"] = "demo.model.portal;demo.model_2.portal"
-        value["enable_template_wizard_view"] = True
-        value["enable_template_website_snippet_view"] = False
-        value["enable_sync_template"] = True
+        value["template_model_name"] = ""
+        value["enable_template_wizard_view"] = False
+        value["enable_template_website_snippet_view"] = True
+        value["enable_sync_template"] = False
         value["post_init_hook_show"] = True
         value["uninstall_hook_show"] = True
         value["post_init_hook_feature_code_generator"] = True
         value["uninstall_hook_feature_code_generator"] = True
 
         new_module_name = MODULE_NAME
-        if not value["enable_template_code_generator_demo"] and "code_generator_" in MODULE_NAME:
-            new_module_name = MODULE_NAME[len("code_generator_"):]
+        if MODULE_NAME != "code_generator_demo" and "code_generator_" in MODULE_NAME:
+            if "code_generator_template" in MODULE_NAME:
+                if value["enable_template_code_generator_demo"]:
+                    new_module_name = f"code_generator_{MODULE_NAME[len('code_generator_template_'):]}"
+                else:
+                    new_module_name = MODULE_NAME[len("code_generator_template_"):]
+            else:
+                new_module_name = MODULE_NAME[len("code_generator_"):]
             value["template_module_name"] = new_module_name
         value["hook_constant_code"] = f'MODULE_NAME = "{new_module_name}"'
 
@@ -48,8 +54,7 @@ def post_init_hook(cr, e):
         # TODO HUMAN: update your dependencies
         lst_depend = [
             "code_generator",
-            "code_generator_hook",
-            "code_generator_portal",
+            "code_generator_website_snippet",
         ]
         lst_dependencies = env["ir.module.module"].search([("name", "in", lst_depend)])
         for depend in lst_dependencies:

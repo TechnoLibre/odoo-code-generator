@@ -1,4 +1,4 @@
-<?xml version= "1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <record id="geoengine_vector_layer_demo_website_leaflet_map_feature_geoengine_geo_line"
           model="geoengine.vector.layer">

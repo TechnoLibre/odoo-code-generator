@@ -1,4 +1,4 @@
-<?xml version= "1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <menuitem id="root_demo_website_leaflet" name="root_demo_website_leaflet" sequence="20"
             web_icon="demo_website_leaflet,static/description/icon.png"/>

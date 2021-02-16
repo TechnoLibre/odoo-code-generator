@@ -1,4 +1,4 @@
-<?xml version= "1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <menuitem id="root_demo_internal" name="root_demo_internal" sequence="20"
             web_icon="demo_internal,static/description/icon.png"/>

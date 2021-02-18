@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record model="website.page" id="website_page_home">
+    <field name="url">/</field>
+    <field name="view_id" ref="ir_ui_view_home"/>
+    <field name="website_id" ref="website.default_website"/>
+    <field name="website_published">True</field>
+  </record>
+</odoo>

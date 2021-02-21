@@ -1,0 +1,304 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+#	* demo_portal
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 12.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-02-02 08:32+0000\n"
+"PO-Revision-Date: 2021-02-02 08:32+0000\n"
+"Last-Translator: <>\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_demo_model_portal
+msgid "<small class=\"text-muted\">Demo Model Portal -</small>"
+msgstr ""
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_demo_model_2_portal
+msgid "<small class=\"text-muted\">Demo Model_2 Portal -</small>"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_2_portal__access_warning
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__access_warning
+msgid "Access warning"
+msgstr ""
+
+#. module: demo_portal
+#: code:addons/addons/TechnoLibre_odoo-code-generator/demo_portal/controllers/portal.py:46
+#: code:addons/addons/TechnoLibre_odoo-code-generator/demo_portal/controllers/portal.py:142
+#: code:addons/demo_portal/controllers/portal.py:46
+#: code:addons/demo_portal/controllers/portal.py:142
+#, python-format
+msgid "All"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__demo_binary
+msgid "Binary demo"
+msgstr ""
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_demo_model_portal
+msgid "Binary demo-"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__demo_boolean
+msgid "Boolean demo"
+msgstr ""
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_demo_model_portal
+msgid "Boolean demo-"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__demo_char
+msgid "Char demo"
+msgstr ""
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_demo_model_portal
+msgid "Char demo-"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_2_portal__create_uid
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__create_uid
+msgid "Created by"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_2_portal__create_date
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__create_date
+msgid "Created on"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,help:demo_portal.field_demo_model_2_portal__access_url
+#: model:ir.model.fields,help:demo_portal.field_demo_model_portal__access_url
+msgid "Customer Portal URL"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__demo_date
+msgid "Date demo"
+msgstr ""
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_demo_model_portal
+msgid "Date demo-"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__demo_date_time
+msgid "Datetime demo"
+msgstr ""
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_demo_model_portal
+msgid "Datetime demo-"
+msgstr ""
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_layout
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_demo_model_portals
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_home
+msgid "Demo Model Portals"
+msgstr ""
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_layout
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_demo_model_2_portals
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_home
+msgid "Demo Model_2 Portals"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_2_portal__display_name
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__display_name
+msgid "Display Name"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__demo_float
+msgid "Float demo"
+msgstr ""
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_demo_model_portal
+msgid "Float demo-"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__demo_html
+msgid "HTML demo"
+msgstr ""
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_demo_model_portal
+msgid "HTML demo-"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_2_portal__id
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__id
+msgid "ID"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__demo_integer
+msgid "Integer demo"
+msgstr ""
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_demo_model_portal
+msgid "Integer demo-"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_2_portal____last_update
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal____last_update
+msgid "Last Modified on"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_2_portal__write_uid
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__write_uid
+msgid "Last Updated by"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_2_portal__write_date
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__write_date
+msgid "Last Updated on"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__demo_many2many
+msgid "Many2many demo"
+msgstr ""
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_demo_model_portal
+msgid "Many2many demo-"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_2_portal__demo_many2one
+msgid "Many2one"
+msgstr ""
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_demo_model_2_portal
+msgid "Many2one-"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.ui.menu,name:demo_portal.models
+msgid "Models"
+msgstr ""
+
+#. module: demo_portal
+#: code:addons/addons/TechnoLibre_odoo-code-generator/demo_portal/controllers/portal.py:43
+#: code:addons/addons/TechnoLibre_odoo-code-generator/demo_portal/controllers/portal.py:139
+#: code:addons/demo_portal/controllers/portal.py:43
+#: code:addons/demo_portal/controllers/portal.py:139
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_2_portal__name
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__name
+#, python-format
+msgid "Name"
+msgstr ""
+
+#. module: demo_portal
+#: code:addons/addons/TechnoLibre_odoo-code-generator/demo_portal/controllers/portal.py:42
+#: code:addons/addons/TechnoLibre_odoo-code-generator/demo_portal/controllers/portal.py:138
+#: code:addons/demo_portal/controllers/portal.py:42
+#: code:addons/demo_portal/controllers/portal.py:138
+#, python-format
+msgid "Newest"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__demo_one2many
+msgid "One2Many demo"
+msgstr ""
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_demo_model_portal
+msgid "One2Many demo-"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_2_portal__access_url
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__access_url
+msgid "Portal Access URL"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_2_portal__access_token
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__access_token
+msgid "Security Token"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model.fields,field_description:demo_portal.field_demo_model_portal__demo_selection
+msgid "Selection demo"
+msgstr ""
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_demo_model_portal
+msgid "Selection demo-"
+msgstr ""
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_demo_model_2_portals
+msgid "There are no demo_model_2_portals."
+msgstr ""
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.portal_my_demo_model_portals
+msgid "There are no demo_model_portals."
+msgstr ""
+
+#. module: demo_portal
+#: model_terms:ir.ui.view,arch_db:demo_portal.demo_model_2_portal_view_form
+#: model_terms:ir.ui.view,arch_db:demo_portal.demo_model_portal_view_form
+msgid "Titre"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model,name:demo_portal.model_demo_model_2_portal
+#: model:ir.ui.menu,name:demo_portal.demo_model_2_portal
+msgid "demo_model_2_portal"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.actions.act_window,name:demo_portal.demo_model_2_portal_demo_model_2_portal_action_view_action_window
+msgid "demo_model_2_portal_action_view"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.model,name:demo_portal.model_demo_model_portal
+#: model:ir.ui.menu,name:demo_portal.demo_model_portal
+msgid "demo_model_portal"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.actions.act_window,name:demo_portal.demo_model_portal_demo_model_portal_action_view_action_window
+msgid "demo_model_portal_action_view"
+msgstr ""
+
+#. module: demo_portal
+#: model:ir.ui.menu,name:demo_portal.root_demo_portal
+msgid "root_demo_portal"
+msgstr ""
+

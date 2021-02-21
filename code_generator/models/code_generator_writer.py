@@ -1,5 +1,6 @@
 from odoo import models, fields, api
 
+import ast
 import os
 import shutil
 import tempfile
@@ -434,7 +435,9 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        nomenclador_data = self.env[model.model].sudo().search([])
+        expression_export_data = model.expression_export_data
+        search = [] if not expression_export_data else [ast.literal_eval(expression_export_data)]
+        nomenclador_data = self.env[model.model].sudo().search(search)
         if not nomenclador_data:
             return
 
@@ -479,6 +482,10 @@ class CodeGeneratorWriter(models.Model):
                                 rvalue, give_a_default=True
                             )))
                         child = E.field({"name": rfield.name, "eval": f"[(6,0, [{field_eval}])]"})
+
+                    elif rfield.related == "view_id.arch" or (rfield.name == "arch" and rfield.model == "ir.ui.view"):
+                        root = ET.fromstring(record_value)
+                        child = E.field({"name": rfield.name, "type": "xml"}, root)
 
                     else:
                         child = E.field({"name": rfield.name}, str(record_value))

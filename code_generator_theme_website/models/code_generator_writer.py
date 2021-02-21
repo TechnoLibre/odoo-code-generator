@@ -82,7 +82,7 @@ class CodeGeneratorWriter(models.Model):
             E.xpath({"expr": "//link[last()]", "position": "after"}, *lst_link),
         ]
         template_xml = E.template({
-            "id": module.name,
+            "id": f"{module.name}_assets_frontend",
             "inherit_id": "website.assets_frontend",
             "name": module.display_name,
             "active": "True",
@@ -102,7 +102,7 @@ class CodeGeneratorWriter(models.Model):
                     *lst_link),
         ]
         template_xml = E.template({
-            "id": module.name,
+            "id": f"{module.name}_assets_primary_variables",
             "inherit_id": "website._assets_primary_variables",
         },
             *lst_xpath

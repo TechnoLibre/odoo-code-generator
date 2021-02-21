@@ -5,9 +5,11 @@ import os
 import shutil
 import tempfile
 import uuid
+import base64
 from lxml.builder import E
 from lxml import etree as ET
 from collections import defaultdict
+from odoo.tools.misc import mute_logger
 
 from code_writer import CodeWriter
 from odoo.models import MAGIC_COLUMNS
@@ -257,6 +259,56 @@ class CodeGeneratorWriter(models.Model):
 
     def set_module_init_file_extra(self, module):
         pass
+
+    def set_module_translator(self, module_name, module_path):
+        module_id = self.env["ir.module.module"].search([("name", "=", module_name), ('state', '=', 'installed')])
+        if not module_id:
+            return
+
+        i18n_path = os.path.join(module_path, "i18n")
+        data = CodeGeneratorData(module_id, module_path)
+        data._check_mkdir_and_create(i18n_path, is_file=False)
+
+        # Create pot
+        export = self.env["base.language.export"].create({
+            'format': 'po',
+            'modules': [(6, 0, [module_id.id])]
+        })
+
+        export.act_getfile()
+        po_file = export.data
+        data = base64.b64decode(po_file).decode("utf-8")
+        translation_file = os.path.join(i18n_path, f"{module_name}.pot")
+
+        with open(translation_file, "w") as file:
+            file.write(data)
+
+        # Create po
+        lang = 'fr_CA'
+        translation_file = os.path.join(i18n_path, f"{lang}.po")
+
+        if not self.env["ir.translation"].search([('lang', '=', 'fr_CA')]):
+            with mute_logger('odoo.addons.base.models.ir_translation'):
+                self.env["base.language.install"].create({'lang': lang, 'overwrite': True}).lang_install()
+            self.env["base.update.translations"].create({'lang': lang}).act_update()
+
+        # Load existing translations
+        # translations = self.env["ir.translation"].search([
+        #     ('lang', '=', lang),
+        #     ('module', '=', module_name)
+        # ])
+
+        export = self.env["base.language.export"].create({
+            'lang': lang,
+            'format': 'po',
+            'modules': [(6, 0, [module_id.id])]
+        })
+        export.act_getfile()
+        po_file = export.data
+        data = base64.b64decode(po_file).decode("utf-8")
+
+        with open(translation_file, "w") as file:
+            file.write(data)
 
     def _set_manifest_file(self, module):
         """
@@ -1233,6 +1285,8 @@ class CodeGeneratorWriter(models.Model):
             self._set_module_security(module, l_model_rules, l_model_csv_access)
 
             self._set_static_description_file(module, application_icon)
+
+            # self.set_module_translator(module)
 
         self.set_extra_get_lst_file_generate(module)
 

@@ -1,3 +1,0 @@
-wget
-js2py
-BeautifulSoup4

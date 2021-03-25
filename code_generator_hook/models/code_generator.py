@@ -54,6 +54,8 @@ class CodeGeneratorModule(models.Model):
 
     enable_template_wizard_view = fields.Boolean(string="Template wizard", help="Add template wizard.")
 
+    enable_generate_portal = fields.Boolean(string="Wizard enable portal", help="Add template of portal to wizard.")
+
     enable_template_website_snippet_view = fields.Boolean(string="Template website snippet",
                                                           help="Add template website snippet, block drag and drop in "
                                                                "website builder.")
@@ -61,6 +63,13 @@ class CodeGeneratorModule(models.Model):
     enable_sync_template = fields.Boolean(string="Sync generated code",
                                           help="Read generated code to fill the generator with fields.")
 
+    ignore_fields = fields.Char(string="Ignored field",
+                                help="Ignore field when enable_sync_template, use ; to separate field.")
+
     template_module_name = fields.Char(string="Generated module name",
                                        help="Can be empty in case of code_generator_demo, else it's the module name "
                                             "goal to generate.")
+
+    template_module_path_generated_extension = fields.Char(string="Path of os.path value to generated path module",
+                                                           help="Add parameters of os.path directory where module is "
+                                                                "generated.")

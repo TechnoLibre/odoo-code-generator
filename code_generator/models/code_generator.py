@@ -69,6 +69,12 @@ class CodeGeneratorModule(models.Model):
         readonly=False
     )
 
+    dependencies_template_id = fields.One2many(
+        'code.generator.module.template.dependency',
+        'module_id',
+        readonly=False
+    )
+
     external_dependencies_id = fields.One2many(
         'code.generator.module.external.dependency',
         'module_id',
@@ -104,6 +110,11 @@ class CodeGeneratorModule(models.Model):
 
     o2m_models = fields.One2many(
         'ir.model',
+        'm2o_module'
+    )
+
+    o2m_codes = fields.One2many(
+        'code.generator.model.code',
         'm2o_module'
     )
 
@@ -184,6 +195,12 @@ class CodeGeneratorModule(models.Model):
 
     @api.model
     def _default_path_sync_code(self):
+        # sibling directory odoo-code-generator-template
+        sibling = os.path.normpath(
+            os.path.join(os.path.dirname(__file__), '..', '..', '..', 'TechnoLibre_odoo-code-generator-template'))
+        if os.path.isdir(sibling):
+            return sibling
+        # Cannot find sibling template, use this working repo directory instead
         return os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
     path_sync_code = fields.Char(string="Directory",
@@ -294,6 +311,24 @@ class CodeGeneratorModuleDependency(models.Model):
     )
 
 
+class CodeGeneratorModuleTemplateDependency(models.Model):
+    _inherit = 'ir.module.module.dependency'
+    _name = 'code.generator.module.template.dependency'
+    _description = 'Code Generator Module Template Dependency, set by code_generator_template'
+
+    module_id = fields.Many2one(
+        'code.generator.module',
+        'Module',
+        ondelete='cascade'
+    )
+
+    depend_id = fields.Many2one(
+        'ir.module.module',
+        'Dependency',
+        compute=None
+    )
+
+
 class CodeGeneratorPyClass(models.Model):
     _name = 'code.generator.pyclass'
     _description = 'Code Generator Python Class'
@@ -307,4 +342,36 @@ class CodeGeneratorPyClass(models.Model):
     module = fields.Char(
         string='Class path',
         help='Class path'
+    )
+
+
+class CodeGeneratorCode(models.Model):
+    _name = 'code.generator.model.code'
+    _description = 'Code to display in model'
+
+    name = fields.Char(
+        string='Class name',
+        help='Class name',
+        required=True
+    )
+
+    code = fields.Text(string="Code of pre_init_hook", default="""
+return""")
+
+    decorator = fields.Char(string="Decorator", help="Like @api.model")
+
+    param = fields.Char(string="Param", help="Like : name,color")
+
+    m2o_module = fields.Many2one(
+        'code.generator.module',
+        string='Module',
+        help="Module",
+        ondelete='cascade'
+    )
+
+    m2o_model = fields.Many2one(
+        'ir.model',
+        string='Model',
+        help="Model",
+        ondelete='cascade'
     )

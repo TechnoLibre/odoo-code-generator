@@ -217,6 +217,11 @@ class IrModel(models.Model):
         ondelete='cascade'
     )
 
+    o2m_codes = fields.One2many(
+        'code.generator.model.code',
+        'm2o_model'
+    )
+
     @api.onchange('m2o_module')
     def _onchange_m2o_module(self):
         if self.m2o_module:
@@ -420,6 +425,12 @@ class IrModelFields(models.Model):
                                                       "View form only.")
     is_hide_blacklist_form_view = fields.Boolean(string="Hide in blacklist form view",
                                                  help="Hide from view when field is blacklisted. View form only.")
+
+    code_generator_sequence = fields.Integer(string="Sequence Code Generator",
+                                             help="Sequence to write this field from Code Generator.")
+
+    code_generator_compute = fields.Char(string="Compute Code Generator",
+                                         help="Compute method to code_generator_writer.")
 
     @api.constrains('name', 'state')
     def _check_name(self):

@@ -1,0 +1,19 @@
+<?xml version= "1.0" ?>
+<odoo>
+
+  <record model="ir.ui.view" id="code_generator_module_cron_form_inherit">
+    <field name="name">code.generator.module.form.inherit</field>
+    <field name="model">code.generator.module</field>
+    <field name="inherit_id" ref="code_generator.code_generator_module_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//page[@name='Elements']" position="after">
+        <page string="Cron" name="Cron">
+          <group name="cron" string="cron">
+            <field name="o2m_model_cron" nolabel="1"/>
+          </group>
+        </page>
+      </xpath>
+    </field>
+  </record>
+
+</odoo>

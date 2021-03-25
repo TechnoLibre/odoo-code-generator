@@ -903,7 +903,7 @@ class CodeGeneratorWriter(models.Model):
         xmlreport_file_path = os.path.join(self.code_generator_data.reports_path, f'{model_model}.xml')
         self.code_generator_data.write_file_lst_content(xmlreport_file_path, l_model_report_file, data_file=True)
 
-    def _set_model_py_file(self, model, model_model):
+    def _set_model_py_file(self, module, model, model_model):
         """
         Function to set the model files
         :param model:
@@ -932,6 +932,17 @@ class CodeGeneratorWriter(models.Model):
             self._get_model_fields(cw, model)
 
             self._get_model_constrains(cw, model)
+
+            # Add function
+            for code in model.o2m_codes:
+                cw.emit()
+                if code.decorator:
+                    cw.emit(code.decorator)
+                params = f", {code.param}" if code.param else ""
+                cw.emit(f"def {code.name}(self{params}):")
+                with cw.indent():
+                    for code_line in code.code.split("\n"):
+                        cw.emit(code_line)
 
         if model.transient:
             pypath = self.code_generator_data.wizards_path
@@ -1103,7 +1114,9 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        f2exports = model.field_id.filtered(lambda field: field.name not in MAGIC_FIELDS)
+        # TODO detect if contain code_generator_sequence, else order by name
+        f2exports = model.field_id.filtered(lambda field: field.name not in MAGIC_FIELDS).sorted(
+            key=lambda r: r.code_generator_sequence)
 
         if model.m2o_inherit_model:
             father = self.env['ir.model'].browse(model.m2o_inherit_model.id)
@@ -1112,12 +1125,25 @@ class CodeGeneratorWriter(models.Model):
 
         for f2export in f2exports:
             cw.emit()
-            dct_field_attribute = {
-                "string": f2export.field_description,
-            }
+            dct_field_attribute = {}
 
-            if f2export.help:
-                dct_field_attribute["help"] = f2export.help
+            # TODO use if cannot find information
+            # field_selection = self.env[f2export.model].fields_get(f2export.name).get(f2export.name)
+
+            # Respect sequence in list, order listed by human preference
+
+            if (f2export.ttype == 'reference' or f2export.ttype == 'selection') and f2export.selection:
+                # Transform selection
+                # '[("point", "Point"), ("line", "Line"), ("area", "Polygon")]'
+                # [("point", "Point"), ("line", "Line")), ("area", "Polygon")]
+                if f2export.selection != '[]':
+                    lst_selection = [a.split(",") for a in f2export.selection.strip('[]').strip('()').split('), (')]
+                    lst_selection = [f"({a[0]}, {a[1].strip()})" for a in lst_selection]
+                    dct_field_attribute["selection"] = lst_selection
+                else:
+                    dct_field_attribute["selection"] = []
+
+            dct_field_attribute["string"] = f2export.field_description
 
             if f2export.ttype in ['many2one', 'one2many', 'many2many']:
                 if f2export.relation:
@@ -1147,18 +1173,20 @@ class CodeGeneratorWriter(models.Model):
             if (f2export.ttype == 'char' or f2export.ttype == 'reference') and f2export.size != 0:
                 dct_field_attribute["size"] = f2export.size
 
-            if (f2export.ttype == 'reference' or f2export.ttype == 'selection') and f2export.selection:
-                # Transform selection
-                # '[("point", "Point"), ("line", "Line"), ("area", "Polygon")]'
-                # [('"point"', '_( "Point")'), ('"line"', '_( "Line")'), ('"area"', '_( "Polygon")')]
-                if f2export.selection != '[]':
-                    lst_selection = [a.split(",") for a in f2export.selection.strip('[]').strip('()').split('), (')]
-                    lst_selection = [f"({a[0]}, _({a[1].strip()}))" for a in lst_selection]
-                    dct_field_attribute["selection"] = lst_selection
-                else:
-                    dct_field_attribute["selection"] = []
+            if f2export.related:
+                dct_field_attribute["related"] = f2export.related
+
+            if f2export.readonly:
+                dct_field_attribute["readonly"] = True
+
+            if f2export.required:
+                dct_field_attribute["required"] = True
+
+            if f2export.index:
+                dct_field_attribute["index"] = True
 
             if f2export.default:
+                # TODO support default = None
                 if f2export.default == "True":
                     dct_field_attribute["default"] = True
                 elif f2export.default == "False":
@@ -1167,17 +1195,36 @@ class CodeGeneratorWriter(models.Model):
                 else:
                     dct_field_attribute["default"] = f2export.default
 
-            if f2export.related:
-                dct_field_attribute["related"] = f2export.related
+            # TODO support states
 
-            if f2export.required:
-                dct_field_attribute["required"] = True
+            if f2export.groups:
+                dct_field_attribute["groups"] = f2export.groups.mapped(lambda g: self._get_group_data_name(g))
 
-            if f2export.readonly:
-                dct_field_attribute["readonly"] = True
+            compute = f2export.compute and f2export.depends
+            if f2export.code_generator_compute:
+                dct_field_attribute["compute"] = f2export.code_generator_compute
+            elif compute:
+                dct_field_attribute["compute"] = f'_compute_{f2export.name}'
 
-            if f2export.index:
-                dct_field_attribute["index"] = True
+            if (f2export.ttype == 'one2many' or f2export.related or compute) and \
+                    f2export.copied:
+                dct_field_attribute["copy"] = True
+
+            # TODO support oldname
+
+            # TODO support group_operator
+
+            # TODO support inverse
+
+            # TODO support search
+
+            # TODO support store
+            if f2export.store and f2export.code_generator_compute:
+                dct_field_attribute["store"] = True
+            elif not f2export.store:
+                dct_field_attribute["store"] = False
+
+            # TODO support compute_sudo
 
             if f2export.translate:
                 dct_field_attribute["translate"] = True
@@ -1185,15 +1232,10 @@ class CodeGeneratorWriter(models.Model):
             if not f2export.selectable:
                 dct_field_attribute["selectable"] = False
 
-            if f2export.groups:
-                dct_field_attribute["groups"] = f2export.groups.mapped(lambda g: self._get_group_data_name(g))
+            # TODO support digits, check dp.get_precision('Account')
 
-            compute = f2export.compute and f2export.depends
-            if compute:
-                dct_field_attribute["compute"] = f'_compute_{f2export.name}'
-
-            if (f2export.ttype == 'one2many' or f2export.related or compute) and f2export.copied:
-                dct_field_attribute["copy"] = True
+            if f2export.help:
+                dct_field_attribute["help"] = f2export.help
 
             # Ignore it, by default it's copy=False
             # elif f2export.ttype != 'one2many' and not f2export.related and not compute and not f2export.copied:
@@ -1203,8 +1245,12 @@ class CodeGeneratorWriter(models.Model):
             for key, value in dct_field_attribute.items():
                 if type(value) is str:
                     # TODO find another solution than removing \n, this cause error with cw.CodeWriter
-                    value = value.replace('\n', ' ')
-                    lst_field_attribute.append(f"{key}='{value}'")
+                    value = value.replace('\n', ' ').replace("'", "\\'")
+                    if key == "default" and value.startswith("lambda"):
+                        # Exception for lambda
+                        lst_field_attribute.append(f"{key}={value}")
+                    else:
+                        lst_field_attribute.append(f"{key}='{value}'")
                 elif type(value) is list:
                     # TODO find another solution than removing \n, this cause error with cw.CodeWriter
                     new_value = ', '.join(value)
@@ -1255,7 +1301,7 @@ class CodeGeneratorWriter(models.Model):
 
             if not module.nomenclator_only:
                 # Wizard
-                self._set_model_py_file(model, model_model)
+                self._set_model_py_file(module, model, model_model)
                 self._set_model_xmlview_file(model, model_model)
 
                 # Report

@@ -4,15 +4,21 @@ import ast
 import os
 import shutil
 import tempfile
+import logging
 import uuid
 import base64
 from lxml.builder import E
 from lxml import etree as ET
 from collections import defaultdict
 from odoo.tools.misc import mute_logger
+import subprocess
+import html5print
+import xmlformatter
 
 from code_writer import CodeWriter
 from odoo.models import MAGIC_COLUMNS
+
+_logger = logging.getLogger(__name__)
 
 UNDEFINEDMESSAGE = 'Restriction message not yet define.'
 MAGIC_FIELDS = MAGIC_COLUMNS + ['display_name', '__last_update', 'access_url', 'access_token', 'access_warning']
@@ -21,7 +27,7 @@ BLANK_LINE = ['']
 BREAK_LINE_OFF = '\n'
 BREAK_LINE = ['\n']
 XML_VERSION_HEADER = '<?xml version="1.0" encoding="utf-8"?>' + BREAK_LINE_OFF
-XML_VERSION = ['<?xml version= "1.0" encoding="utf-8"?>']
+XML_VERSION = ['<?xml version="1.0" encoding="utf-8"?>']
 XML_ODOO_OPENING_TAG = ['<odoo>']
 XML_HEAD = XML_VERSION + XML_ODOO_OPENING_TAG
 XML_ODOO_CLOSING_TAG = ['</odoo>']
@@ -635,14 +641,58 @@ class CodeGeneratorWriter(models.Model):
                 dct_menu_item["web_icon"] = f'{module.name},static/description/icon.png'
 
             menu_xml = E.menuitem(dct_menu_item)
+            lst_menu_xml.append(ET.Comment("end line"))
             lst_menu_xml.append(menu_xml)
 
+        lst_menu_xml.append(ET.Comment("end line"))
         module_menus_file = E.odoo({}, *lst_menu_xml)
         menu_file_path = os.path.join(self.code_generator_data.views_path, 'menus.xml')
         result = XML_VERSION_HEADER.encode("utf-8") + ET.tostring(module_menus_file, pretty_print=True)
-        self.code_generator_data.write_file_binary(menu_file_path, result, data_file=True)
+
+        # a menuitem is separate on each line, like this:
+        # <menuitem id="menu_id"
+        #           name="name"
+        #           sequence="8"
+        # />
+        key = "<menuitem "
+        new_result = ""
+        for line in result.decode().split("\n"):
+            if line.lstrip().startswith(key):
+                start_index = line.index(key)
+                offset_index = start_index + len(key)
+                next_index = line.index(" ", offset_index)
+                last_part = line[next_index + 1:].replace('" ', f'"\n{"  " + " " * offset_index}')[:-2]
+                last_part += f'\n{"  " + " " * start_index}/>\n'
+                new_result += "  " + line[:next_index] + f'\n{"  " + " " * offset_index}' + last_part
+            else:
+                new_result += line + "\n"
+
+        new_result = new_result.replace("  <!--end line-->\n", "\n")[:-1]
+
+        self.code_generator_data.write_file_str(menu_file_path, new_result, data_file=True)
 
         return application_icon
+
+    def _setup_xml_indent(self, content, indent=0, is_end=False):
+        # return "\n".join([f"{'    ' * indent}{a}" for a in content.split("\n")])
+        str_content = content.rstrip().replace("\n", f"\n{'  ' * indent}")
+        super_content = f"\n{'  ' * indent}{str_content}"
+        if is_end:
+            super_content += f"\n{'  ' * 1}"
+        else:
+            super_content += f"\n{'  ' * (indent - 1)}"
+        return super_content
+
+    def _change_xml_2_to_4_spaces(self, content):
+        new_content = ""
+        # Change 2 space for 4 space
+        for line in content.split("\n"):
+            # count first space
+            if line.strip():
+                new_content += f'{"  " * (len(line) - len(line.lstrip()))}{line.strip()}\n'
+            else:
+                new_content += "\n"
+        return new_content
 
     def _set_model_xmlview_file(self, model, model_model):
         """
@@ -655,9 +705,9 @@ class CodeGeneratorWriter(models.Model):
         if not (model.view_ids or model.o2m_act_window or model.o2m_server_action):
             return
 
-        l_model_view_file = XML_HEAD + BLANK_LINE
-
+        dct_replace = {}
         lst_id = []
+        lst_item_xml = []
 
         #
         # Views
@@ -676,46 +726,50 @@ class CodeGeneratorWriter(models.Model):
 
                 self.code_generator_data.add_view_id(view.name, str_id)
 
-                l_model_view_file.append(f'<record model="ir.ui.view" id="{str_id}">')
+                lst_field = []
 
                 if view.name:
-                    l_model_view_file.append('<field name="name">%s</field>' % view.name)
+                    lst_field.append(E.field({"name": "name"}, view.name))
 
-                l_model_view_file.append('<field name="model">%s</field>' % view.model)
+                lst_field.append(E.field({"name": "model"}, view.model))
 
                 if view.key:
-                    l_model_view_file.append('<field name="key">%s</field>' % view.key)
+                    lst_field.append(E.field({"name": "key"}, view.key))
 
                 if view.priority != 16:
-                    l_model_view_file.append('<field name="priority">%s</field>' % view.priority)
+                    lst_field.append(E.field({"name": "priority"}, view.priority))
 
                 if view.inherit_id:
-                    l_model_view_file.append('<field name="inherit_id" ref="%s"/>' % self._get_view_data_name(view))
+                    lst_field.append(E.field({"name": "inherit_id", "ref": self._get_view_data_name(view)}))
 
                     if view.mode == 'primary':
-                        l_model_view_file.append('<field name="mode">primary</field>')
+                        lst_field.append(E.field({"name": "mode"}, "primary"))
 
                 if not view.active:
-                    l_model_view_file.append('<field name="active" eval="False" />')
+                    lst_field.append(E.field({"name": "active", "eval": False}))
 
                 if view.arch_db:
-                    l_model_view_file.append('<field name="arch" type="xml">%s</field>' % view.arch_db)
+                    uid = str(uuid.uuid1())
+                    dct_replace[uid] = self._setup_xml_indent(view.arch_db, indent=3)
+                    lst_field.append(E.field({"name": "arch", "type": "xml"}, uid))
 
                 if view.groups_id:
-                    l_model_view_file.append(self._get_m2m_groups(view.groups_id))
+                    lst_field.append(self._get_m2m_groups_etree(view.groups_id))
 
-                l_model_view_file.append('</record>\n')
+                info = E.record({"model": "ir.ui.view", "id": str_id}, *lst_field)
+                lst_item_xml.append(ET.Comment("end line"))
+                lst_item_xml.append(info)
 
             elif view_type == "qweb":
-
+                template_value = {"id": view.key, "name": view.name}
                 if view.inherit_id:
-                    l_model_view_file.append(
-                        f'<template id="{view.key}" name="{view.name}" inherit_id="{view.inherit_id.key}">')
-                else:
-                    l_model_view_file.append(f'<template id="{view.key}" name="{view.name}">')
+                    template_value["inherit_id"] = view.inherit_id.key
 
-                l_model_view_file.append(view.arch)
-                l_model_view_file.append('</template>\n')
+                uid = str(uuid.uuid1())
+                dct_replace[uid] = self._setup_xml_indent(view.arch, indent=2, is_end=True)
+                info = E.template(template_value, uid)
+                lst_item_xml.append(ET.Comment("end line"))
+                lst_item_xml.append(info)
 
             else:
                 print(f"Error, view type {view_type} of {view.name} not supported.")
@@ -725,121 +779,118 @@ class CodeGeneratorWriter(models.Model):
         #
         for act_window in model.o2m_act_window:
 
-            l_model_view_file.append(
-                '<record model="ir.actions.act_window" id="%s">' % self._get_action_data_name(act_window,
-                                                                                              creating=True)
-            )
+            lst_field = []
 
             if act_window.name:
-                l_model_view_file.append('<field name="name">%s</field>' % act_window.name)
+                lst_field.append(E.field({"name": "name"}, act_window.name))
 
             if act_window.res_model or act_window.m2o_res_model:
-                l_model_view_file.append(
-                    '<field name="res_model">%s</field>' % act_window.res_model or act_window.m2o_res_model.model
-                )
+                lst_field.append(E.field({"name": "res_model"}, act_window.res_model or act_window.m2o_res_model.model))
 
             if act_window.binding_model_id:
-                l_model_view_file.append(
-                    '<field name="binding_model_id" ref="%s" />' % self._get_model_data_name(
-                        act_window.binding_model_id)
-                )
+                binding_model = self._get_model_data_name(act_window.binding_model_id)
+                lst_field.append(E.field({"name": "binding_model_id", "ref": binding_model}))
 
             if act_window.view_id:
-                l_model_view_file.append(
-                    '<field name="view_id" ref="%s" />' % self._get_view_data_name(act_window.view_id))
+                lst_field.append(E.field({"name": "view_id", "ref": self._get_view_data_name(act_window.view_id)}))
 
             if act_window.domain != '[]' and act_window.domain:
-                l_model_view_file.append('<field name="domain">%s</field>' % act_window.domain)
+                lst_field.append(E.field({"name": "domain"}, act_window.domain))
 
             if act_window.context != '{}':
-                l_model_view_file.append('<field name="context">%s</field>' % act_window.context)
+                lst_field.append(E.field({"name": "context"}, act_window.context))
 
             if act_window.src_model or act_window.m2o_src_model:
-                l_model_view_file.append(
-                    '<field name="src_model">%s</field>' % act_window.src_model or act_window.m2o_src_model.model
-                )
+                lst_field.append(E.field({"name": "src_model"}, act_window.src_model or act_window.m2o_src_model.model))
 
             if act_window.target != 'current':
-                l_model_view_file.append('<field name="target">%s</field>' % act_window.target)
+                lst_field.append(E.field({"name": "target"}, act_window.target))
 
             if act_window.view_mode != 'tree,form':
-                l_model_view_file.append('<field name="view_mode">%s</field>' % act_window.view_mode)
+                lst_field.append(E.field({"name": "view_mode"}, act_window.view_mode))
 
             if act_window.view_type != 'form':
-                l_model_view_file.append('<field name="view_type">%s</field>' % act_window.view_type)
+                lst_field.append(E.field({"name": "view_type"}, act_window.view_type))
 
             if act_window.usage:
-                l_model_view_file.append('<field name="usage" eval="True" />')
+                lst_field.append(E.field({"name": "usage", "eval": True}))
 
             if act_window.limit != 80:
-                l_model_view_file.append('<field name="limit">%s</field>' % act_window.limit)
+                lst_field.append(E.field({"name": "limit"}, act_window.limit))
 
             if act_window.search_view_id:
-                l_model_view_file.append(
-                    '<field name="search_view_id" ref="%s" />' % self._get_view_data_name(act_window.search_view_id)
-                )
+                lst_field.append(
+                    E.field({"name": "search_view_id", "ref": self._get_view_data_name(act_window.search_view_id)}))
 
             if act_window.filter:
-                l_model_view_file.append('<field name="filter" eval="True" />')
+                lst_field.append(E.field({"name": "filter", "eval": True}))
 
             if not act_window.auto_search:
-                l_model_view_file.append('<field name="auto_search" eval="False" />')
+                lst_field.append(E.field({"name": "auto_search", "eval": False}))
 
             if act_window.multi:
-                l_model_view_file.append('<field name="multi" eval="True" />')
+                lst_field.append(E.field({"name": "multi", "eval": True}))
 
             if act_window.help:
-                l_model_view_file.append('<field name="name" type="html">%s</field>' % act_window.help)
+                lst_field.append(E.field({"name": "name", "type": "html"}, act_window.help))
 
             if act_window.groups_id:
-                l_model_view_file.append(self._get_m2m_groups(act_window.groups_id))
+                lst_field.append(self._get_m2m_groups_etree(act_window.groups_id))
 
-            l_model_view_file.append('</record>\n')
+            record_id = self._get_action_data_name(act_window, creating=True)
+            info = E.record({"model": "ir.actions.act_window", "id": record_id}, *lst_field)
+            lst_item_xml.append(ET.Comment("end line"))
+            lst_item_xml.append(info)
 
         #
         # Server Actions
         #
         for server_action in model.o2m_server_action:
 
-            l_model_view_file.append('<record model="ir.actions.server" id="%s">' % self._get_action_data_name(
-                server_action, server=True, creating=True
-            ))
+            lst_field = []
 
-            l_model_view_file.append('<field name="name">%s</field>' % server_action.name)
+            lst_field.append(E.field({"name": "name"}, server_action.name))
 
-            l_model_view_file.append(
-                '<field name="model_id" ref="%s" />' % self._get_model_data_name(server_action.model_id)
-            )
+            lst_field.append(E.field({"name": "model_id", "ref": self._get_model_data_name(server_action.model_id)}))
 
-            l_model_view_file.append(
-                '<field name="binding_model_id" ref="%s" />' % self._get_model_data_name(model))
+            lst_field.append(E.field({"name": "binding_model_id", "ref": self._get_model_data_name(model)}))
 
             if server_action.state == 'code':
+                lst_field.append(E.field({"name": "state"}, "code"))
 
-                l_model_view_file.append('<field name="state">code</field>')
-
-                l_model_view_file.append('<field name="code">\n%s</field>' % server_action.code)
+                lst_field.append(E.field({"name": "code"}, server_action.code))
 
             else:
-                l_model_view_file.append('<field name="state">multi</field>')
+                lst_field.append(E.field({"name": "state"}, "multi"))
 
                 if server_action.child_ids:
-                    l_model_view_file.append(
-                        '<field name="child_ids" eval="[(6,0, [%s])]" />' % ', '.join(
-                            server_action.child_ids.mapped(lambda child: 'ref(%s)' % self._get_action_data_name(
-                                child, server=True
-                            ))
-                        )
+                    child_obj = ', '.join(
+                        server_action.child_ids.mapped(lambda child: 'ref(%s)' % self._get_action_data_name(
+                            child, server=True
+                        ))
                     )
+                    lst_field.append(E.field({"name": "child_ids", "eval": f"[(6,0, [{child_obj}])]"}))
 
-            l_model_view_file.append('</record>\n')
+            record_id = self._get_action_data_name(server_action, server=True, creating=True)
+            info = E.record({"model": "ir.actions.server", "id": record_id}, *lst_field)
+            lst_item_xml.append(ET.Comment("end line"))
+            lst_item_xml.append(info)
 
-        l_model_view_file += XML_ODOO_CLOSING_TAG
+        lst_item_xml.append(ET.Comment("end line"))
+        root = E.odoo({}, *lst_item_xml)
+
+        content = XML_VERSION_HEADER.encode("utf-8") + ET.tostring(root, pretty_print=True)
+        str_content = content.decode()
+
+        str_content = str_content.replace("  <!--end line-->\n", "\n")
+        for key, value in dct_replace.items():
+            str_content = str_content.replace(key, value)
+        str_content = self._change_xml_2_to_4_spaces(str_content)[:-1]
 
         wizards_path = self.code_generator_data.wizards_path
         views_path = self.code_generator_data.views_path
         xml_file_path = os.path.join(wizards_path if model.transient else views_path, f'{model_model}.xml')
-        self.code_generator_data.write_file_lst_content(xml_file_path, l_model_view_file, data_file=True)
+        self.code_generator_data.write_file_str(xml_file_path, str_content, data_file=True)
 
     def _set_model_xmlreport_file(self, model, model_model):
         """
@@ -1107,6 +1158,16 @@ class CodeGeneratorWriter(models.Model):
             m2m_groups.mapped(lambda g: 'ref(%s)' % self._get_group_data_name(g))
         )
 
+    def _get_m2m_groups_etree(self, m2m_groups):
+        """
+
+        :param m2m_groups:
+        :return:
+        """
+
+        var = ', '.join(m2m_groups.mapped(lambda g: 'ref(%s)' % self._get_group_data_name(g)))
+        return E.field({"name": "groups_id", "eval": f"[(6,0, [{var}])]"})
+
     def _get_model_fields(self, cw, model):
         """
         Function to obtain the model fields
@@ -1343,6 +1404,11 @@ class CodeGeneratorWriter(models.Model):
         self.set_module_init_file_extra(module)
 
         self.code_generator_data.generate_python_init_file()
+
+        self.code_generator_data.auto_format()
+        if module.enable_pylint_check:
+            # self.code_generator_data.flake8_check()
+            self.code_generator_data.pylint_check()
 
     def set_xml_data_file(self, module):
         pass
@@ -1602,7 +1668,7 @@ class CodeGeneratorData:
         :param file_path:
         :param content:
         :param mode:
-        :param data_file:
+        :param data_file: Will be add in manifest
         :param insert_first:
         :return:
         """
@@ -1690,3 +1756,157 @@ class CodeGeneratorData:
             for extra_import in self._dct_extra_module_init_path.get(component, []):
                 cw.emit(extra_import)
             self.write_file_str(init_path, cw.render())
+
+    def flake8_check(self):
+        workspace_path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
+        flake8_bin = os.path.join(workspace_path, ".venv", "bin", "flake8")
+        config_path = os.path.join(workspace_path, ".flake8")
+        cpu_count = os.cpu_count()
+        try:
+            out = subprocess.check_output([flake8_bin, "-j", str(cpu_count), f"--config={config_path}",
+                                           self.module_path])
+            result = out
+        except subprocess.CalledProcessError as e:
+            result = e.output.decode()
+
+        if result:
+            _logger.warning(result)
+
+    def pylint_check(self):
+        workspace_path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
+        cpu_count = os.cpu_count()
+        try:
+            out = subprocess.check_output([f"{workspace_path}/.venv/bin/pylint", "-j", str(cpu_count),
+                                           "--load-plugins=pylint_odoo", "-e", "odoolint", self.module_path])
+            result = out
+        except subprocess.CalledProcessError as e:
+            result = e.output.decode()
+
+        if result:
+            _logger.warning(result)
+
+    def auto_format(self):
+        workspace_path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
+        use_prettier = True
+        use_format_black = False  # Else, oca-autopep8
+        use_html5print = False
+        enable_xml_formatter = False
+        # Manual format with def with programmer style
+        for path_file in self.lst_path_file:
+            relative_path = path_file[len(self.module_path) + 1:]
+            if path_file.endswith(".py"):
+                # TODO not optimal, too many write for nothing
+                if not use_format_black:
+                    lst_line_write = []
+                    has_change = False
+                    with open(path_file, "r") as source:
+                        for line in source.readlines():
+                            if (line.lstrip().startswith("def ") or line.lstrip().startswith("return ")) and len(
+                                    line) > 99:
+                                has_change = True
+                                next_tab_space = line.find("(") + 1
+                                first_cut = 100
+                                first_cut = line.rfind(", ", 0, first_cut) + 1
+                                first_part = line[:first_cut]
+                                last_part = line[first_cut:].lstrip()
+                                str_line = f"{first_part}\n{' ' * next_tab_space}{last_part}"
+                                lst_line_write.append(str_line[:-1])
+                            else:
+                                lst_line_write.append(line[:-1])
+                    if has_change:
+                        self.write_file_lst_content(relative_path, lst_line_write)
+
+            elif path_file.endswith(".js"):
+                if use_prettier:
+                    cmd = f"prettier --write --tab-width 4 {path_file}"
+                    result = subprocess_cmd(cmd)
+                    if result:
+                        _logger.info(result)
+                elif use_html5print:
+                    with open(path_file, "r") as source:
+                        lines = source.read()
+                        try:
+                            lines_out = html5print.JSBeautifier.beautify(lines, 4)
+                            self.write_file_str(relative_path, lines_out)
+                        except Exception as e:
+                            _logger.error(e)
+                            _logger.error(f"Check file {path_file}")
+                else:
+                    cmd = f"cd {workspace_path};. .venv/bin/activate;css-html-prettify.py {path_file}"
+                    result = subprocess_cmd(cmd)
+                    if result:
+                        _logger.warning(result)
+
+            elif path_file.endswith(".scss") or path_file.endswith(".css"):
+                if use_prettier:
+                    cmd = f"prettier --write {path_file}"
+                    result = subprocess_cmd(cmd)
+                    if result:
+                        _logger.info(result)
+                elif use_html5print:
+                    with open(path_file, "r") as source:
+                        lines = source.read()
+                        try:
+                            lines_out = html5print.CSSBeautifier.beautify(lines, 2)
+                            self.write_file_str(relative_path, lines_out)
+                        except Exception as e:
+                            _logger.error(e)
+                            _logger.error(f"Check file {path_file}")
+                else:
+                    cmd = f"cd {workspace_path};. .venv/bin/activate;css-html-prettify.py {path_file}"
+                    result = subprocess_cmd(cmd)
+                    if result:
+                        _logger.warning(result)
+
+            elif path_file.endswith(".html"):
+                if use_prettier:
+                    cmd = f"prettier --write {path_file}"
+                    result = subprocess_cmd(cmd)
+                    if result:
+                        _logger.info(result)
+                elif use_html5print:
+                    with open(path_file, "r") as source:
+                        lines = source.read()
+                        try:
+                            lines_out = html5print.HTMLBeautifier.beautify(lines, 4)
+                            self.write_file_str(relative_path, lines_out)
+                        except Exception as e:
+                            _logger.error(e)
+                            _logger.error(f"Check file {path_file}")
+                else:
+                    cmd = f"cd {workspace_path};. .venv/bin/activate;css-html-prettify.py {path_file}"
+                    result = subprocess_cmd(cmd)
+                    if result:
+                        _logger.warning(result)
+
+        # Automatic format
+        # TODO check diff before and after format to auto improvement of generation
+        if use_format_black:
+            cmd = f"cd {workspace_path};. .venv/bin/activate;black -l 100 -t py37 {self.module_path}"
+            result = subprocess_cmd(cmd)
+
+            if result:
+                _logger.warning(result)
+        else:
+            maintainer_path = os.path.join(workspace_path, 'script', 'OCA_maintainer-tools')
+            cpu_count = os.cpu_count()
+            cmd = f"cd {maintainer_path};. env/bin/activate;cd {workspace_path};" \
+                  f"oca-autopep8 -j{cpu_count} --max-line-length 100 -ari {self.module_path}"
+            result = subprocess_cmd(cmd)
+
+            if result:
+                _logger.warning(result)
+
+        if enable_xml_formatter:
+            formatter = xmlformatter.Formatter(indent="4", indent_char=" ", selfclose=True, correct=True,
+                                               preserve=["pre"], blanks=True)
+            for path_file in self.lst_path_file:
+                if path_file.endswith(".xml"):
+                    relative_path = path_file[len(self.module_path) + 1:]
+                    self.write_file_binary(relative_path, formatter.format_file(path_file))
+
+
+def subprocess_cmd(command):
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+    proc_stdout = process.communicate()[0].strip()
+    return proc_stdout

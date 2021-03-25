@@ -193,6 +193,9 @@ class CodeGeneratorModule(models.Model):
     enable_sync_code = fields.Boolean(string="Enable Sync Code", default=False,
                                       help="Will sync with code on drive when generate.")
 
+    enable_pylint_check = fields.Boolean(string="Enable Pylint check", default=False,
+                                         help="Show pylint result at the end of generation.")
+
     @api.model
     def _default_path_sync_code(self):
         # sibling directory odoo-code-generator-template

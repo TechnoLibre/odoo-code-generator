@@ -20,26 +20,32 @@ from odoo.models import MAGIC_COLUMNS
 
 _logger = logging.getLogger(__name__)
 
-UNDEFINEDMESSAGE = 'Restriction message not yet define.'
-MAGIC_FIELDS = MAGIC_COLUMNS + ['display_name', '__last_update', 'access_url', 'access_token', 'access_warning']
-MODULE_NAME = 'code_generator'
-BLANK_LINE = ['']
-BREAK_LINE_OFF = '\n'
-BREAK_LINE = ['\n']
+UNDEFINEDMESSAGE = "Restriction message not yet define."
+MAGIC_FIELDS = MAGIC_COLUMNS + [
+    "display_name",
+    "__last_update",
+    "access_url",
+    "access_token",
+    "access_warning",
+]
+MODULE_NAME = "code_generator"
+BLANK_LINE = [""]
+BREAK_LINE_OFF = "\n"
+BREAK_LINE = ["\n"]
 XML_VERSION_HEADER = '<?xml version="1.0" encoding="utf-8"?>' + BREAK_LINE_OFF
 XML_VERSION = ['<?xml version="1.0" encoding="utf-8"?>']
-XML_ODOO_OPENING_TAG = ['<odoo>']
+XML_ODOO_OPENING_TAG = ["<odoo>"]
 XML_HEAD = XML_VERSION + XML_ODOO_OPENING_TAG
-XML_ODOO_CLOSING_TAG = ['</odoo>']
-FROM_ODOO_IMPORTS = ['from odoo import _, api, models, fields']
+XML_ODOO_CLOSING_TAG = ["</odoo>"]
+FROM_ODOO_IMPORTS = ["from odoo import _, api, models, fields"]
 MODEL_HEAD = FROM_ODOO_IMPORTS + BREAK_LINE
-FROM_ODOO_IMPORTS_SUPERUSER = ['from odoo import _, api, models, fields, SUPERUSER_ID']
+FROM_ODOO_IMPORTS_SUPERUSER = ["from odoo import _, api, models, fields, SUPERUSER_ID"]
 MODEL_SUPERUSER_HEAD = FROM_ODOO_IMPORTS_SUPERUSER + BREAK_LINE
 
 
 class CodeGeneratorWriter(models.Model):
-    _name = 'code.generator.writer'
-    _description = 'Code Generator Writer'
+    _name = "code.generator.writer"
+    _description = "Code Generator Writer"
 
     code_generator_ids = fields.Many2many(comodel_name="code.generator.module")
 
@@ -80,13 +86,13 @@ class CodeGeneratorWriter(models.Model):
         """
 
         result = []
-        bypoint = model.split('.')
+        bypoint = model.split(".")
         for byp in bypoint:
-            result += byp.split('_')
-        return ''.join(self._get_l_map(lambda e: e.capitalize(), result))
+            result += byp.split("_")
+        return "".join(self._get_l_map(lambda e: e.capitalize(), result))
 
     @staticmethod
-    def _lower_replace(string, replacee=' ', replacer='_'):
+    def _lower_replace(string, replacee=" ", replacer="_"):
         """
         Util function to replace and get the lower content of a string
         :param string:
@@ -95,7 +101,7 @@ class CodeGeneratorWriter(models.Model):
 
         return str(string).lower().replace(replacee, replacer)
 
-    def _get_model_model(self, model_model, replacee='.'):
+    def _get_model_model(self, model_model, replacee="."):
         """
         Util function to get a model res_id-like representation (code.generator -> code_generator)
         :param model_model:
@@ -112,10 +118,13 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        class_4inherit = 'models.TransientModel' if model.transient else \
-            ('models.AbstractModel' if model._abstract else 'models.Model')
+        class_4inherit = (
+            "models.TransientModel"
+            if model.transient
+            else ("models.AbstractModel" if model._abstract else "models.Model")
+        )
         if model.m2o_inherit_py_class.name:
-            class_4inherit += ', %s' % model.m2o_inherit_py_class.name
+            class_4inherit += ", %s" % model.m2o_inherit_py_class.name
 
         return class_4inherit
 
@@ -126,7 +135,7 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        return f'fields.{self._get_class_name(ttype)}'
+        return f"fields.{self._get_class_name(ttype)}"
 
     @staticmethod
     def _get_starting_spaces(compute_line):
@@ -154,7 +163,7 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        return '%s...' % xmlid[:61 - len(xmlid)] if (64 - len(xmlid)) < 0 else xmlid
+        return "%s..." % xmlid[: 61 - len(xmlid)] if (64 - len(xmlid)) < 0 else xmlid
 
     @staticmethod
     def _prepare_compute_constrained_fields(l_fields):
@@ -165,9 +174,9 @@ class CodeGeneratorWriter(models.Model):
         """
 
         counter = 1
-        prepared = ''
+        prepared = ""
         for field in l_fields:
-            prepared += '\'%s\'%s' % (field, ', ' if counter < len(l_fields) else '')
+            prepared += "'%s'%s" % (field, ", " if counter < len(l_fields) else "")
             counter += 1
 
         return prepared
@@ -184,12 +193,16 @@ class CodeGeneratorWriter(models.Model):
             cw.emit()
 
             for sconstrain in model.o2m_server_constrains:
-                l_constrained = self._get_l_map(lambda e: e.strip(), sconstrain.constrained.split(','))
+                l_constrained = self._get_l_map(
+                    lambda e: e.strip(), sconstrain.constrained.split(",")
+                )
 
-                cw.emit(f"@api.constrains({self._prepare_compute_constrained_fields(l_constrained)})")
+                cw.emit(
+                    f"@api.constrains({self._prepare_compute_constrained_fields(l_constrained)})"
+                )
                 cw.emit(f"def _check_{'_'.join(l_constrained)}(self):")
 
-                l_code = sconstrain.txt_code.split('\n')
+                l_code = sconstrain.txt_code.split("\n")
                 with cw.indent():
                     for line in l_code:
                         cw.emit(line.rstrip())
@@ -210,16 +223,24 @@ class CodeGeneratorWriter(models.Model):
                 lst_constraint = []
                 constraint_counter = 0
                 for constraint in model.o2m_constraints:
-                    constraint_name = constraint.name.replace('%s_' % self._get_model_model(model.model), '')
+                    constraint_name = constraint.name.replace(
+                        "%s_" % self._get_model_model(model.model), ""
+                    )
                     constraint_definition = constraint.definition
-                    constraint_message = constraint.message if constraint.message else UNDEFINEDMESSAGE
+                    constraint_message = (
+                        constraint.message if constraint.message else UNDEFINEDMESSAGE
+                    )
                     constraint_counter += 1
-                    constraint_separator = ',' if constraint_counter < len(model.o2m_constraints) else ''
+                    constraint_separator = (
+                        "," if constraint_counter < len(model.o2m_constraints) else ""
+                    )
 
-                    lst_constraint.append(f"('{constraint_name}', '{constraint_definition}', '{constraint_message}')"
-                                          f"{constraint_separator}")
+                    lst_constraint.append(
+                        f"('{constraint_name}', '{constraint_definition}', '{constraint_message}')"
+                        f"{constraint_separator}"
+                    )
 
-                cw.emit_list(lst_constraint, ('[', ']'), before='_sql_constraints = ')
+                cw.emit_list(lst_constraint, ("[", "]"), before="_sql_constraints = ")
 
             cw.emit()
 
@@ -234,14 +255,16 @@ class CodeGeneratorWriter(models.Model):
         static_description_icon_path = ""
         # TODO hack to force icon or True
         if module.icon_image or True:
-            static_description_icon_path = os.path.join(self.code_generator_data.static_description_path, 'icon.png')
+            static_description_icon_path = os.path.join(
+                self.code_generator_data.static_description_path, "icon.png"
+            )
 
             # TODO use this when fix loading picture, now temporary disabled and force use icon from menu
             # self.code_generator_data.write_file_binary(static_description_icon_path,
             # base64.b64decode(module.icon_image))
             # TODO temp solution with icon from menu
             if application_icon:
-                icon_path = application_icon[application_icon.find(",") + 1:]
+                icon_path = application_icon[application_icon.find(",") + 1 :]
                 # icon_path = application_icon.replace(",", "/")
             else:
                 icon_path = "static/description/icon_new_application.png"
@@ -261,13 +284,19 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        return getattr(record, model._rec_name) if getattr(record, model._rec_name) else getattr(record, model.rec_name)
+        return (
+            getattr(record, model._rec_name)
+            if getattr(record, model._rec_name)
+            else getattr(record, model.rec_name)
+        )
 
     def set_module_init_file_extra(self, module):
         pass
 
     def set_module_translator(self, module_name, module_path):
-        module_id = self.env["ir.module.module"].search([("name", "=", module_name), ('state', '=', 'installed')])
+        module_id = self.env["ir.module.module"].search(
+            [("name", "=", module_name), ("state", "=", "installed")]
+        )
         if not module_id:
             return
 
@@ -276,10 +305,9 @@ class CodeGeneratorWriter(models.Model):
         data._check_mkdir_and_create(i18n_path, is_file=False)
 
         # Create pot
-        export = self.env["base.language.export"].create({
-            'format': 'po',
-            'modules': [(6, 0, [module_id.id])]
-        })
+        export = self.env["base.language.export"].create(
+            {"format": "po", "modules": [(6, 0, [module_id.id])]}
+        )
 
         export.act_getfile()
         po_file = export.data
@@ -290,13 +318,15 @@ class CodeGeneratorWriter(models.Model):
             file.write(data)
 
         # Create po
-        lang = 'fr_CA'
+        lang = "fr_CA"
         translation_file = os.path.join(i18n_path, f"{lang}.po")
 
-        if not self.env["ir.translation"].search([('lang', '=', 'fr_CA')]):
-            with mute_logger('odoo.addons.base.models.ir_translation'):
-                self.env["base.language.install"].create({'lang': lang, 'overwrite': True}).lang_install()
-            self.env["base.update.translations"].create({'lang': lang}).act_update()
+        if not self.env["ir.translation"].search([("lang", "=", "fr_CA")]):
+            with mute_logger("odoo.addons.base.models.ir_translation"):
+                self.env["base.language.install"].create(
+                    {"lang": lang, "overwrite": True}
+                ).lang_install()
+            self.env["base.update.translations"].create({"lang": lang}).act_update()
 
         # Load existing translations
         # translations = self.env["ir.translation"].search([
@@ -304,11 +334,9 @@ class CodeGeneratorWriter(models.Model):
         #     ('module', '=', module_name)
         # ])
 
-        export = self.env["base.language.export"].create({
-            'lang': lang,
-            'format': 'po',
-            'modules': [(6, 0, [module_id.id])]
-        })
+        export = self.env["base.language.export"].create(
+            {"lang": lang, "format": "po", "modules": [(6, 0, [module_id.id])]}
+        )
         export.act_getfile()
         po_file = export.data
         data = base64.b64decode(po_file).decode("utf-8")
@@ -326,13 +354,13 @@ class CodeGeneratorWriter(models.Model):
         lang = "en_US"
 
         cw = CodeWriter()
-        with cw.block(delim=('{', '}')):
+        with cw.block(delim=("{", "}")):
             cw.emit(f"'name': '{module.shortdesc}',")
 
             if module.category_id:
                 cw.emit(f"'category': '{module.category_id.with_context(lang=lang).name}',")
 
-            if module.summary and module.summary != 'false':
+            if module.summary and module.summary != "false":
                 cw.emit(f"'summary': '{module.summary}',")
 
             if module.description:
@@ -365,7 +393,7 @@ class CodeGeneratorWriter(models.Model):
             if module.demo:
                 cw.emit(f"'demo': True,")
 
-            if module.license != 'LGPL-3':
+            if module.license != "LGPL-3":
                 cw.emit(f"'license': '{module.license}',")
 
             if module.application:
@@ -373,25 +401,29 @@ class CodeGeneratorWriter(models.Model):
 
             if module.dependencies_id:
                 lst_depend = module.dependencies_id.mapped(lambda did: f"'{did.depend_id.name}'")
-                cw.emit_list(lst_depend, ('[', ']'), before="'depends': ", after=',')
+                cw.emit_list(lst_depend, ("[", "]"), before="'depends': ", after=",")
 
             if module.external_dependencies_id:
-                with cw.block(before="'external_dependencies':", delim=('{', '}'), after=','):
+                with cw.block(before="'external_dependencies':", delim=("{", "}"), after=","):
                     dct_depend = defaultdict(list)
                     for depend in module.external_dependencies_id:
                         dct_depend[depend.application_type].append(f"'{depend.depend}'")
                     for application_type, lst_value in dct_depend.items():
-                        cw.emit_list(lst_value, ('[', ']'), before=f"'{application_type}': ", after=',')
+                        cw.emit_list(
+                            lst_value, ("[", "]"), before=f"'{application_type}': ", after=","
+                        )
 
-            lst_data = self._get_l_map(lambda dfile: f"'{dfile}'", self.code_generator_data.lst_manifest_data_files)
+            lst_data = self._get_l_map(
+                lambda dfile: f"'{dfile}'", self.code_generator_data.lst_manifest_data_files
+            )
             if lst_data:
-                cw.emit_list(lst_data, ('[', ']'), before="'data': ", after=',')
+                cw.emit_list(lst_data, ("[", "]"), before="'data': ", after=",")
 
             cw.emit(f"'installable': True,")
 
             self.set_manifest_file_extra(cw, module)
 
-        manifest_file_path = '__manifest__.py'
+        manifest_file_path = "__manifest__.py"
         self.code_generator_data.write_file_str(manifest_file_path, cw.render())
 
     def set_manifest_file_extra(self, cw, module):
@@ -405,17 +437,31 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        ir_model_data = self.env['ir.model.data'].search([
-            # TODO: Opción por valorar
-            # ('module', '!=', '__export__'),
-            ('model', '=', record._name),
-            ('res_id', '=', record.id)
-        ])
-        return '%s.%s' % (ir_model_data[0].module, ir_model_data[0].name) if ir_model_data else \
-            (self._set_limit_4xmlid('%s_%s' % (
-                self._get_model_model(record._name),
-                self._lower_replace(getattr(record, record._rec_name) if record._rec_name else '')
-            ))) if give_a_default else False
+        ir_model_data = self.env["ir.model.data"].search(
+            [
+                # TODO: Opción por valorar
+                # ('module', '!=', '__export__'),
+                ("model", "=", record._name),
+                ("res_id", "=", record.id),
+            ]
+        )
+        return (
+            "%s.%s" % (ir_model_data[0].module, ir_model_data[0].name)
+            if ir_model_data
+            else (
+                self._set_limit_4xmlid(
+                    "%s_%s"
+                    % (
+                        self._get_model_model(record._name),
+                        self._lower_replace(
+                            getattr(record, record._rec_name) if record._rec_name else ""
+                        ),
+                    )
+                )
+            )
+            if give_a_default
+            else False
+        )
 
     def _get_group_data_name(self, group):
         """
@@ -424,8 +470,11 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        return self._get_ir_model_data(group) if self._get_ir_model_data(group) else self._lower_replace(
-            group.name.replace(' /', ''))
+        return (
+            self._get_ir_model_data(group)
+            if self._get_ir_model_data(group)
+            else self._lower_replace(group.name.replace(" /", ""))
+        )
 
     def _get_model_data_name(self, model):
         """
@@ -434,8 +483,11 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        return self._get_ir_model_data(model) if self._get_ir_model_data(model) else 'model_%s' % self._get_model_model(
-            model.model)
+        return (
+            self._get_ir_model_data(model)
+            if self._get_ir_model_data(model)
+            else "model_%s" % self._get_model_model(model.model)
+        )
 
     def _get_view_data_name(self, view):
         """
@@ -444,8 +496,11 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        return self._get_ir_model_data(view) if self._get_ir_model_data(view) else \
-            '%s_%sview' % (self._get_model_model(view.model), view.type)
+        return (
+            self._get_ir_model_data(view)
+            if self._get_ir_model_data(view)
+            else "%s_%sview" % (self._get_model_model(view.model), view.type)
+        )
 
     def _get_action_data_name(self, action, server=False, creating=False):
         """
@@ -460,13 +515,17 @@ class CodeGeneratorWriter(models.Model):
             return self._get_ir_model_data(action)
 
         else:
-            model = getattr(action, 'res_model') if not server else getattr(action, 'model_id').model
+            model = (
+                getattr(action, "res_model") if not server else getattr(action, "model_id").model
+            )
             model_model = self._get_model_model(model)
-            action_type = 'action_window' if not server else 'server_action'
+            action_type = "action_window" if not server else "server_action"
 
-            action_name = self._set_limit_4xmlid('%s' % action.name[:64 - len(model_model) - len(action_type)])
+            action_name = self._set_limit_4xmlid(
+                "%s" % action.name[: 64 - len(model_model) - len(action_type)]
+            )
 
-            return '%s_%s_%s' % (model_model, self._lower_replace(action_name), action_type)
+            return "%s_%s_%s" % (model_model, self._lower_replace(action_name), action_type)
 
     def _get_action_act_url_name(self, action):
         """
@@ -483,7 +542,11 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        return self._get_ir_model_data(menu) if self._get_ir_model_data(menu) else self._lower_replace(menu.name)
+        return (
+            self._get_ir_model_data(menu)
+            if self._get_ir_model_data(menu)
+            else self._lower_replace(menu.name)
+        )
 
     def _set_model_xmldata_file(self, model, model_model):
         """
@@ -502,8 +565,12 @@ class CodeGeneratorWriter(models.Model):
         lst_menu_xml = []
         lst_id = []
         lst_depend = []
-        lst_field_id_blacklist = [a.m2o_fields.id for a in model.m2o_module.o2m_nomenclator_blacklist_fields]
-        lst_field_id_whitelist = [a.m2o_fields.id for a in model.m2o_module.o2m_nomenclator_whitelist_fields]
+        lst_field_id_blacklist = [
+            a.m2o_fields.id for a in model.m2o_module.o2m_nomenclator_blacklist_fields
+        ]
+        lst_field_id_whitelist = [
+            a.m2o_fields.id for a in model.m2o_module.o2m_nomenclator_whitelist_fields
+        ]
         for record in nomenclador_data:
 
             f2exports = model.field_id.filtered(lambda field: field.name not in MAGIC_FIELDS)
@@ -518,30 +585,35 @@ class CodeGeneratorWriter(models.Model):
                 record_value = getattr(record, rfield.name)
                 if record_value:
 
-                    if rfield.ttype == 'many2one':
+                    if rfield.ttype == "many2one":
                         ref = self._get_ir_model_data(record_value, give_a_default=True)
                         child = E.field({"name": rfield.name, "ref": ref})
 
                         if "." not in ref:
                             lst_depend.append(ref)
 
-                    elif rfield.ttype == 'one2many':
-                        field_eval = ', '.join(
-                            record_value.mapped(lambda rvalue: '(4, ref(\'%s\'))' % self._get_ir_model_data(
-                                rvalue, give_a_default=True
-                            ))
+                    elif rfield.ttype == "one2many":
+                        field_eval = ", ".join(
+                            record_value.mapped(
+                                lambda rvalue: "(4, ref('%s'))"
+                                % self._get_ir_model_data(rvalue, give_a_default=True)
+                            )
                         )
                         child = E.field({"name": rfield.name, "eval": f"[{field_eval}]"})
 
-                    elif rfield.ttype == 'many2many':
+                    elif rfield.ttype == "many2many":
                         # TODO add dependencies id in lst_depend
-                        field_eval = ', '.join(
-                            record_value.mapped(lambda rvalue: 'ref(%s)' % self._get_ir_model_data(
-                                rvalue, give_a_default=True
-                            )))
+                        field_eval = ", ".join(
+                            record_value.mapped(
+                                lambda rvalue: "ref(%s)"
+                                % self._get_ir_model_data(rvalue, give_a_default=True)
+                            )
+                        )
                         child = E.field({"name": rfield.name, "eval": f"[(6,0, [{field_eval}])]"})
 
-                    elif rfield.related == "view_id.arch" or (rfield.name == "arch" and rfield.model == "ir.ui.view"):
+                    elif rfield.related == "view_id.arch" or (
+                        rfield.name == "arch" and rfield.model == "ir.ui.view"
+                    ):
                         root = ET.fromstring(record_value)
                         child = E.field({"name": rfield.name, "type": "xml"}, root)
 
@@ -550,22 +622,22 @@ class CodeGeneratorWriter(models.Model):
 
                     lst_field.append(child)
 
-            id_record = self._set_limit_4xmlid('%s_%s') % (
+            id_record = self._set_limit_4xmlid("%s_%s") % (
                 model_model,
-                self._lower_replace(self._get_from_rec_name(record, model)) if self._get_from_rec_name(record,
-                                                                                                       model)
-                else uuid.uuid1().int
+                self._lower_replace(self._get_from_rec_name(record, model))
+                if self._get_from_rec_name(record, model)
+                else uuid.uuid1().int,
             )
             lst_id.append(id_record)
             record_xml = E.record({"model": model.model, "id": id_record}, *lst_field)
             lst_menu_xml.append(record_xml)
 
         module_file = E.odoo({}, *lst_menu_xml)
-        data_file_path = os.path.join(self.code_generator_data.data_path, f'{model_model}.xml')
+        data_file_path = os.path.join(self.code_generator_data.data_path, f"{model_model}.xml")
         result = XML_VERSION_HEADER.encode("utf-8") + ET.tostring(module_file, pretty_print=True)
         self.code_generator_data.write_file_binary(data_file_path, result, data_file=True)
 
-        abs_path_file = os.path.join('data', f'{model_model}.xml')
+        abs_path_file = os.path.join("data", f"{model_model}.xml")
 
         self.code_generator_data.dct_data_metadata_file[abs_path_file] = lst_id
         if lst_depend:
@@ -579,7 +651,7 @@ class CodeGeneratorWriter(models.Model):
         """
 
         application_icon = None
-        menus = module.with_context({'ir.ui.menu.full_list': True}).o2m_menus
+        menus = module.with_context({"ir.ui.menu.full_list": True}).o2m_menus
         lst_menu = []
         lst_items = [a for a in menus]
         # Sorted menu by order of parent asc, and sort child by view_name
@@ -599,7 +671,9 @@ class CodeGeneratorWriter(models.Model):
 
             # Order last run of adding
             if lst_item_cache:
-                lst_item_cache = sorted(lst_item_cache, key=lambda menu: self._get_menu_data_name(menu))
+                lst_item_cache = sorted(
+                    lst_item_cache, key=lambda menu: self._get_menu_data_name(menu)
+                )
                 lst_menu += lst_item_cache
 
             if not has_update:
@@ -614,10 +688,7 @@ class CodeGeneratorWriter(models.Model):
 
         for menu in lst_menu:
 
-            dct_menu_item = {
-                "id": self._get_menu_data_name(menu),
-                "name": menu.name
-            }
+            dct_menu_item = {"id": self._get_menu_data_name(menu), "name": menu.name}
 
             if menu.action:
                 dct_menu_item["action"] = self._get_action_data_name(menu.action)
@@ -638,7 +709,7 @@ class CodeGeneratorWriter(models.Model):
                 # TODO move application_icon in code_generator_data
                 application_icon = menu.web_icon
                 # ignore actual icon, force a new icon
-                dct_menu_item["web_icon"] = f'{module.name},static/description/icon.png'
+                dct_menu_item["web_icon"] = f"{module.name},static/description/icon.png"
 
             menu_xml = E.menuitem(dct_menu_item)
             lst_menu_xml.append(ET.Comment("end line"))
@@ -646,8 +717,10 @@ class CodeGeneratorWriter(models.Model):
 
         lst_menu_xml.append(ET.Comment("end line"))
         module_menus_file = E.odoo({}, *lst_menu_xml)
-        menu_file_path = os.path.join(self.code_generator_data.views_path, 'menus.xml')
-        result = XML_VERSION_HEADER.encode("utf-8") + ET.tostring(module_menus_file, pretty_print=True)
+        menu_file_path = os.path.join(self.code_generator_data.views_path, "menus.xml")
+        result = XML_VERSION_HEADER.encode("utf-8") + ET.tostring(
+            module_menus_file, pretty_print=True
+        )
 
         # a menuitem is separate on each line, like this:
         # <menuitem id="menu_id"
@@ -661,9 +734,13 @@ class CodeGeneratorWriter(models.Model):
                 start_index = line.index(key)
                 offset_index = start_index + len(key)
                 next_index = line.index(" ", offset_index)
-                last_part = line[next_index + 1:].replace('" ', f'"\n{"  " + " " * offset_index}')[:-2]
+                last_part = line[next_index + 1 :].replace('" ', f'"\n{"  " + " " * offset_index}')[
+                    :-2
+                ]
                 last_part += f'\n{"  " + " " * start_index}/>\n'
-                new_result += "  " + line[:next_index] + f'\n{"  " + " " * offset_index}' + last_part
+                new_result += (
+                    "  " + line[:next_index] + f'\n{"  " + " " * offset_index}' + last_part
+                )
             else:
                 new_result += line + "\n"
 
@@ -740,9 +817,11 @@ class CodeGeneratorWriter(models.Model):
                     lst_field.append(E.field({"name": "priority"}, view.priority))
 
                 if view.inherit_id:
-                    lst_field.append(E.field({"name": "inherit_id", "ref": self._get_view_data_name(view)}))
+                    lst_field.append(
+                        E.field({"name": "inherit_id", "ref": self._get_view_data_name(view)})
+                    )
 
-                    if view.mode == 'primary':
+                    if view.mode == "primary":
                         lst_field.append(E.field({"name": "mode"}, "primary"))
 
                 if not view.active:
@@ -785,31 +864,45 @@ class CodeGeneratorWriter(models.Model):
                 lst_field.append(E.field({"name": "name"}, act_window.name))
 
             if act_window.res_model or act_window.m2o_res_model:
-                lst_field.append(E.field({"name": "res_model"}, act_window.res_model or act_window.m2o_res_model.model))
+                lst_field.append(
+                    E.field(
+                        {"name": "res_model"},
+                        act_window.res_model or act_window.m2o_res_model.model,
+                    )
+                )
 
             if act_window.binding_model_id:
                 binding_model = self._get_model_data_name(act_window.binding_model_id)
                 lst_field.append(E.field({"name": "binding_model_id", "ref": binding_model}))
 
             if act_window.view_id:
-                lst_field.append(E.field({"name": "view_id", "ref": self._get_view_data_name(act_window.view_id)}))
+                lst_field.append(
+                    E.field(
+                        {"name": "view_id", "ref": self._get_view_data_name(act_window.view_id)}
+                    )
+                )
 
-            if act_window.domain != '[]' and act_window.domain:
+            if act_window.domain != "[]" and act_window.domain:
                 lst_field.append(E.field({"name": "domain"}, act_window.domain))
 
-            if act_window.context != '{}':
+            if act_window.context != "{}":
                 lst_field.append(E.field({"name": "context"}, act_window.context))
 
             if act_window.src_model or act_window.m2o_src_model:
-                lst_field.append(E.field({"name": "src_model"}, act_window.src_model or act_window.m2o_src_model.model))
+                lst_field.append(
+                    E.field(
+                        {"name": "src_model"},
+                        act_window.src_model or act_window.m2o_src_model.model,
+                    )
+                )
 
-            if act_window.target != 'current':
+            if act_window.target != "current":
                 lst_field.append(E.field({"name": "target"}, act_window.target))
 
-            if act_window.view_mode != 'tree,form':
+            if act_window.view_mode != "tree,form":
                 lst_field.append(E.field({"name": "view_mode"}, act_window.view_mode))
 
-            if act_window.view_type != 'form':
+            if act_window.view_type != "form":
                 lst_field.append(E.field({"name": "view_type"}, act_window.view_type))
 
             if act_window.usage:
@@ -820,7 +913,13 @@ class CodeGeneratorWriter(models.Model):
 
             if act_window.search_view_id:
                 lst_field.append(
-                    E.field({"name": "search_view_id", "ref": self._get_view_data_name(act_window.search_view_id)}))
+                    E.field(
+                        {
+                            "name": "search_view_id",
+                            "ref": self._get_view_data_name(act_window.search_view_id),
+                        }
+                    )
+                )
 
             if act_window.filter:
                 lst_field.append(E.field({"name": "filter", "eval": True}))
@@ -851,11 +950,17 @@ class CodeGeneratorWriter(models.Model):
 
             lst_field.append(E.field({"name": "name"}, server_action.name))
 
-            lst_field.append(E.field({"name": "model_id", "ref": self._get_model_data_name(server_action.model_id)}))
+            lst_field.append(
+                E.field(
+                    {"name": "model_id", "ref": self._get_model_data_name(server_action.model_id)}
+                )
+            )
 
-            lst_field.append(E.field({"name": "binding_model_id", "ref": self._get_model_data_name(model)}))
+            lst_field.append(
+                E.field({"name": "binding_model_id", "ref": self._get_model_data_name(model)})
+            )
 
-            if server_action.state == 'code':
+            if server_action.state == "code":
                 lst_field.append(E.field({"name": "state"}, "code"))
 
                 lst_field.append(E.field({"name": "code"}, server_action.code))
@@ -864,12 +969,14 @@ class CodeGeneratorWriter(models.Model):
                 lst_field.append(E.field({"name": "state"}, "multi"))
 
                 if server_action.child_ids:
-                    child_obj = ', '.join(
-                        server_action.child_ids.mapped(lambda child: 'ref(%s)' % self._get_action_data_name(
-                            child, server=True
-                        ))
+                    child_obj = ", ".join(
+                        server_action.child_ids.mapped(
+                            lambda child: "ref(%s)" % self._get_action_data_name(child, server=True)
+                        )
                     )
-                    lst_field.append(E.field({"name": "child_ids", "eval": f"[(6,0, [{child_obj}])]"}))
+                    lst_field.append(
+                        E.field({"name": "child_ids", "eval": f"[(6,0, [{child_obj}])]"})
+                    )
 
             record_id = self._get_action_data_name(server_action, server=True, creating=True)
             info = E.record({"model": "ir.actions.server", "id": record_id}, *lst_field)
@@ -889,7 +996,9 @@ class CodeGeneratorWriter(models.Model):
 
         wizards_path = self.code_generator_data.wizards_path
         views_path = self.code_generator_data.views_path
-        xml_file_path = os.path.join(wizards_path if model.transient else views_path, f'{model_model}.xml')
+        xml_file_path = os.path.join(
+            wizards_path if model.transient else views_path, f"{model_model}.xml"
+        )
         self.code_generator_data.write_file_str(xml_file_path, str_content, data_file=True)
 
     def _set_model_xmlreport_file(self, model, model_model):
@@ -909,12 +1018,15 @@ class CodeGeneratorWriter(models.Model):
 
             l_model_report_file.append('<template id="%s">' % report.report_name)
 
-            l_model_report_file.append('<field name="arch" type="xml">%s</field>' % report.m2o_template.arch_db)
+            l_model_report_file.append(
+                '<field name="arch" type="xml">%s</field>' % report.m2o_template.arch_db
+            )
 
-            l_model_report_file.append('</template>\n')
+            l_model_report_file.append("</template>\n")
 
             l_model_report_file.append(
-                '<record model="ir.actions.report" id="%s_actionreport">' % report.report_name)
+                '<record model="ir.actions.report" id="%s_actionreport">' % report.report_name
+            )
 
             l_model_report_file.append('<field name="model">%s</field>' % report.model)
 
@@ -927,32 +1039,42 @@ class CodeGeneratorWriter(models.Model):
             l_model_report_file.append('<field name="report_type">%s</field>' % report.report_type)
 
             if report.print_report_name:
-                l_model_report_file.append('<field name="print_report_name">%s</field>' % report.print_report_name)
+                l_model_report_file.append(
+                    '<field name="print_report_name">%s</field>' % report.print_report_name
+                )
 
             if report.multi:
                 l_model_report_file.append('<field name="multi">%s</field>' % report.multi)
 
             if report.attachment_use:
-                l_model_report_file.append('<field name="attachment_use">%s</field>' % report.attachment_use)
+                l_model_report_file.append(
+                    '<field name="attachment_use">%s</field>' % report.attachment_use
+                )
 
             if report.attachment:
-                l_model_report_file.append('<field name="attachment">%s</field>' % report.attachment)
+                l_model_report_file.append(
+                    '<field name="attachment">%s</field>' % report.attachment
+                )
 
             if report.binding_model_id:
                 l_model_report_file.append(
-                    '<field name="binding_model_id" ref="%s" />' % self._get_model_data_name(
-                        report.binding_model_id)
+                    '<field name="binding_model_id" ref="%s" />'
+                    % self._get_model_data_name(report.binding_model_id)
                 )
 
             if report.groups_id:
                 l_model_report_file.append(self._get_m2m_groups(report.groups_id))
 
-            l_model_report_file.append('</record>')
+            l_model_report_file.append("</record>")
 
             l_model_report_file += XML_ODOO_CLOSING_TAG
 
-        xmlreport_file_path = os.path.join(self.code_generator_data.reports_path, f'{model_model}.xml')
-        self.code_generator_data.write_file_lst_content(xmlreport_file_path, l_model_report_file, data_file=True)
+        xmlreport_file_path = os.path.join(
+            self.code_generator_data.reports_path, f"{model_model}.xml"
+        )
+        self.code_generator_data.write_file_lst_content(
+            xmlreport_file_path, l_model_report_file, data_file=True
+        )
 
     def _set_model_py_file(self, module, model, model_model):
         """
@@ -968,10 +1090,14 @@ class CodeGeneratorWriter(models.Model):
             cw.emit(str_line)
 
         if model.m2o_inherit_py_class.name and model.m2o_inherit_py_class.module:
-            cw.emit(f'from {model.m2o_inherit_py_class.module} import {model.m2o_inherit_py_class.name}')
+            cw.emit(
+                f"from {model.m2o_inherit_py_class.module} import {model.m2o_inherit_py_class.name}"
+            )
 
         cw.emit()
-        cw.emit(f"class {self._get_class_name(model.model)}({self._get_python_class_4inherit(model)}):")
+        cw.emit(
+            f"class {self._get_class_name(model.model)}({self._get_python_class_4inherit(model)}):"
+        )
 
         with cw.indent():
             if model.m2o_inherit_model.model:
@@ -1002,7 +1128,7 @@ class CodeGeneratorWriter(models.Model):
         else:
             pypath = self.code_generator_data.models_path
 
-        model_file_path = os.path.join(pypath, f'{model_model}.py')
+        model_file_path = os.path.join(pypath, f"{model_model}.py")
 
         self.code_generator_data.write_file_str(model_file_path, cw.render())
 
@@ -1016,14 +1142,18 @@ class CodeGeneratorWriter(models.Model):
         :param l_model_csv_access:
         :return:
         """
-        l_model_csv_access.insert(0, 'id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink')
+        l_model_csv_access.insert(
+            0, "id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink"
+        )
 
         if module.o2m_groups or l_model_rules:
-            l_module_security = ['<data>\n']
+            l_module_security = ["<data>\n"]
 
             for group in module.o2m_groups:
 
-                l_module_security += ['<record model="res.groups" id="%s">' % self._get_group_data_name(group)]
+                l_module_security += [
+                    '<record model="res.groups" id="%s">' % self._get_group_data_name(group)
+                ]
                 l_module_security += ['<field name="name">%s</field>' % group.name]
 
                 if group.comment:
@@ -1031,27 +1161,38 @@ class CodeGeneratorWriter(models.Model):
 
                 if group.implied_ids:
                     l_module_security += [
-                        '<field name="implied_ids" eval="[%s]"/>' % ', '.join(
-                            group.implied_ids.mapped(lambda g: '(4, ref(\'%s\'))' % self._get_group_data_name(g))
+                        '<field name="implied_ids" eval="[%s]"/>'
+                        % ", ".join(
+                            group.implied_ids.mapped(
+                                lambda g: "(4, ref('%s'))" % self._get_group_data_name(g)
+                            )
                         )
                     ]
 
-                l_module_security += ['</record>\n']
+                l_module_security += ["</record>\n"]
 
             l_module_security += l_model_rules
 
-            l_module_security += ['</data>']
+            l_module_security += ["</data>"]
 
             module_name = module.name.lower().strip()
-            security_file_path = os.path.join(self.code_generator_data.security_path, f'{module_name}.xml')
-            self.code_generator_data.write_file_lst_content(security_file_path,
-                                                            XML_HEAD + l_module_security + XML_ODOO_CLOSING_TAG,
-                                                            data_file=True, insert_first=True)
+            security_file_path = os.path.join(
+                self.code_generator_data.security_path, f"{module_name}.xml"
+            )
+            self.code_generator_data.write_file_lst_content(
+                security_file_path,
+                XML_HEAD + l_module_security + XML_ODOO_CLOSING_TAG,
+                data_file=True,
+                insert_first=True,
+            )
 
         if len(l_model_csv_access) > 1:
-            model_access_file_path = os.path.join(self.code_generator_data.security_path, 'ir.model.access.csv')
-            self.code_generator_data.write_file_lst_content(model_access_file_path, l_model_csv_access, data_file=True,
-                                                            insert_first=True)
+            model_access_file_path = os.path.join(
+                self.code_generator_data.security_path, "ir.model.access.csv"
+            )
+            self.code_generator_data.write_file_lst_content(
+                model_access_file_path, l_model_csv_access, data_file=True, insert_first=True
+            )
 
     def _get_model_access(self, model):
         """
@@ -1065,28 +1206,32 @@ class CodeGeneratorWriter(models.Model):
         for access in model.access_ids:
             access_name = access.name
 
-            access_model_data = self.env['ir.model.data'].search(
+            access_model_data = self.env["ir.model.data"].search(
                 [
-                    ('module', '=', MODULE_NAME),
-                    ('model', '=', 'ir.model.access'),
-                    ('res_id', '=', access.id)
+                    ("module", "=", MODULE_NAME),
+                    ("model", "=", "ir.model.access"),
+                    ("res_id", "=", access.id),
                 ]
             )
 
-            access_id = access_model_data[0].name if access_model_data else self._lower_replace(access_name)
+            access_id = (
+                access_model_data[0].name if access_model_data else self._lower_replace(access_name)
+            )
 
             access_model = self._get_model_model(access.model_id.model)
 
-            access_group = self._get_group_data_name(access.group_id) if access.group_id else ''
+            access_group = self._get_group_data_name(access.group_id) if access.group_id else ""
 
-            access_read, access_create, access_write, access_unlink = \
-                1 if access.perm_read else 0, \
-                1 if access.perm_create else 0, \
-                1 if access.perm_write else 0, \
-                1 if access.perm_unlink else 0
+            access_read, access_create, access_write, access_unlink = (
+                1 if access.perm_read else 0,
+                1 if access.perm_create else 0,
+                1 if access.perm_write else 0,
+                1 if access.perm_unlink else 0,
+            )
 
             l_model_csv_access.append(
-                '%s,%s,model_%s,%s,%s,%s,%s,%s' % (
+                "%s,%s,model_%s,%s,%s,%s,%s,%s"
+                % (
                     access_id,
                     access_name,
                     access_model,
@@ -1094,7 +1239,7 @@ class CodeGeneratorWriter(models.Model):
                     access_read,
                     access_create,
                     access_write,
-                    access_unlink
+                    access_unlink,
                 )
             )
 
@@ -1112,15 +1257,20 @@ class CodeGeneratorWriter(models.Model):
         for rule in model.rule_ids:
 
             if rule.name:
-                l_model_rules.append('<record model="ir.rule" id="%s">' % self._lower_replace(rule.name))
+                l_model_rules.append(
+                    '<record model="ir.rule" id="%s">' % self._lower_replace(rule.name)
+                )
                 l_model_rules.append('<field name="name">%s</field>' % rule.name)
 
             else:
-                l_model_rules.append('<record model="ir.rule" id="%s_rrule_%s">' % (
-                    self._get_model_data_name(rule.model_id), rule.id
-                ))
+                l_model_rules.append(
+                    '<record model="ir.rule" id="%s_rrule_%s">'
+                    % (self._get_model_data_name(rule.model_id), rule.id)
+                )
 
-            l_model_rules.append('<field name="model_id" ref="%s"/>' % self._get_model_data_name(rule.model_id))
+            l_model_rules.append(
+                '<field name="model_id" ref="%s"/>' % self._get_model_data_name(rule.model_id)
+            )
 
             if rule.domain_force:
                 l_model_rules.append('<field name="domain_force">%s</field>' % rule.domain_force)
@@ -1143,7 +1293,7 @@ class CodeGeneratorWriter(models.Model):
             if not rule.perm_unlink:
                 l_model_rules.append('<field name="perm_unlink" eval="False" />')
 
-            l_model_rules.append('</record>\n')
+            l_model_rules.append("</record>\n")
 
         return l_model_rules
 
@@ -1154,8 +1304,8 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        return '<field name="groups_id" eval="[(6,0, [%s])]" />' % ', '.join(
-            m2m_groups.mapped(lambda g: 'ref(%s)' % self._get_group_data_name(g))
+        return '<field name="groups_id" eval="[(6,0, [%s])]" />' % ", ".join(
+            m2m_groups.mapped(lambda g: "ref(%s)" % self._get_group_data_name(g))
         )
 
     def _get_m2m_groups_etree(self, m2m_groups):
@@ -1165,7 +1315,7 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        var = ', '.join(m2m_groups.mapped(lambda g: 'ref(%s)' % self._get_group_data_name(g)))
+        var = ", ".join(m2m_groups.mapped(lambda g: "ref(%s)" % self._get_group_data_name(g)))
         return E.field({"name": "groups_id", "eval": f"[(6,0, [{var}])]"})
 
     def _get_model_fields(self, cw, model):
@@ -1177,11 +1327,14 @@ class CodeGeneratorWriter(models.Model):
 
         # TODO detect if contain code_generator_sequence, else order by name
         f2exports = model.field_id.filtered(lambda field: field.name not in MAGIC_FIELDS).sorted(
-            key=lambda r: r.code_generator_sequence)
+            key=lambda r: r.code_generator_sequence
+        )
 
         if model.m2o_inherit_model:
-            father = self.env['ir.model'].browse(model.m2o_inherit_model.id)
-            fatherfieldnames = father.field_id.filtered(lambda field: field.name not in MAGIC_FIELDS).mapped('name')
+            father = self.env["ir.model"].browse(model.m2o_inherit_model.id)
+            fatherfieldnames = father.field_id.filtered(
+                lambda field: field.name not in MAGIC_FIELDS
+            ).mapped("name")
             f2exports = f2exports.filtered(lambda field: field.name not in fatherfieldnames)
 
         for f2export in f2exports:
@@ -1193,12 +1346,17 @@ class CodeGeneratorWriter(models.Model):
 
             # Respect sequence in list, order listed by human preference
 
-            if (f2export.ttype == 'reference' or f2export.ttype == 'selection') and f2export.selection:
+            if (
+                f2export.ttype == "reference" or f2export.ttype == "selection"
+            ) and f2export.selection:
                 # Transform selection
                 # '[("point", "Point"), ("line", "Line"), ("area", "Polygon")]'
                 # [("point", "Point"), ("line", "Line")), ("area", "Polygon")]
-                if f2export.selection != '[]':
-                    lst_selection = [a.split(",") for a in f2export.selection.strip('[]').strip('()').split('), (')]
+                if f2export.selection != "[]":
+                    lst_selection = [
+                        a.split(",")
+                        for a in f2export.selection.strip("[]").strip("()").split("), (")
+                    ]
                     lst_selection = [f"({a[0]}, {a[1].strip()})" for a in lst_selection]
                     dct_field_attribute["selection"] = lst_selection
                 else:
@@ -1206,23 +1364,30 @@ class CodeGeneratorWriter(models.Model):
 
             dct_field_attribute["string"] = f2export.field_description
 
-            if f2export.ttype in ['many2one', 'one2many', 'many2many']:
+            if f2export.ttype in ["many2one", "one2many", "many2many"]:
                 if f2export.relation:
                     dct_field_attribute["comodel_name"] = f2export.relation
 
-                if f2export.ttype == 'one2many' and f2export.relation_field:
+                if f2export.ttype == "one2many" and f2export.relation_field:
                     dct_field_attribute["inverse_name"] = f2export.relation_field
 
-                if f2export.ttype == 'many2one' and f2export.on_delete and f2export.on_delete != "set null":
+                if (
+                    f2export.ttype == "many2one"
+                    and f2export.on_delete
+                    and f2export.on_delete != "set null"
+                ):
                     dct_field_attribute["ondelete"] = f2export.on_delete
 
-                if f2export.domain and f2export.domain != '[]':
+                if f2export.domain and f2export.domain != "[]":
                     dct_field_attribute["domain"] = f2export.domain
 
-                if f2export.ttype == 'many2many':
+                if f2export.ttype == "many2many":
                     # A relation who begin with x_ is an automated relation, ignore it
-                    ignored_relation = False if not f2export.relation_table else f2export.relation_table.startswith(
-                        "x_")
+                    ignored_relation = (
+                        False
+                        if not f2export.relation_table
+                        else f2export.relation_table.startswith("x_")
+                    )
                     if not ignored_relation:
                         if f2export.relation_table:
                             dct_field_attribute["relation"] = f2export.relation_table
@@ -1231,7 +1396,7 @@ class CodeGeneratorWriter(models.Model):
                         if f2export.column2:
                             dct_field_attribute["column2"] = f2export.column2
 
-            if (f2export.ttype == 'char' or f2export.ttype == 'reference') and f2export.size != 0:
+            if (f2export.ttype == "char" or f2export.ttype == "reference") and f2export.size != 0:
                 dct_field_attribute["size"] = f2export.size
 
             if f2export.related:
@@ -1259,16 +1424,17 @@ class CodeGeneratorWriter(models.Model):
             # TODO support states
 
             if f2export.groups:
-                dct_field_attribute["groups"] = f2export.groups.mapped(lambda g: self._get_group_data_name(g))
+                dct_field_attribute["groups"] = f2export.groups.mapped(
+                    lambda g: self._get_group_data_name(g)
+                )
 
             compute = f2export.compute and f2export.depends
             if f2export.code_generator_compute:
                 dct_field_attribute["compute"] = f2export.code_generator_compute
             elif compute:
-                dct_field_attribute["compute"] = f'_compute_{f2export.name}'
+                dct_field_attribute["compute"] = f"_compute_{f2export.name}"
 
-            if (f2export.ttype == 'one2many' or f2export.related or compute) and \
-                    f2export.copied:
+            if (f2export.ttype == "one2many" or f2export.related or compute) and f2export.copied:
                 dct_field_attribute["copy"] = True
 
             # TODO support oldname
@@ -1306,7 +1472,7 @@ class CodeGeneratorWriter(models.Model):
             for key, value in dct_field_attribute.items():
                 if type(value) is str:
                     # TODO find another solution than removing \n, this cause error with cw.CodeWriter
-                    value = value.replace('\n', ' ').replace("'", "\\'")
+                    value = value.replace("\n", " ").replace("'", "\\'")
                     if key == "default" and value.startswith("lambda"):
                         # Exception for lambda
                         lst_field_attribute.append(f"{key}={value}")
@@ -1314,23 +1480,26 @@ class CodeGeneratorWriter(models.Model):
                         lst_field_attribute.append(f"{key}='{value}'")
                 elif type(value) is list:
                     # TODO find another solution than removing \n, this cause error with cw.CodeWriter
-                    new_value = ', '.join(value)
-                    new_value = new_value.replace('\n', ' ')
+                    new_value = ", ".join(value)
+                    new_value = new_value.replace("\n", " ")
                     lst_field_attribute.append(f"{key}=[{new_value}]")
                 else:
                     lst_field_attribute.append(f"{key}={value}")
 
-            cw.emit_list(lst_field_attribute, ('(', ')'),
-                         before=f'{f2export.name} = {self._get_odoo_ttype_class(f2export.ttype)}')
+            cw.emit_list(
+                lst_field_attribute,
+                ("(", ")"),
+                before=f"{f2export.name} = {self._get_odoo_ttype_class(f2export.ttype)}",
+            )
 
             if compute:
                 cw.emit()
-                l_depends = self._get_l_map(lambda e: e.strip(), f2export.depends.split(','))
+                l_depends = self._get_l_map(lambda e: e.strip(), f2export.depends.split(","))
 
                 cw.emit(f"@api.depends({self._prepare_compute_constrained_fields(l_depends)})")
                 cw.emit(f"def _compute_{f2export.name}(self):")
 
-                l_compute = f2export.compute.split('\n')
+                l_compute = f2export.compute.split("\n")
                 # starting_spaces = 2
                 # for line in l_compute:
                 #     if self._get_starting_spaces(line) == 2:
@@ -1368,9 +1537,13 @@ class CodeGeneratorWriter(models.Model):
                 # Report
                 self._set_model_xmlreport_file(model, model_model)
 
-            parameters = self.env['ir.config_parameter'].sudo()
-            s_data2export = parameters.get_param('code_generator.s_data2export', default='nomenclator')
-            if s_data2export != 'nomenclator' or (s_data2export == 'nomenclator' and model.nomenclator):
+            parameters = self.env["ir.config_parameter"].sudo()
+            s_data2export = parameters.get_param(
+                "code_generator.s_data2export", default="nomenclator"
+            )
+            if s_data2export != "nomenclator" or (
+                s_data2export == "nomenclator" and model.nomenclator
+            ):
                 self._set_model_xmldata_file(model, model_model)
 
             if not module.nomenclator_only:
@@ -1427,21 +1600,21 @@ class CodeGeneratorWriter(models.Model):
 
     @api.multi
     def generate_writer(self, vals):
-        modules = self.env['code.generator.module'].browse(vals.get("code_generator_ids"))
+        modules = self.env["code.generator.module"].browse(vals.get("code_generator_ids"))
 
         # path = tempfile.gettempdir()
         path = tempfile.mkdtemp()
         morethanone = len(modules.ids) > 1
         if morethanone:
             # TODO validate it's working
-            path += '/modules'
+            path += "/modules"
             CodeGeneratorData.os_make_dirs(path)
 
         os.chdir(path=path)
 
-        basename = 'modules' if morethanone else modules[0].name.lower().strip()
+        basename = "modules" if morethanone else modules[0].name.lower().strip()
         vals["basename"] = basename
-        rootdir = path if morethanone else path + '/' + modules[0].name.lower().strip()
+        rootdir = path if morethanone else path + "/" + modules[0].name.lower().strip()
         vals["rootdir"] = rootdir
 
         for module in modules:
@@ -1480,7 +1653,7 @@ class CodeGeneratorData:
         self._wizards_path = "wizards"
         self._controllers_path = "controllers"
         self._reports_path = "reports"
-        self._static_description_path = os.path.join('static', 'description')
+        self._static_description_path = os.path.join("static", "description")
         self._lst_manifest_data_files = []
         self._dct_import_dir = defaultdict(list)
         self._dct_extra_module_init_path = defaultdict(list)
@@ -1626,7 +1799,7 @@ class CodeGeneratorData:
 
         if search_and_replace:
             # switch binary to string
-            content = content.decode('utf-8')
+            content = content.decode("utf-8")
             for search, replace in search_and_replace:
                 content = content.replace(search, replace)
             self.write_file_str(file_path, content)
@@ -1644,13 +1817,17 @@ class CodeGeneratorData:
         """
 
         try:
-            self.write_file_binary(file_path, '\n'.join(lst_content).encode("utf-8"), data_file=data_file,
-                                   insert_first=insert_first)
+            self.write_file_binary(
+                file_path,
+                "\n".join(lst_content).encode("utf-8"),
+                data_file=data_file,
+                insert_first=insert_first,
+            )
         except Exception as e:
             print(e)
             raise e
 
-    def write_file_str(self, file_path, content, mode='w', data_file=False, insert_first=False):
+    def write_file_str(self, file_path, content, mode="w", data_file=False, insert_first=False):
         """
         Function to create a file with some binary content
         :param file_path:
@@ -1660,9 +1837,11 @@ class CodeGeneratorData:
         :param insert_first:
         :return:
         """
-        self.write_file_binary(file_path, content, mode=mode, data_file=data_file, insert_first=insert_first)
+        self.write_file_binary(
+            file_path, content, mode=mode, data_file=data_file, insert_first=insert_first
+        )
 
-    def write_file_binary(self, file_path, content, mode='wb', data_file=False, insert_first=False):
+    def write_file_binary(self, file_path, content, mode="wb", data_file=False, insert_first=False):
         """
         Function to create a file with some binary content
         :param file_path:
@@ -1741,7 +1920,7 @@ class CodeGeneratorData:
 
     def generate_python_init_file(self):
         for component, lst_module in self._dct_import_dir.items():
-            init_path = os.path.join(component, '__init__.py')
+            init_path = os.path.join(component, "__init__.py")
             if not component:
                 lst_module = [a for a in self._dct_import_dir.keys() if a]
 
@@ -1758,13 +1937,16 @@ class CodeGeneratorData:
             self.write_file_str(init_path, cw.render())
 
     def flake8_check(self):
-        workspace_path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
+        workspace_path = os.path.normpath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
+        )
         flake8_bin = os.path.join(workspace_path, ".venv", "bin", "flake8")
         config_path = os.path.join(workspace_path, ".flake8")
         cpu_count = os.cpu_count()
         try:
-            out = subprocess.check_output([flake8_bin, "-j", str(cpu_count), f"--config={config_path}",
-                                           self.module_path])
+            out = subprocess.check_output(
+                [flake8_bin, "-j", str(cpu_count), f"--config={config_path}", self.module_path]
+            )
             result = out
         except subprocess.CalledProcessError as e:
             result = e.output.decode()
@@ -1773,11 +1955,22 @@ class CodeGeneratorData:
             _logger.warning(result)
 
     def pylint_check(self):
-        workspace_path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
+        workspace_path = os.path.normpath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
+        )
         cpu_count = os.cpu_count()
         try:
-            out = subprocess.check_output([f"{workspace_path}/.venv/bin/pylint", "-j", str(cpu_count),
-                                           "--load-plugins=pylint_odoo", "-e", "odoolint", self.module_path])
+            out = subprocess.check_output(
+                [
+                    f"{workspace_path}/.venv/bin/pylint",
+                    "-j",
+                    str(cpu_count),
+                    "--load-plugins=pylint_odoo",
+                    "-e",
+                    "odoolint",
+                    self.module_path,
+                ]
+            )
             result = out
         except subprocess.CalledProcessError as e:
             result = e.output.decode()
@@ -1786,14 +1979,16 @@ class CodeGeneratorData:
             _logger.warning(result)
 
     def auto_format(self):
-        workspace_path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
+        workspace_path = os.path.normpath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
+        )
         use_prettier = True
         use_format_black = False  # Else, oca-autopep8
         use_html5print = False
         enable_xml_formatter = False
         # Manual format with def with programmer style
         for path_file in self.lst_path_file:
-            relative_path = path_file[len(self.module_path) + 1:]
+            relative_path = path_file[len(self.module_path) + 1 :]
             if path_file.endswith(".py"):
                 # TODO not optimal, too many write for nothing
                 if not use_format_black:
@@ -1801,8 +1996,10 @@ class CodeGeneratorData:
                     has_change = False
                     with open(path_file, "r") as source:
                         for line in source.readlines():
-                            if (line.lstrip().startswith("def ") or line.lstrip().startswith("return ")) and len(
-                                    line) > 99:
+                            if (
+                                line.lstrip().startswith("def ")
+                                or line.lstrip().startswith("return ")
+                            ) and len(line) > 99:
                                 has_change = True
                                 next_tab_space = line.find("(") + 1
                                 first_cut = 100
@@ -1832,7 +2029,9 @@ class CodeGeneratorData:
                             _logger.error(e)
                             _logger.error(f"Check file {path_file}")
                 else:
-                    cmd = f"cd {workspace_path};. .venv/bin/activate;css-html-prettify.py {path_file}"
+                    cmd = (
+                        f"cd {workspace_path};. .venv/bin/activate;css-html-prettify.py {path_file}"
+                    )
                     result = subprocess_cmd(cmd)
                     if result:
                         _logger.warning(result)
@@ -1853,7 +2052,9 @@ class CodeGeneratorData:
                             _logger.error(e)
                             _logger.error(f"Check file {path_file}")
                 else:
-                    cmd = f"cd {workspace_path};. .venv/bin/activate;css-html-prettify.py {path_file}"
+                    cmd = (
+                        f"cd {workspace_path};. .venv/bin/activate;css-html-prettify.py {path_file}"
+                    )
                     result = subprocess_cmd(cmd)
                     if result:
                         _logger.warning(result)
@@ -1874,7 +2075,9 @@ class CodeGeneratorData:
                             _logger.error(e)
                             _logger.error(f"Check file {path_file}")
                 else:
-                    cmd = f"cd {workspace_path};. .venv/bin/activate;css-html-prettify.py {path_file}"
+                    cmd = (
+                        f"cd {workspace_path};. .venv/bin/activate;css-html-prettify.py {path_file}"
+                    )
                     result = subprocess_cmd(cmd)
                     if result:
                         _logger.warning(result)
@@ -1882,27 +2085,37 @@ class CodeGeneratorData:
         # Automatic format
         # TODO check diff before and after format to auto improvement of generation
         if use_format_black:
-            cmd = f"cd {workspace_path};. .venv/bin/activate;black -l 100 -t py37 {self.module_path}"
+            cmd = (
+                f"cd {workspace_path};. .venv/bin/activate;black -l 100 -t py37 {self.module_path}"
+            )
             result = subprocess_cmd(cmd)
 
             if result:
                 _logger.warning(result)
         else:
-            maintainer_path = os.path.join(workspace_path, 'script', 'OCA_maintainer-tools')
+            maintainer_path = os.path.join(workspace_path, "script", "OCA_maintainer-tools")
             cpu_count = os.cpu_count()
-            cmd = f"cd {maintainer_path};. env/bin/activate;cd {workspace_path};" \
-                  f"oca-autopep8 -j{cpu_count} --max-line-length 100 -ari {self.module_path}"
+            cmd = (
+                f"cd {maintainer_path};. env/bin/activate;cd {workspace_path};"
+                f"oca-autopep8 -j{cpu_count} --max-line-length 100 -ari {self.module_path}"
+            )
             result = subprocess_cmd(cmd)
 
             if result:
                 _logger.warning(result)
 
         if enable_xml_formatter:
-            formatter = xmlformatter.Formatter(indent="4", indent_char=" ", selfclose=True, correct=True,
-                                               preserve=["pre"], blanks=True)
+            formatter = xmlformatter.Formatter(
+                indent="4",
+                indent_char=" ",
+                selfclose=True,
+                correct=True,
+                preserve=["pre"],
+                blanks=True,
+            )
             for path_file in self.lst_path_file:
                 if path_file.endswith(".xml"):
-                    relative_path = path_file[len(self.module_path) + 1:]
+                    relative_path = path_file[len(self.module_path) + 1 :]
                     self.write_file_binary(relative_path, formatter.format_file(path_file))
 
 

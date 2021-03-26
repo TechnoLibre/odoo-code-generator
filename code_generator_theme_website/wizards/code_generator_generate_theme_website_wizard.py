@@ -3,7 +3,13 @@ from odoo.models import MAGIC_COLUMNS
 from lxml.builder import E
 from lxml import etree as ET
 
-MAGIC_FIELDS = MAGIC_COLUMNS + ['display_name', '__last_update', 'access_url', 'access_token', 'access_warning']
+MAGIC_FIELDS = MAGIC_COLUMNS + [
+    "display_name",
+    "__last_update",
+    "access_url",
+    "access_token",
+    "access_warning",
+]
 
 
 def _fmt_underscores(word):
@@ -20,7 +26,7 @@ def _fmt_title(word):
 
 def _get_field_by_user(model):
     lst_field = []
-    lst_magic_fields = MAGIC_FIELDS + ['name']
+    lst_magic_fields = MAGIC_FIELDS + ["name"]
     for field in model.field_id:
         if field.name not in lst_magic_fields:
             lst_field.append(field)
@@ -33,27 +39,37 @@ class CodeGeneratorGenerateThemeWebsiteWizard(models.TransientModel):
     enable_generate_theme_website = fields.Boolean(
         string="Enable theme website feature",
         default=False,
-        help="This variable need to be True to generate theme_website if enable_generate_all is False")
+        help="This variable need to be True to generate theme_website if enable_generate_all is False",
+    )
 
-    theme_website_primary_color = fields.Char(string="Primary Color", default="#38B44A",
-                                              help="Choose your primary color")
-    theme_website_secondary_color = fields.Char(string="Secondary Color", default="#AEA79F",
-                                                help="Choose your secondary color")
-    theme_website_extra_1_color = fields.Char(string="Extra 1 Color", default="#ffbd92",
-                                              help="Choose your extra 1 color")
-    theme_website_extra_2_color = fields.Char(string="Extra 2 Color", default="#ffbd92",
-                                              help="Choose your extra 2 color")
-    theme_website_extra_3_color = fields.Char(string="Extra 3 Color", default="#ffbd92",
-                                              help="Choose your extra 3 color")
+    theme_website_primary_color = fields.Char(
+        string="Primary Color", default="#38B44A", help="Choose your primary color"
+    )
+    theme_website_secondary_color = fields.Char(
+        string="Secondary Color", default="#AEA79F", help="Choose your secondary color"
+    )
+    theme_website_extra_1_color = fields.Char(
+        string="Extra 1 Color", default="#ffbd92", help="Choose your extra 1 color"
+    )
+    theme_website_extra_2_color = fields.Char(
+        string="Extra 2 Color", default="#ffbd92", help="Choose your extra 2 color"
+    )
+    theme_website_extra_3_color = fields.Char(
+        string="Extra 3 Color", default="#ffbd92", help="Choose your extra 3 color"
+    )
 
-    theme_website_body_color = fields.Char(string="Body Color", default="#fff",
-                                           help="Choose your body color")
-    theme_website_menu_color = fields.Char(string="Menu Color", default="#fff",
-                                           help="Choose your menu color")
-    theme_website_footer_color = fields.Char(string="Footer Color", default="#fff",
-                                             help="Choose your footer color")
-    theme_website_text_color = fields.Char(string="Text Color", default="#000",
-                                           help="Choose your text color")
+    theme_website_body_color = fields.Char(
+        string="Body Color", default="#fff", help="Choose your body color"
+    )
+    theme_website_menu_color = fields.Char(
+        string="Menu Color", default="#fff", help="Choose your menu color"
+    )
+    theme_website_footer_color = fields.Char(
+        string="Footer Color", default="#fff", help="Choose your footer color"
+    )
+    theme_website_text_color = fields.Char(
+        string="Text Color", default="#000", help="Choose your text color"
+    )
 
     @api.multi
     def button_generate_views(self):
@@ -124,11 +140,11 @@ class CodeGeneratorGenerateThemeWebsiteWizard(models.TransientModel):
             "target": "self",
             "m2o_code_generator": self.code_generator_id.id,
         }
-        ir_actions_act_url = self.env['ir.actions.act_url'].create(value)
+        ir_actions_act_url = self.env["ir.actions.act_url"].create(value)
 
         value = {
             "action_id": ir_actions_act_url.id,
             "state": "open",
             "m2o_code_generator": self.code_generator_id.id,
         }
-        self.env['ir.actions.todo'].create(value)
+        self.env["ir.actions.todo"].create(value)

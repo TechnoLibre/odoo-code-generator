@@ -11,15 +11,15 @@ from collections import defaultdict
 from code_writer import CodeWriter
 from odoo.models import MAGIC_COLUMNS
 
-BREAK_LINE = ['\n']
-BREAK_LINE_OFF = '\n'
+BREAK_LINE = ["\n"]
+BREAK_LINE_OFF = "\n"
 XML_VERSION_HEADER = '<?xml version="1.0" encoding="utf-8"?>' + BREAK_LINE_OFF
-FROM_ODOO_IMPORTS = ['from odoo import _, api, models, fields']
+FROM_ODOO_IMPORTS = ["from odoo import _, api, models, fields"]
 MODEL_HEAD = FROM_ODOO_IMPORTS + BREAK_LINE
 
 
 class CodeGeneratorWriter(models.Model):
-    _inherit = 'code.generator.writer'
+    _inherit = "code.generator.writer"
 
     def set_xml_data_file(self, module):
         super(CodeGeneratorWriter, self).set_xml_data_file(module)
@@ -39,24 +39,22 @@ class CodeGeneratorWriter(models.Model):
             ]
             id_action = self._get_action_act_url_name(action_act_url)
             dct_associate_data[action_act_url.name] = id_action
-            record_xml = E.record({"model": "ir.actions.act_url", "id": id_action}, *lst_field
-                                  )
+            record_xml = E.record({"model": "ir.actions.act_url", "id": id_action}, *lst_field)
             lst_record_xml.append(record_xml)
 
         for action_todo in module.o2m_model_act_todo:
             lst_field = [
-                E.field({"name": "action_id", "ref": dct_associate_data.get(action_todo.action_id.name)}),
+                E.field(
+                    {"name": "action_id", "ref": dct_associate_data.get(action_todo.action_id.name)}
+                ),
                 E.field({"name": "state"}, action_todo.state),
             ]
             # TODO force id, cannot support more than 1 action_todo
-            record_xml = E.record(
-                {"model": "ir.actions.todo", "id": "base.open_menu"},
-                *lst_field
-            )
+            record_xml = E.record({"model": "ir.actions.todo", "id": "base.open_menu"}, *lst_field)
             lst_record_xml.append(record_xml)
 
         module_file = E.odoo({}, *lst_record_xml)
-        data_file_path = os.path.join(self.code_generator_data.data_path, f'{module.name}_data.xml')
+        data_file_path = os.path.join(self.code_generator_data.data_path, f"{module.name}_data.xml")
         result = XML_VERSION_HEADER.encode("utf-8") + ET.tostring(module_file, pretty_print=True)
         self.code_generator_data.write_file_binary(data_file_path, result, data_file=True)
 
@@ -72,45 +70,69 @@ class CodeGeneratorWriter(models.Model):
 
         # website.assets_frontend
         lst_link = [
-            E.link({"rel": "stylesheet", "type": "text/scss",
-                    "href": f"/{module.name}/static/src/scss/_variables.scss"}),
-            E.link({"rel": "stylesheet", "type": "text/scss",
-                    "href": f"/{module.name}/static/src/scss/custom.scss"}),
+            E.link(
+                {
+                    "rel": "stylesheet",
+                    "type": "text/scss",
+                    "href": f"/{module.name}/static/src/scss/_variables.scss",
+                }
+            ),
+            E.link(
+                {
+                    "rel": "stylesheet",
+                    "type": "text/scss",
+                    "href": f"/{module.name}/static/src/scss/custom.scss",
+                }
+            ),
         ]
 
         lst_xpath = [
             E.xpath({"expr": "//link[last()]", "position": "after"}, *lst_link),
         ]
-        template_xml = E.template({
-            "id": f"{module.name}_assets_frontend",
-            "inherit_id": "website.assets_frontend",
-            "name": module.display_name,
-            "active": "True",
-        },
-            *lst_xpath
+        template_xml = E.template(
+            {
+                "id": f"{module.name}_assets_frontend",
+                "inherit_id": "website.assets_frontend",
+                "name": module.display_name,
+                "active": "True",
+            },
+            *lst_xpath,
         )
         lst_template_xml.append(template_xml)
 
         # website.assets_primary_variables
         lst_link = [
-            E.link({"rel": "stylesheet", "type": "text/scss",
-                    "href": f"/{module.name}/static/src/scss/primary_variables.scss"}),
+            E.link(
+                {
+                    "rel": "stylesheet",
+                    "type": "text/scss",
+                    "href": f"/{module.name}/static/src/scss/primary_variables.scss",
+                }
+            ),
         ]
 
         lst_xpath = [
-            E.xpath({"expr": "//link[@href='/website/static/src/scss/primary_variables.scss']", "position": "replace"},
-                    *lst_link),
+            E.xpath(
+                {
+                    "expr": "//link[@href='/website/static/src/scss/primary_variables.scss']",
+                    "position": "replace",
+                },
+                *lst_link,
+            ),
         ]
-        template_xml = E.template({
-            "id": f"{module.name}_assets_primary_variables",
-            "inherit_id": "website._assets_primary_variables",
-        },
-            *lst_xpath
+        template_xml = E.template(
+            {
+                "id": f"{module.name}_assets_primary_variables",
+                "inherit_id": "website._assets_primary_variables",
+            },
+            *lst_xpath,
         )
         lst_template_xml.append(template_xml)
 
         module_file = E.odoo({}, *lst_template_xml)
-        data_file_path = os.path.join(self.code_generator_data.views_path, f'{module.name}_templates.xml')
+        data_file_path = os.path.join(
+            self.code_generator_data.views_path, f"{module.name}_templates.xml"
+        )
         result = XML_VERSION_HEADER.encode("utf-8") + ET.tostring(module_file, pretty_print=True)
         self.code_generator_data.write_file_binary(data_file_path, result, data_file=True)
 
@@ -134,7 +156,7 @@ class CodeGeneratorWriter(models.Model):
             with cw.indent():
                 cw.emit("self.disable_view('website_theme_install.customize_modal')")
 
-        file_path = os.path.join(self.code_generator_data.models_path, f'{module.name}.py')
+        file_path = os.path.join(self.code_generator_data.models_path, f"{module.name}.py")
 
         self.code_generator_data.write_file_str(file_path, cw.render())
 
@@ -148,27 +170,27 @@ class CodeGeneratorWriter(models.Model):
         # cw.emit(f"$primary: {module.theme_website_primary_color} !default;")
         # cw.emit(f"$secondary: {module.theme_website_secondary_color} !default;")
         # cw.emit(f"$body-color: {module.theme_website_body_color} !default;")
-        file_path = os.path.join(self.code_generator_data.css_path, '_variables.scss')
+        file_path = os.path.join(self.code_generator_data.css_path, "_variables.scss")
         self.code_generator_data.write_file_str(file_path, cw.render())
 
         # custom.scss files
         cw = CodeWriter()
-        file_path = os.path.join(self.code_generator_data.css_path, 'custom.scss')
+        file_path = os.path.join(self.code_generator_data.css_path, "custom.scss")
         self.code_generator_data.write_file_str(file_path, cw.render())
 
         # primary_variables.scss files
         cw = CodeWriter()
-        file_path = os.path.join(self.code_generator_data.css_path, 'primary_variables.scss')
+        file_path = os.path.join(self.code_generator_data.css_path, "primary_variables.scss")
         cw.emit("$o-theme-layout: 'full';")
         cw.emit("//$o-theme-navbar-height: 300px;")
         cw.emit()
-        cw.emit('//' + '-' * 78)
+        cw.emit("//" + "-" * 78)
         cw.emit_wrapped_text(
-            'Colors',
-            prefix='// ',
+            "Colors",
+            prefix="// ",
             indent_after_first=True,
         )
-        cw.emit('//' + '-' * 78)
+        cw.emit("//" + "-" * 78)
         cw.emit()
         cw.emit("// Extend default color palettes with website-related colors")
         cw.emit("$-palettes: ();")
@@ -199,7 +221,9 @@ class CodeGeneratorWriter(models.Model):
         cw.emit("$o-theme-color-palettes: ();")
         cw.emit("@each $-palette in $-palettes {")
         with cw.indent():
-            cw.emit("$o-theme-color-palettes: append($o-theme-color-palettes, map-merge($-palette, (")
+            cw.emit(
+                "$o-theme-color-palettes: append($o-theme-color-palettes, map-merge($-palette, ("
+            )
             with cw.indent():
                 cw.emit("'primary': map-get($-palette, 'alpha'),")
                 cw.emit("'secondary': map-get($-palette, 'beta'),")
@@ -215,18 +239,19 @@ class CodeGeneratorWriter(models.Model):
         cw.emit("// palette.")
         cw.emit("$o-user-theme-color-palette: () !default;")
         cw.emit()
-        cw.emit('//' + '-' * 78)
+        cw.emit("//" + "-" * 78)
         cw.emit_wrapped_text(
-            'Fonts',
-            prefix='// ',
+            "Fonts",
+            prefix="// ",
             indent_after_first=True,
         )
-        cw.emit('//' + '-' * 78)
+        cw.emit("//" + "-" * 78)
         cw.emit()
         cw.emit("$o-theme-fonts: (")
         with cw.indent():
             cw.emit(
-                '(-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Noto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"), // This is BS default')
+                '(-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Noto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"), // This is BS default'
+            )
             cw.emit("('Open Sans', sans-serif),")
             cw.emit("('Source Sans Pro', sans-serif),")
             cw.emit("('Raleway', sans-serif),")

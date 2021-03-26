@@ -5,8 +5,12 @@ class CodeGeneratorAddControllerWizard(models.TransientModel):
     _name = "code.generator.add.controller.wizard"
     _description = "Code Generator Add Controller Wizard"
 
-    code_generator_id = fields.Many2one(comodel_name="code.generator.module", string="Code Generator", required=True,
-                                        ondelete='cascade')
+    code_generator_id = fields.Many2one(
+        comodel_name="code.generator.module",
+        string="Code Generator",
+        required=True,
+        ondelete="cascade",
+    )
 
     # option_adding = fields.Selection([
     #     ('inherit', 'Inherit Model'),
@@ -27,17 +31,21 @@ class CodeGeneratorAddControllerWizard(models.TransientModel):
     )
 
     model_ids = fields.Many2many(
-        comodel_name="ir.model", string="Models",
-        help="Select the model you want to inherit or import data.")
+        comodel_name="ir.model",
+        string="Models",
+        help="Select the model you want to inherit or import data.",
+    )
 
     field_ids = fields.Many2many(
-        comodel_name="ir.model.fields", string="Fields",
-        help="Select the field you want to inherit or import data.")
+        comodel_name="ir.model.fields",
+        string="Fields",
+        help="Select the field you want to inherit or import data.",
+    )
 
     # clear_fields_blacklist = fields.Boolean(string="Clear field blacklisted", default=False,
     #                                         help="Erase all blacklisted fields when enable.")
 
-    @api.onchange('model_ids')
+    @api.onchange("model_ids")
     def _onchange_model_ids(self):
         field_ids = [field_id.id for model_id in self.model_ids for field_id in model_id.field_id]
         self.field_ids = [(6, 0, field_ids)]

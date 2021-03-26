@@ -18,10 +18,10 @@
 ###################################################################################
 
 {
-    'name': 'Enhanced CRUD',
-    'version': '12.0.0',
-    'summary': 'The Odoo CRUD operations presented in a different way',
-    'description': """
+    "name": "Enhanced CRUD",
+    "version": "12.0.0",
+    "summary": "The Odoo CRUD operations presented in a different way",
+    "description": """
 Enhanced CRUD
 ==========
 The Odoo CRUD operations presented in a different way and more
@@ -32,21 +32,19 @@ Key Features
 * New List and Kanban View pager and contextual menu
 * Configuration options to prevent you from having to modify your code
     """,
-    'category': 'Extra Tools',
-    'author': 'Bluisknot (bluisknot@gmail.com)',
-    'depends': ['base'],
-    'data': [
-        'security/enhanced_crud.xml',
-        'security/ir.model.access.csv',
-        'views/enhanced_crud_settings.xml',
-        'templates/enhanced_crud.xml',
-        'views/enhanced_crud.xml',
-        'data/enhanced_crud.xml',
-        'wizards/enhanced_crud.xml'
+    "category": "Extra Tools",
+    "author": "Bluisknot (bluisknot@gmail.com)",
+    "depends": ["base"],
+    "data": [
+        "security/enhanced_crud.xml",
+        "security/ir.model.access.csv",
+        "views/enhanced_crud_settings.xml",
+        "templates/enhanced_crud.xml",
+        "views/enhanced_crud.xml",
+        "data/enhanced_crud.xml",
+        "wizards/enhanced_crud.xml",
     ],
-    'qweb': [
-        'static/src/xml/enhanced_crud.xml'
-    ],
-    'installable': True,
-    'license': 'LGPL-3'
+    "qweb": ["static/src/xml/enhanced_crud.xml"],
+    "installable": True,
+    "license": "LGPL-3",
 }

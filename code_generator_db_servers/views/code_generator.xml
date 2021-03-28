@@ -178,10 +178,9 @@
     <field name="binding_model_id" ref="model_code_generator_db_table"/>
     <field name="state">code</field>
     <field name="code">
-      if records:
-      records.generate_module()
-      # action = {"type": "ir.actions.client", "tag": "reload", "params": {"menu_id":
-      env.ref('code_generator.code_generator_generator_menu').id}}
+if records:
+    records.generate_module()
+    # action = {"type": "ir.actions.client", "tag": "reload", "params": {"menu_id": env.ref('code_generator.code_generator_generator_menu').id}}
     </field>
   </record>
 
@@ -191,8 +190,8 @@
     <field name="binding_model_id" ref="model_code_generator_db_table"/>
     <field name="state">code</field>
     <field name="code">
-      if records:
-      records.toggle_nomenclator()
+if records:
+    records.toggle_nomenclator()
     </field>
   </record>
 

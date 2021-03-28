@@ -4,20 +4,21 @@ from odoo import models, fields, api, modules, tools
 
 from code_writer import CodeWriter
 
-BREAK_LINE = ['\n']
+BREAK_LINE = ["\n"]
 
 
 class CodeGenerator(models.Model):
-    _inherit = 'code.generator.module'
+    _inherit = "code.generator.module"
 
     enable_generate_portal = fields.Boolean(
         string="Enable portal feature",
         default=False,
-        help="This variable need to be True to generate portal if enable_generate_all is False")
+        help="This variable need to be True to generate portal if enable_generate_all is False",
+    )
 
 
 class CodeGeneratorWriter(models.Model):
-    _inherit = 'code.generator.writer'
+    _inherit = "code.generator.writer"
 
     def get_lst_file_generate(self, module):
         if module.enable_generate_portal:
@@ -40,7 +41,9 @@ class CodeGeneratorWriter(models.Model):
         cw.emit("from odoo import http, _")
         cw.emit("from odoo.exceptions import AccessError, MissingError")
         cw.emit("from odoo.http import request")
-        cw.emit("from odoo.addons.portal.controllers.portal import CustomerPortal, pager as portal_pager")
+        cw.emit(
+            "from odoo.addons.portal.controllers.portal import CustomerPortal, pager as portal_pager"
+        )
         cw.emit("from odoo.tools import groupby as groupbyelem")
         cw.emit("")
         cw.emit("from odoo.osv.expression import OR")
@@ -53,8 +56,10 @@ class CodeGeneratorWriter(models.Model):
             with cw.indent():
                 cw.emit("values = super(CustomerPortal, self)._prepare_portal_layout_values()")
                 for model in module.o2m_models:
-                    cw.emit(f"values['{self._fmt_underscores(model.model)}_count'] = request.env['{model.model}']."
-                            f"search_count([])")
+                    cw.emit(
+                        f"values['{self._fmt_underscores(model.model)}_count'] = request.env['{model.model}']."
+                        f"search_count([])"
+                    )
                 cw.emit("return values")
         cw.emit("")
 
@@ -66,30 +71,37 @@ class CodeGeneratorWriter(models.Model):
                 cw.emit("# ------------------------------------------------------------")
                 cw.emit(
                     f"def _{self._fmt_underscores(model.model)}_get_page_view_values(self, {self._fmt_underscores(model.model)}, "
-                    f"access_token, **kwargs):")
+                    f"access_token, **kwargs):"
+                )
                 with cw.indent():
                     cw.emit("values = {")
                     with cw.indent():
                         cw.emit(f"'page_name': '{self._fmt_underscores(model.model)}',")
-                        cw.emit(f"'{self._fmt_underscores(model.model)}': {self._fmt_underscores(model.model)},")
+                        cw.emit(
+                            f"'{self._fmt_underscores(model.model)}': {self._fmt_underscores(model.model)},"
+                        )
                         # MATHBEN ADDED
                         cw.emit("'user': request.env.user")
                 with cw.indent():
                     cw.emit("}")
                     cw.emit(
                         f"return self._get_page_view_values({self._fmt_underscores(model.model)}, access_token, values, "
-                        f"'my_{self._fmt_underscores(model.model)}s_history', False, **kwargs)")
+                        f"'my_{self._fmt_underscores(model.model)}s_history', False, **kwargs)"
+                    )
             cw.emit("")
             with cw.indent():
-                cw.emit(f"@http.route(['/my/{self._fmt_underscores(model.model)}s', "
-                        f"'/my/{self._fmt_underscores(model.model)}s/page/<int:page>'], type='http', auth=\"user\", "
-                        f"website=True)")
+                cw.emit(
+                    f"@http.route(['/my/{self._fmt_underscores(model.model)}s', "
+                    f"'/my/{self._fmt_underscores(model.model)}s/page/<int:page>'], type='http', auth=\"user\", "
+                    f"website=True)"
+                )
                 # cw.emit(f"def portal_my_{_fmt_underscores(model.model)}s(self, page=1, date_begin=None, date_end=None, "
                 #         f"sortby=None, **kw):")
                 # MATHBEN ADDED
                 cw.emit(
                     f"def portal_my_{self._fmt_underscores(model.model)}s(self, page=1, date_begin=None, date_end=None, "
-                    f"sortby=None, filterby=None, search=None, search_in='content', **kw):")
+                    f"sortby=None, filterby=None, search=None, search_in='content', **kw):"
+                )
                 # MATHBEN NEED THIS FOR NEXT MODEL IF ONE DEPEND TO ANOTHER ONE
                 # f"sortby=None, filterby=None, search=None, search_in='content', groupby='project', **kw):")
                 with cw.indent():
@@ -214,18 +226,22 @@ class CodeGeneratorWriter(models.Model):
                     cw.emit(f"archive_groups = self._get_archive_groups('{model.model}', domain)")
                     cw.emit("if date_begin and date_end:")
                     with cw.indent():
-                        cw.emit("domain += [('create_date', '>', date_begin), ('create_date', '<=', date_end)]")
+                        cw.emit(
+                            "domain += [('create_date', '>', date_begin), ('create_date', '<=', date_end)]"
+                        )
                 with cw.indent():
                     cw.emit(f"# {self._fmt_underscores(model.model)}s count")
                     cw.emit(
-                        f"{self._fmt_underscores(model.model)}_count = {self._fmt_camel(model.model)}.search_count(domain)")
+                        f"{self._fmt_underscores(model.model)}_count = {self._fmt_camel(model.model)}.search_count(domain)"
+                    )
                     cw.emit("# pager")
                     cw.emit("pager = portal_pager(")
                     with cw.indent():
-                        cw.emit(f"url=\"/my/{self._fmt_underscores(model.model)}s\",")
+                        cw.emit(f'url="/my/{self._fmt_underscores(model.model)}s",')
                         cw.emit(
                             "url_args={'date_begin': date_begin, 'date_end': date_end, 'sortby': sortby, 'filterby': "
-                            "filterby, 'search_in': search_in, 'search': search},")
+                            "filterby, 'search_in': search_in, 'search': search},"
+                        )
                         cw.emit(f"total={self._fmt_underscores(model.model)}_count,")
                         cw.emit("page=page,")
                         cw.emit("step=self._items_per_page")
@@ -243,10 +259,13 @@ class CodeGeneratorWriter(models.Model):
                     cw.emit("# content according to pager and archive selected")
                     cw.emit(
                         f"{self._fmt_underscores(model.model)}s = {self._fmt_camel(model.model)}.search(domain, order=order, "
-                        f"limit=self._items_per_page, offset=pager['offset'])")
+                        f"limit=self._items_per_page, offset=pager['offset'])"
+                    )
                     # MATHBEN LAST LINE, TASK WAS offset=(page - 1) * self._items_per_page
-                    cw.emit(f"request.session['my_{self._fmt_underscores(model.model)}s_history'] = "
-                            f"{self._fmt_underscores(model.model)}s.ids[:100]")
+                    cw.emit(
+                        f"request.session['my_{self._fmt_underscores(model.model)}s_history'] = "
+                        f"{self._fmt_underscores(model.model)}s.ids[:100]"
+                    )
                     # MATHBEN NEXT BLOCK 43 COMMENT TO NEXT LINE
                     # cw.emit("if groupby == 'project':")
                     # with cw.indent():
@@ -268,7 +287,9 @@ class CodeGeneratorWriter(models.Model):
                         # MATHBEN WAS IN TASK
                         # cw.emit("'grouped_tasks': grouped_tasks,")
                         # GROUPED_TASKS CAN REPLACE PROJECTS
-                        cw.emit(f"'{self._fmt_underscores(model.model)}s': {self._fmt_underscores(model.model)}s,")
+                        cw.emit(
+                            f"'{self._fmt_underscores(model.model)}s': {self._fmt_underscores(model.model)}s,"
+                        )
                         cw.emit(f"'page_name': '{self._fmt_underscores(model.model)}',")
                         cw.emit("'archive_groups': archive_groups,")
                         cw.emit(f"'default_url': '/my/{self._fmt_underscores(model.model)}s',")
@@ -279,27 +300,33 @@ class CodeGeneratorWriter(models.Model):
                         cw.emit("'search_in': search_in,")
                         if has_group_by:
                             cw.emit("'groupby': groupby,")
-                        cw.emit("'searchbar_filters': OrderedDict(sorted(searchbar_filters.items())),")
+                        cw.emit(
+                            "'searchbar_filters': OrderedDict(sorted(searchbar_filters.items())),"
+                        )
                         cw.emit("'sortby': sortby,")
                         cw.emit("'filterby': filterby,")
                 with cw.indent():
                     cw.emit("})")
                     cw.emit(
-                        f"return request.render(\"{module.name}.portal_my_{self._fmt_underscores(model.model)}s\", values)")
+                        f'return request.render("{module.name}.portal_my_{self._fmt_underscores(model.model)}s", values)'
+                    )
             cw.emit("")
             with cw.indent():
                 cw.emit(
                     f"@http.route(['/my/{self._fmt_underscores(model.model)}/<int:{self._fmt_underscores(model.model)}_id>'], "
-                    f"type='http', auth=\"public\", website=True)")
+                    f"type='http', auth=\"public\", website=True)"
+                )
                 cw.emit(
                     f"def portal_my_{self._fmt_underscores(model.model)}(self, {self._fmt_underscores(model.model)}_id=None, "
-                    f"access_token=None, **kw):")
+                    f"access_token=None, **kw):"
+                )
                 with cw.indent():
                     cw.emit("try:")
                     with cw.indent():
                         cw.emit(
                             f"{self._fmt_underscores(model.model)}_sudo = self._document_check_access('{model.model}', "
-                            f"{self._fmt_underscores(model.model)}_id, access_token)")
+                            f"{self._fmt_underscores(model.model)}_id, access_token)"
+                        )
                 with cw.indent():
                     cw.emit("except (AccessError, MissingError):")
                     with cw.indent():
@@ -308,21 +335,28 @@ class CodeGeneratorWriter(models.Model):
             with cw.indent():
                 with cw.indent():
                     if "attachment_ids" in [a.name for a in model.field_id]:
-                        cw.emit("# ensure attachment are accessible with access token inside template")
-                        cw.emit(f"for attachment in {self._fmt_underscores(model.model)}_sudo.attachment_ids:")
+                        cw.emit(
+                            "# ensure attachment are accessible with access token inside template"
+                        )
+                        cw.emit(
+                            f"for attachment in {self._fmt_underscores(model.model)}_sudo.attachment_ids:"
+                        )
                         with cw.indent():
                             cw.emit("attachment.generate_access_token()")
                 with cw.indent():
-                    cw.emit(f"values = self._{self._fmt_underscores(model.model)}_get_page_view_values("
-                            f"{self._fmt_underscores(model.model)}_sudo, access_token, **kw)")
                     cw.emit(
-                        f"return request.render(\"{module.name}.portal_my_{self._fmt_underscores(model.model)}\", values)")
+                        f"values = self._{self._fmt_underscores(model.model)}_get_page_view_values("
+                        f"{self._fmt_underscores(model.model)}_sudo, access_token, **kw)"
+                    )
+                    cw.emit(
+                        f'return request.render("{module.name}.portal_my_{self._fmt_underscores(model.model)}", values)'
+                    )
             cw.emit("")
 
         out = cw.render()
 
         l_model = out.split("\n")
 
-        file_path = f'{self.code_generator_data.controllers_path}/portal.py'
+        file_path = f"{self.code_generator_data.controllers_path}/portal.py"
 
         self.code_generator_data.write_file_lst_content(file_path, l_model)

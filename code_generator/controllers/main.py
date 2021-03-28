@@ -37,8 +37,7 @@ class CodeGeneratorZipFile(ZipFile):
 
 
 class CodeGeneratorController(http.Controller):
-
-    @http.route('/code_generator/<string:module_ids>', auth='user', type='http')
+    @http.route("/code_generator/<string:module_ids>", auth="user", type="http")
     def code_generator(self, module_ids, **kwargs):
         """
         Function to export into code
@@ -47,17 +46,17 @@ class CodeGeneratorController(http.Controller):
         :return:
         """
 
-        modules = request.env['code.generator.module'].browse(_get_l_map(lambda pk: int(pk), module_ids.split(',')))
+        modules = request.env["code.generator.module"].browse(
+            _get_l_map(lambda pk: int(pk), module_ids.split(","))
+        )
 
         id_code_generator_ids = modules.ids
 
-        value = {
-            "code_generator_ids": id_code_generator_ids
-        }
+        value = {"code_generator_ids": id_code_generator_ids}
         code_generator_writer = request.env["code.generator.writer"].create(value)
 
         bytesio = io.BytesIO()
-        zipy = CodeGeneratorZipFile(bytesio, mode='w', compression=ZIP_DEFLATED)
+        zipy = CodeGeneratorZipFile(bytesio, mode="w", compression=ZIP_DEFLATED)
 
         # Parameter
         lst_path_file = code_generator_writer.get_list_path_file()
@@ -77,11 +76,11 @@ class CodeGeneratorController(http.Controller):
         response = request.make_response(
             zipy.fp.getvalue(),
             headers=[
-                ('Access-Control-Allow-Origin', '*'),
-                ('Access-Control-Allow-Methods', 'GET'),
-                ('Content-Disposition', content_disposition('%s.zip' % basename)),
-                ('Content-Type', 'application/zip')
-            ]
+                ("Access-Control-Allow-Origin", "*"),
+                ("Access-Control-Allow-Methods", "GET"),
+                ("Content-Disposition", content_disposition("%s.zip" % basename)),
+                ("Content-Type", "application/zip"),
+            ],
         )
 
         zipy.close()

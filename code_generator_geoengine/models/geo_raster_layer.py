@@ -3,11 +3,11 @@ from odoo import fields, models
 
 
 class GeoRasterLayer(models.Model):
-    _inherit = 'geoengine.raster.layer'
+    _inherit = "geoengine.raster.layer"
 
     m2o_code_generator = fields.Many2one(
-        'code.generator.module',
-        string='Code Generator',
-        help='Code Generator relation',
-        ondelete='cascade'
+        "code.generator.module",
+        string="Code Generator",
+        help="Code Generator relation",
+        ondelete="cascade",
     )

@@ -3,7 +3,13 @@ from odoo.models import MAGIC_COLUMNS
 from lxml.builder import E
 from lxml import etree as ET
 
-MAGIC_FIELDS = MAGIC_COLUMNS + ['display_name', '__last_update', 'access_url', 'access_token', 'access_warning']
+MAGIC_FIELDS = MAGIC_COLUMNS + [
+    "display_name",
+    "__last_update",
+    "access_url",
+    "access_token",
+    "access_warning",
+]
 
 
 class CodeGeneratorGenerateViewsWizard(models.TransientModel):
@@ -20,15 +26,21 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     #     result["selected_model_form_view_ids"] = [(6, 0, lst_model_id)]
     #     return result
 
-    code_generator_id = fields.Many2one(comodel_name="code.generator.module", string="Code Generator", required=True,
-                                        ondelete='cascade')
+    code_generator_id = fields.Many2one(
+        comodel_name="code.generator.module",
+        string="Code Generator",
+        required=True,
+        ondelete="cascade",
+    )
 
-    enable_generate_all = fields.Boolean(string="Enable all feature",
-                                         default=True,
-                                         help="Generate with all feature.")
+    enable_generate_all = fields.Boolean(
+        string="Enable all feature", default=True, help="Generate with all feature."
+    )
 
     date = fields.Date(
-        string="Date", required=True, default=fields.Date.context_today,
+        string="Date",
+        required=True,
+        default=fields.Date.context_today,
     )
 
     user_id = fields.Many2one(
@@ -43,40 +55,36 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     )
 
     clear_all_view = fields.Boolean(
-        string="Clear views",
-        default=True,
-        help="Clear all views before execute."
+        string="Clear views", default=True, help="Clear all views before execute."
     )
 
     clear_all_access = fields.Boolean(
-        string="Clear access",
-        default=True,
-        help="Clear all access/permission before execute."
+        string="Clear access", default=True, help="Clear all access/permission before execute."
     )
 
     clear_all_menu = fields.Boolean(
-        string="Clear menus",
-        default=True,
-        help="Clear all menus before execute."
+        string="Clear menus", default=True, help="Clear all menus before execute."
     )
 
     clear_all_act_window = fields.Boolean(
         string="Clear actions windows",
         default=True,
-        help="Clear all actions windows before execute."
+        help="Clear all actions windows before execute.",
     )
 
     all_model = fields.Boolean(
         string="All models",
         default=True,
-        help="Generate with all existing model, or select manually."
+        help="Generate with all existing model, or select manually.",
     )
 
-    selected_model_list_view_ids = fields.Many2many(comodel_name="ir.model",
-                                                    relation="selected_model_list_view_ids_ir_model")
+    selected_model_list_view_ids = fields.Many2many(
+        comodel_name="ir.model", relation="selected_model_list_view_ids_ir_model"
+    )
 
-    selected_model_form_view_ids = fields.Many2many(comodel_name="ir.model",
-                                                    relation="selected_model_form_view_ids_ir_model")
+    selected_model_form_view_ids = fields.Many2many(
+        comodel_name="ir.model", relation="selected_model_form_view_ids_ir_model"
+    )
 
     generated_root_menu = None
     generated_parent_menu = None
@@ -106,27 +114,49 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
         self.clear_all()
 
-        o2m_models_view_list = self.code_generator_id.o2m_models if self.all_model else self.selected_model_list_view_ids
-        o2m_models_view_form = self.code_generator_id.o2m_models if self.all_model else self.selected_model_form_view_ids
-        lst_model = sorted(set(o2m_models_view_list + o2m_models_view_form), key=lambda model: model.name)
+        o2m_models_view_list = (
+            self.code_generator_id.o2m_models
+            if self.all_model
+            else self.selected_model_list_view_ids
+        )
+        o2m_models_view_form = (
+            self.code_generator_id.o2m_models
+            if self.all_model
+            else self.selected_model_form_view_ids
+        )
+        lst_model = sorted(
+            set(o2m_models_view_list + o2m_models_view_form), key=lambda model: model.name
+        )
 
         for model_id in lst_model:
             lst_view_generated = []
 
             # Different view
             if model_id in o2m_models_view_list:
-                is_whitelist = bool(model_id.field_id.filtered(lambda field: field.is_show_whitelist_list_view))
+                is_whitelist = bool(
+                    model_id.field_id.filtered(lambda field: field.is_show_whitelist_list_view)
+                )
                 model_created_fields_list = model_id.field_id.filtered(
-                    lambda field: field.name not in MAGIC_FIELDS and not field.is_hide_blacklist_list_view and (
-                            not is_whitelist or (is_whitelist and field.is_show_whitelist_list_view)))
-                self._generate_list_views_models(model_id, model_created_fields_list, model_id.m2o_module)
+                    lambda field: field.name not in MAGIC_FIELDS
+                    and not field.is_hide_blacklist_list_view
+                    and (not is_whitelist or (is_whitelist and field.is_show_whitelist_list_view))
+                )
+                self._generate_list_views_models(
+                    model_id, model_created_fields_list, model_id.m2o_module
+                )
                 lst_view_generated.append("list")
             if model_id in o2m_models_view_form:
-                is_whitelist = bool(model_id.field_id.filtered(lambda field: field.is_show_whitelist_form_view))
+                is_whitelist = bool(
+                    model_id.field_id.filtered(lambda field: field.is_show_whitelist_form_view)
+                )
                 model_created_fields_form = model_id.field_id.filtered(
-                    lambda field: field.name not in MAGIC_FIELDS and not field.is_hide_blacklist_form_view and (
-                            not is_whitelist or (is_whitelist and field.is_show_whitelist_form_view)))
-                self._generate_form_views_models(model_id, model_created_fields_form, model_id.m2o_module)
+                    lambda field: field.name not in MAGIC_FIELDS
+                    and not field.is_hide_blacklist_form_view
+                    and (not is_whitelist or (is_whitelist and field.is_show_whitelist_form_view))
+                )
+                self._generate_form_views_models(
+                    model_id, model_created_fields_form, model_id.m2o_module
+                )
                 lst_view_generated.append("form")
 
             # Menu and action_windows
@@ -152,23 +182,24 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     def _generate_list_views_models(self, model_created, model_created_fields, module):
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
-        lst_field = [
-            E.field({"name": a.name}) for a in model_created_fields
-        ]
-        arch_xml = E.tree({
-            # TODO enable this when missing form
-            # "editable": "top",
-        },
-            *lst_field
+        lst_field = [E.field({"name": a.name}) for a in model_created_fields]
+        arch_xml = E.tree(
+            {
+                # TODO enable this when missing form
+                # "editable": "top",
+            },
+            *lst_field,
         )
         str_arch = ET.tostring(arch_xml, pretty_print=True)
-        view_value = self.env['ir.ui.view'].create({
-            'name': f"{model_name_str}_tree",
-            'type': 'tree',
-            'model': model_name,
-            'arch': str_arch,
-            'm2o_model': model_created.id,
-        })
+        view_value = self.env["ir.ui.view"].create(
+            {
+                "name": f"{model_name_str}_tree",
+                "type": "tree",
+                "model": model_name,
+                "arch": str_arch,
+                "m2o_model": model_created.id,
+            }
+        )
 
         return view_value
 
@@ -179,9 +210,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         lst_group = []
         for model in model_created_fields:
             lst_value = []
-            value = {
-                "name": model.name
-            }
+            value = {"name": model.name}
             lst_value.append(value)
 
             key = "geo_"
@@ -189,22 +218,23 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 value["widget"] = "geo_edit_map"
                 # value["attrs"] = "{'invisible': [('type', '!=', '"f"{model[len(key):]}')]""}"
             # lst_field.append(value)
-            lst_group.append(E.group({},
-                                     E.field(value)))
-        form_xml = E.form({
-            "string": "Titre",
-        },
-            E.sheet({},
-                    *lst_group)
+            lst_group.append(E.group({}, E.field(value)))
+        form_xml = E.form(
+            {
+                "string": "Titre",
+            },
+            E.sheet({}, *lst_group),
         )
         str_arch = ET.tostring(form_xml, pretty_print=True)
-        view_value = self.env['ir.ui.view'].create({
-            'name': f"{model_name_str}_form",
-            'type': 'form',
-            'model': model_name,
-            'arch': str_arch,
-            'm2o_model': model_created.id,
-        })
+        view_value = self.env["ir.ui.view"].create(
+            {
+                "name": f"{model_name_str}_form",
+                "type": "form",
+                "model": model_name,
+                "arch": str_arch,
+                "m2o_model": model_created.id,
+            }
+        )
 
         return view_value
 
@@ -212,47 +242,47 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         # group_id = self.env['res.groups'].search([('name', '=', 'Code Generator / Manager')])
         # group_id = self.env['res.groups'].search([('name', '=', 'Internal User')])
         lang = "en_US"
-        group_id = self.env.ref('base.group_user').with_context(lang=lang)
+        group_id = self.env.ref("base.group_user").with_context(lang=lang)
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
         v = {
-            'name': '%s Access %s' % (model_name_str, group_id.full_name),
-            'model_id': model_created.id,
-            'group_id': group_id.id,
-            'perm_read': True,
-            'perm_create': True,
-            'perm_write': True,
-            'perm_unlink': True,
+            "name": "%s Access %s" % (model_name_str, group_id.full_name),
+            "model_id": model_created.id,
+            "group_id": group_id.id,
+            "perm_read": True,
+            "perm_create": True,
+            "perm_write": True,
+            "perm_unlink": True,
         }
 
-        access_value = self.env['ir.model.access'].create(v)
+        access_value = self.env["ir.model.access"].create(v)
 
     def _generate_menu(self, model_created, module, lst_view_generated):
         # group_id = self.env['res.groups'].search([('name', '=', 'Code Generator / Manager')])
         # group_id = self.env['res.groups'].search([('name', '=', 'Internal User')])
-        group_id = self.env.ref('base.group_user')
+        group_id = self.env.ref("base.group_user")
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
         module_name = module.name
         # Create root if not exist
         if not self.generated_root_menu:
             v = {
-                'name': f"root_{module_name}",
-                'sequence': 20,
-                'web_icon': f'code_generator,static/description/icon_new_application.png',
+                "name": f"root_{module_name}",
+                "sequence": 20,
+                "web_icon": f"code_generator,static/description/icon_new_application.png",
                 # 'group_id': group_id.id,
-                'm2o_module': module.id,
+                "m2o_module": module.id,
             }
-            self.generated_root_menu = self.env['ir.ui.menu'].create(v)
+            self.generated_root_menu = self.env["ir.ui.menu"].create(v)
         if not self.generated_parent_menu:
             v = {
-                'name': _("Models"),
-                'sequence': 1,
-                'parent_id': self.generated_root_menu.id,
+                "name": _("Models"),
+                "sequence": 1,
+                "parent_id": self.generated_root_menu.id,
                 # 'group_id': group_id.id,
-                'm2o_module': module.id,
+                "m2o_module": module.id,
             }
-            self.generated_parent_menu = self.env['ir.ui.menu'].create(v)
+            self.generated_parent_menu = self.env["ir.ui.menu"].create(v)
 
         help_str = f"""<p class="o_view_nocontent_empty_folder">
         Add a new {model_name_str}
@@ -266,29 +296,29 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
         # Create action
         v = {
-            'name': f"{model_name_str}_action_view",
-            'res_model': model_name,
-            'type': 'ir.actions.act_window',
-            'view_mode': view_mode,
-            'view_type': view_type,
+            "name": f"{model_name_str}_action_view",
+            "res_model": model_name,
+            "type": "ir.actions.act_window",
+            "view_mode": view_mode,
+            "view_type": view_type,
             # 'help': help_str,
             # 'search_view_id': self.search_view_id.id,
-            'context': {},
-            'm2o_res_model': model_created.id,
+            "context": {},
+            "m2o_res_model": model_created.id,
         }
-        action_id = self.env['ir.actions.act_window'].create(v)
+        action_id = self.env["ir.actions.act_window"].create(v)
 
         # Create menu
 
         self.nb_sub_menu += 1
 
         v = {
-            'name': model_name_str,
-            'sequence': self.nb_sub_menu,
-            'parent_id': self.generated_parent_menu.id,
-            'action': 'ir.actions.act_window,%s' % action_id.id,
+            "name": model_name_str,
+            "sequence": self.nb_sub_menu,
+            "parent_id": self.generated_parent_menu.id,
+            "action": "ir.actions.act_window,%s" % action_id.id,
             # 'group_id': group_id.id,
-            'm2o_module': module.id,
+            "m2o_module": module.id,
         }
 
-        access_value = self.env['ir.ui.menu'].create(v)
+        access_value = self.env["ir.ui.menu"].create(v)

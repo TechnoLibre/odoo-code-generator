@@ -7,13 +7,13 @@ from lxml.builder import E
 from lxml import etree as ET
 import os
 
-BREAK_LINE = ['\n']
-BREAK_LINE_OFF = '\n'
+BREAK_LINE = ["\n"]
+BREAK_LINE_OFF = "\n"
 XML_VERSION_HEADER = '<?xml version="1.0" encoding="utf-8"?>' + BREAK_LINE_OFF
 
 
 class CodeGeneratorWriter(models.Model):
-    _inherit = 'code.generator.writer'
+    _inherit = "code.generator.writer"
 
     def set_xml_views_file(self, module):
         super(CodeGeneratorWriter, self).set_xml_views_file(module)
@@ -42,10 +42,13 @@ class CodeGeneratorWriter(models.Model):
                     E.field({"name": "begin_color"}, vector.begin_color),
                 ]
 
-                xml = E.record({
-                    "id": f"geoengine_vector_layer_{vector.view_id.name}_{vector.geo_field_id.name}",
-                    "model": "geoengine.vector.layer",
-                }, *lst_field)
+                xml = E.record(
+                    {
+                        "id": f"geoengine_vector_layer_{vector.view_id.name}_{vector.geo_field_id.name}",
+                        "model": "geoengine.vector.layer",
+                    },
+                    *lst_field,
+                )
                 lst_template_xml.append(xml)
 
         if module.o2m_geoengine_raster_layer:
@@ -60,13 +63,16 @@ class CodeGeneratorWriter(models.Model):
                 if raster.url:
                     lst_field.append(E.field({"name": "url"}, raster.url))
 
-                xml = E.record({
-                    "id": f"geoengine_raster_layer_{raster.view_id.name}_{raster.raster_type}",
-                    "model": "geoengine.raster.layer",
-                }, *lst_field)
+                xml = E.record(
+                    {
+                        "id": f"geoengine_raster_layer_{raster.view_id.name}_{raster.raster_type}",
+                        "model": "geoengine.raster.layer",
+                    },
+                    *lst_field,
+                )
                 lst_template_xml.append(xml)
 
         module_file = E.odoo({}, *lst_template_xml)
-        data_file_path = os.path.join(self.code_generator_data.views_path, 'geoengine.xml')
+        data_file_path = os.path.join(self.code_generator_data.views_path, "geoengine.xml")
         result = XML_VERSION_HEADER.encode("utf-8") + ET.tostring(module_file, pretty_print=True)
         self.code_generator_data.write_file_binary(data_file_path, result, data_file=True)

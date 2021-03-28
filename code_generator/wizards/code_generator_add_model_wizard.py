@@ -5,19 +5,33 @@ class CodeGeneratorAddModelWizard(models.TransientModel):
     _name = "code.generator.add.model.wizard"
     _description = "Code Generator Model Wizard"
 
-    code_generator_id = fields.Many2one(comodel_name="code.generator.module", string="Code Generator", required=True,
-                                        ondelete='cascade')
+    code_generator_id = fields.Many2one(
+        comodel_name="code.generator.module",
+        string="Code Generator",
+        required=True,
+        ondelete="cascade",
+    )
 
-    option_adding = fields.Selection([
-        ('inherit', 'Inherit Model'),
-        ('nomenclator', 'Nomenclator'),
-    ], required=True, default='nomenclator', help="Inherit to inherit a new model.\nNomenclator to export data.")
+    option_adding = fields.Selection(
+        [
+            ("inherit", "Inherit Model"),
+            ("nomenclator", "Nomenclator"),
+        ],
+        required=True,
+        default="nomenclator",
+        help="Inherit to inherit a new model.\nNomenclator to export data.",
+    )
 
-    option_blacklist = fields.Selection([
-        ('blacklist', 'Blacklist'),
-        ('whitelist', 'Whitelist'),
-    ], required=True, default='whitelist', help="When whitelist, all selected fields will be added.\n"
-                                                "When blacklist, all selected fields will be ignored.")
+    option_blacklist = fields.Selection(
+        [
+            ("blacklist", "Blacklist"),
+            ("whitelist", "Whitelist"),
+        ],
+        required=True,
+        default="whitelist",
+        help="When whitelist, all selected fields will be added.\n"
+        "When blacklist, all selected fields will be ignored.",
+    )
 
     user_id = fields.Many2one(
         comodel_name="res.users",
@@ -27,17 +41,24 @@ class CodeGeneratorAddModelWizard(models.TransientModel):
     )
 
     model_ids = fields.Many2many(
-        comodel_name="ir.model", string="Models",
-        help="Select the model you want to inherit or import data.")
+        comodel_name="ir.model",
+        string="Models",
+        help="Select the model you want to inherit or import data.",
+    )
 
     field_ids = fields.Many2many(
-        comodel_name="ir.model.fields", string="Fields",
-        help="Select the field you want to inherit or import data.")
+        comodel_name="ir.model.fields",
+        string="Fields",
+        help="Select the field you want to inherit or import data.",
+    )
 
-    clear_fields_blacklist = fields.Boolean(string="Clear field blacklisted", default=False,
-                                            help="Erase all blacklisted fields when enable.")
+    clear_fields_blacklist = fields.Boolean(
+        string="Clear field blacklisted",
+        default=False,
+        help="Erase all blacklisted fields when enable.",
+    )
 
-    @api.onchange('model_ids')
+    @api.onchange("model_ids")
     def _onchange_model_ids(self):
         field_ids = [field_id.id for model_id in self.model_ids for field_id in model_id.field_id]
         self.field_ids = [(6, 0, field_ids)]
@@ -46,7 +67,8 @@ class CodeGeneratorAddModelWizard(models.TransientModel):
     def button_generate_add_model(self):
         if self.clear_fields_blacklist:
             field_ids = self.env["code.generator.ir.model.fields"].search(
-                [("m2o_module", "=", self.code_generator_id.id)])
+                [("m2o_module", "=", self.code_generator_id.id)]
+            )
             field_ids.unlink()
 
         is_nomenclator = self.option_adding == "nomenclator"
@@ -71,7 +93,11 @@ class CodeGeneratorAddModelWizard(models.TransientModel):
                     # check not exist before added
                     module_id = self.env["ir.module.module"].search([("name", "=", module_name)])
                     dependencies_len = self.env["code.generator.module.dependency"].search_count(
-                        [("module_id", "=", self.code_generator_id.id), ("depend_id", "=", module_id.id)])
+                        [
+                            ("module_id", "=", self.code_generator_id.id),
+                            ("depend_id", "=", module_id.id),
+                        ]
+                    )
                     if not dependencies_len:
                         value_dependencies = {
                             "module_id": self.code_generator_id.id,

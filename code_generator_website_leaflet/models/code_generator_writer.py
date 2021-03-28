@@ -7,13 +7,13 @@ from lxml.builder import E
 from lxml import etree as ET
 import os
 
-BREAK_LINE = ['\n']
-BREAK_LINE_OFF = '\n'
+BREAK_LINE = ["\n"]
+BREAK_LINE_OFF = "\n"
 XML_VERSION_HEADER = '<?xml version="1.0" encoding="utf-8"?>' + BREAK_LINE_OFF
 
 
 class CodeGeneratorWriter(models.Model):
-    _inherit = 'code.generator.writer'
+    _inherit = "code.generator.writer"
 
     def get_lst_file_generate(self, module):
         if module.enable_generate_website_leaflet:
@@ -62,7 +62,9 @@ class CodeGeneratorWriter(models.Model):
         cw.emit("class MapFeatureController(http.Controller):")
         cw.emit("")
         with cw.indent():
-            cw.emit(f"@http.route(['/{module.name}/map/config'], type='json', auth=\"public\", website=True,")
+            cw.emit(
+                f"@http.route(['/{module.name}/map/config'], type='json', auth=\"public\", website=True,"
+            )
         with cw.indent():
             with cw.indent():
                 with cw.indent():
@@ -71,13 +73,13 @@ class CodeGeneratorWriter(models.Model):
         with cw.indent():
             cw.emit("def map_detail(self):")
             with cw.indent():
-                cw.emit("name = \"test\"")
+                cw.emit('name = "test"')
                 cw.emit("lat = 45.587134")
                 cw.emit("lng = -73.733368")
                 cw.emit("enable = True")
                 cw.emit("size_width = 800")
                 cw.emit("size_height = 600")
-                cw.emit("provider = \"CartoDB\"")
+                cw.emit('provider = "CartoDB"')
                 cw.emit("zoom = 13")
                 cw.emit("categories = {}")
                 # cw.emit(f"for i in http.request.env['{model_id.model}'].search([[\"active\", \"=\", True]]):")
@@ -90,13 +92,15 @@ class CodeGeneratorWriter(models.Model):
                 #     cw.emit("}")
             with cw.indent():
                 cw.emit("features = defaultdict(list)")
-                cw.emit("transformer = Transformer.from_crs(\"epsg:3857\", \"epsg:4326\")")
+                cw.emit('transformer = Transformer.from_crs("epsg:3857", "epsg:4326")')
             cw.emit("")
             with cw.indent():
                 str_search = ""
                 if active_id:
                     str_search = '("active", "=", True)'
-                cw.emit(f"map_feature_ids = request.env[\"{model_id.model}\"].sudo().search([{str_search}])")
+                cw.emit(
+                    f'map_feature_ids = request.env["{model_id.model}"].sudo().search([{str_search}])'
+                )
                 cw.emit("for feature in map_feature_ids:")
                 with cw.indent():
                     cw.emit("value = {}")
@@ -105,7 +109,7 @@ class CodeGeneratorWriter(models.Model):
                     with cw.indent():
                         cw.emit("pass")
                     for field_id in lst_fields:
-                        cw.emit(f"elif feature.type == \"{field_id.name}\":")
+                        cw.emit(f'elif feature.type == "{field_id.name}":')
                         with cw.indent():
                             cw.emit(f"if not feature.{field_id.name}:")
                             with cw.indent():
@@ -129,12 +133,12 @@ class CodeGeneratorWriter(models.Model):
                     with cw.indent():
                         cw.emit("if feature.open_popup:")
                         with cw.indent():
-                            cw.emit("value[\"open_popup\"] = feature.open_popup")
+                            cw.emit('value["open_popup"] = feature.open_popup')
                 if html_text_id:
                     with cw.indent():
                         cw.emit("if feature.html_text:")
                         with cw.indent():
-                            cw.emit("value[\"html_popup\"] = feature.html_text")
+                            cw.emit('value["html_popup"] = feature.html_text')
             cw.emit("")
             with cw.indent():
                 with cw.indent():
@@ -144,32 +148,32 @@ class CodeGeneratorWriter(models.Model):
                         cw.emit("pass")
                 for field_id in lst_fields:
                     with cw.indent():
-                        cw.emit(f"elif feature.type == \"{field_id.name}\":")
+                        cw.emit(f'elif feature.type == "{field_id.name}":')
                         with cw.indent():
                             if field_id.ttype == "geo_point":
-                                cw.emit("value[\"coordinates\"] = coord_lat_long[0]")
-                                cw.emit("features[\"markers\"].append(value)")
+                                cw.emit('value["coordinates"] = coord_lat_long[0]')
+                                cw.emit('features["markers"].append(value)')
                             else:
-                                cw.emit("value[\"coordinates\"] = coord_lat_long")
+                                cw.emit('value["coordinates"] = coord_lat_long')
                                 if field_id.ttype == "geo_polygon":
-                                    cw.emit("features[\"areas\"].append(value)")
+                                    cw.emit('features["areas"].append(value)')
                                 elif field_id.ttype == "geo_line":
-                                    cw.emit("features[\"lines\"].append(value)")
+                                    cw.emit('features["lines"].append(value)')
             cw.emit("")
         with cw.indent():
             with cw.indent():
                 cw.emit("return {")
                 with cw.indent():
-                    cw.emit("\"name\": name,")
-                    cw.emit("\"lat\": lat,")
-                    cw.emit("\"lng\": lng,")
-                    cw.emit("\"enable\": enable,")
-                    cw.emit("\"size_width\": size_width,")
-                    cw.emit("\"size_height\": size_height,")
-                    cw.emit("\"zoom\": zoom,")
-                    cw.emit("\"provider\": provider,")
-                    cw.emit("\"features\": features,")
-                    cw.emit("\"categories\": categories,")
+                    cw.emit('"name": name,')
+                    cw.emit('"lat": lat,')
+                    cw.emit('"lng": lng,')
+                    cw.emit('"enable": enable,')
+                    cw.emit('"size_width": size_width,')
+                    cw.emit('"size_height": size_height,')
+                    cw.emit('"zoom": zoom,')
+                    cw.emit('"provider": provider,')
+                    cw.emit('"features": features,')
+                    cw.emit('"categories": categories,')
             with cw.indent():
                 cw.emit("}")
 
@@ -177,7 +181,7 @@ class CodeGeneratorWriter(models.Model):
 
         l_model = out.split("\n")
 
-        file_path = f'{self.code_generator_data.controllers_path}/main.py'
+        file_path = f"{self.code_generator_data.controllers_path}/main.py"
 
         self.code_generator_data.write_file_lst_content(file_path, l_model)
 
@@ -199,7 +203,9 @@ class CodeGeneratorWriter(models.Model):
 
         destination_file = os.path.join(destination_directory, "scss", "leaflet.scss")
         source_file = os.path.join(source_directory, "scss", "leaflet.scss")
-        self.code_generator_data.copy_file(source_file, destination_file, [("website_leaflet", module.name)])
+        self.code_generator_data.copy_file(
+            source_file, destination_file, [("website_leaflet", module.name)]
+        )
 
     def _set_website_leaflet_static_javascript_file(self, module):
         """
@@ -208,7 +214,9 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        content = f"odoo.define('{module.name}.animation', function (require)"""" {
+        content = (
+            f"odoo.define('{module.name}.animation', function (require)"
+            """ {
     'use strict';
 
     var sAnimation = require('website.content.snippets.animation');
@@ -225,11 +233,15 @@ class CodeGeneratorWriter(models.Model):
         geojson = '';
 
     sAnimation.registry.form_builder_send = sAnimation.Class.extend({
-        """f"selector: '.{module.name}',""""
+        """
+            f"selector: '.{module.name}',"
+            """
 
         start: function () {
             var self = this;
-            var def = this._rpc({route: '"""f"/{module.name}/map/config""""'}).then(function (data) {
+            var def = this._rpc({route: '"""
+            f"/{module.name}/map/config"
+            """'}).then(function (data) {
                 // $timeline.empty();
                 // $goal.empty();
                 // $progression.empty();
@@ -360,6 +372,7 @@ class CodeGeneratorWriter(models.Model):
 
 });
         """
+        )
 
         file_path = os.path.join("static", "src", "js", "website.leaflet.animation.js")
         self.code_generator_data.write_file_str(file_path, content)
@@ -375,61 +388,101 @@ class CodeGeneratorWriter(models.Model):
         lst_template_xml = []
 
         # map
-        template_xml = E.template({
-            "id": f"s_{module.name}",
-            "name": "Leaflet",
-        },
-            E.section({"class": module.name},
-                      E.div({"class": "container"},
-                            E.div({"class": "row"},
-                                  E.div({"class": "map", "style": "height:600px;width:800px;"})
-                                  )))
+        template_xml = E.template(
+            {
+                "id": f"s_{module.name}",
+                "name": "Leaflet",
+            },
+            E.section(
+                {"class": module.name},
+                E.div(
+                    {"class": "container"},
+                    E.div(
+                        {"class": "row"},
+                        E.div({"class": "map", "style": "height:600px;width:800px;"}),
+                    ),
+                ),
+            ),
         )
         lst_template_xml.append(template_xml)
 
         # snippet
         lst_link = [
-            E.t({"t-snippet": f"{module.name}.s_{module.name}",
-                 "t-thumbnail": f"/{module.name}/static/description/icon.png"}),
+            E.t(
+                {
+                    "t-snippet": f"{module.name}.s_{module.name}",
+                    "t-thumbnail": f"/{module.name}/static/description/icon.png",
+                }
+            ),
         ]
 
         lst_xpath = [
-            E.xpath({"expr": "//div[@id='snippet_feature']//t[@t-snippet][last()]", "position": "after"}, *lst_link),
+            E.xpath(
+                {
+                    "expr": "//div[@id='snippet_feature']//t[@t-snippet][last()]",
+                    "position": "after",
+                },
+                *lst_link,
+            ),
         ]
-        template_xml = E.template({
-            "id": f"{module.name}_snippet",
-            "inherit_id": "website.snippets",
-        },
-            *lst_xpath
+        template_xml = E.template(
+            {
+                "id": f"{module.name}_snippet",
+                "inherit_id": "website.snippets",
+            },
+            *lst_xpath,
         )
         lst_template_xml.append(template_xml)
 
         # website.assets_primary_variables
         lst_link = [
-            E.link({"rel": "stylesheet", "type": "text/scss",
-                    "href": f"/{module.name}/static/src/scss/leaflet.scss"}),
-            E.link({"rel": "stylesheet", "type": "text/scss",
-                    "href": f"/{module.name}/static/src/scss/leaflet_custom.scss"}),
+            E.link(
+                {
+                    "rel": "stylesheet",
+                    "type": "text/scss",
+                    "href": f"/{module.name}/static/src/scss/leaflet.scss",
+                }
+            ),
+            E.link(
+                {
+                    "rel": "stylesheet",
+                    "type": "text/scss",
+                    "href": f"/{module.name}/static/src/scss/leaflet_custom.scss",
+                }
+            ),
         ]
         lst_script = [
-            E.script({"type": "text/javascript", "src": f"/{module.name}/static/src/js/website.leaflet.animation.js"}),
-            E.script({"type": "text/javascript", "src": f"/{module.name}/static/src/js/lib/leaflet.js"}),
-            E.script({"type": "text/javascript", "src": f"/{module.name}/static/src/js/lib/leaflet-providers.js"}),
+            E.script(
+                {
+                    "type": "text/javascript",
+                    "src": f"/{module.name}/static/src/js/website.leaflet.animation.js",
+                }
+            ),
+            E.script(
+                {"type": "text/javascript", "src": f"/{module.name}/static/src/js/lib/leaflet.js"}
+            ),
+            E.script(
+                {
+                    "type": "text/javascript",
+                    "src": f"/{module.name}/static/src/js/lib/leaflet-providers.js",
+                }
+            ),
         ]
 
         lst_xpath = [
             E.xpath({"expr": "//link[last()]", "position": "after"}, *lst_link),
             E.xpath({"expr": "//script[last()]", "position": "after"}, *lst_script),
         ]
-        template_xml = E.template({
-            "id": f"{module.name}_assets_frontend",
-            "inherit_id": "website.assets_frontend",
-        },
-            *lst_xpath
+        template_xml = E.template(
+            {
+                "id": f"{module.name}_assets_frontend",
+                "inherit_id": "website.assets_frontend",
+            },
+            *lst_xpath,
         )
         lst_template_xml.append(template_xml)
 
         module_file = E.odoo({}, *lst_template_xml)
-        data_file_path = os.path.join(self.code_generator_data.views_path, 'snippets.xml')
+        data_file_path = os.path.join(self.code_generator_data.views_path, "snippets.xml")
         result = XML_VERSION_HEADER.encode("utf-8") + ET.tostring(module_file, pretty_print=True)
         self.code_generator_data.write_file_binary(data_file_path, result, data_file=True)

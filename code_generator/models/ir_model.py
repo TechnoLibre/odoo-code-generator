@@ -434,6 +434,14 @@ class IrModelFields(models.Model):
         string="Sequence Code Generator", help="Sequence to write this field from Code Generator."
     )
 
+    code_generator_tree_view_sequence = fields.Integer(
+        string="Tree view sequence", help="Sequence to write this field in tree view from Code Generator.", default=-1
+    )
+
+    code_generator_search_sequence = fields.Integer(
+        string="Search sequence", help="Sequence to write this field in search from Code Generator.", default=-1
+    )
+
     code_generator_compute = fields.Char(
         string="Compute Code Generator", help="Compute method to code_generator_writer."
     )

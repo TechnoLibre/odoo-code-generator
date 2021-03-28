@@ -182,8 +182,36 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     def _generate_list_views_models(self, model_created, model_created_fields, module):
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
-        lst_field = [E.field({"name": a.name}) for a in model_created_fields]
+        # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
+        lst_field_sorted = model_created_fields.sorted(lambda field: field.code_generator_tree_view_sequence)
+        lst_field = [E.field({"name": a.name}) for a in lst_field_sorted if a.code_generator_tree_view_sequence >= 0]
         arch_xml = E.tree(
+            {
+                # TODO enable this when missing form
+                # "editable": "top",
+            },
+            *lst_field,
+        )
+        str_arch = ET.tostring(arch_xml, pretty_print=True)
+        view_value = self.env["ir.ui.view"].create(
+            {
+                "name": f"{model_name_str}_tree",
+                "type": "tree",
+                "model": model_name,
+                "arch": str_arch,
+                "m2o_model": model_created.id,
+            }
+        )
+
+        return view_value
+
+    def _generate_list_search_models(self, model_created, model_created_fields, module):
+        model_name = model_created.model
+        model_name_str = model_name.replace(".", "_")
+        # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
+        lst_field_sorted = model_created_fields.sorted(lambda field: field.code_generator_search_sequence)
+        lst_field = [E.field({"name": a.name}) for a in lst_field_sorted if a.code_generator_search_sequence >= 0]
+        arch_xml = E.search(
             {
                 # TODO enable this when missing form
                 # "editable": "top",

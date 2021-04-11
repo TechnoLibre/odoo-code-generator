@@ -299,10 +299,14 @@ class CodeGeneratorViewItem(models.Model):
 
     sequence = fields.Integer(string="Sequence", default=1)
 
+    sequence_root = fields.Integer(string="Root sequence", default=1, help="Order in root item of view.")
+
+    sequence_child = fields.Integer(string="Child sequence", default=1, help="Position")
+
     label = fields.Char(string="Label")
 
     item_type = fields.Selection(
-        [("field", "Field"), ("button", "Button"), ("html", "HTML")],
+        [("field", "Field"), ("button", "Button"), ("html", "HTML"), ("div", "Division"), ("group", "Group")],
         default="field",
         help="Choose item type to generate.",
     )
@@ -340,7 +344,11 @@ class CodeGeneratorViewItem(models.Model):
 
     is_readonly = fields.Boolean(string="Readonly")
 
+    is_help = fields.Boolean(string="Help")
+
     has_label = fields.Boolean(string="Labeled")
+
+    is_child = fields.Boolean(string="Edit only", help="Inside a div or group or ?.")
 
     edit_only = fields.Boolean(string="Edit only")
 

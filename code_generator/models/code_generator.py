@@ -302,7 +302,7 @@ class CodeGeneratorViewItem(models.Model):
     label = fields.Char(string="Label")
 
     item_type = fields.Selection(
-        [("field", "Field"), ("button", "Button")],
+        [("field", "Field"), ("button", "Button"), ("html", "HTML")],
         default="field",
         help="Choose item type to generate.",
     )
@@ -328,6 +328,10 @@ class CodeGeneratorViewItem(models.Model):
         [("header", "Header"), ("title", "Title"), ("body", "Body"), ("help", "Help")],
         default="body",
         help="Choose item type to generate.",
+    )
+
+    colspan = fields.Integer(
+        string="Colspan", default=1, help="Use this to fill more column, check HTML table."
     )
 
     is_required = fields.Boolean(string="Required")

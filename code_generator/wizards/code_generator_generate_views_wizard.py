@@ -2,6 +2,7 @@ from odoo import _, models, fields, api
 from odoo.models import MAGIC_COLUMNS
 from lxml.builder import E
 from lxml import etree as ET
+import uuid
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -306,6 +307,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
     def _generate_specific_form_views_models(self, code_generator_view_id):
         model_name = code_generator_view_id.m2o_model.model
+        dct_replace = {}
         lst_item_header = []
         lst_item_body = []
         lst_item_title = []
@@ -388,18 +390,38 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             header_xml = E.div({"class": "oe_title"}, *lst_child)
             lst_item_form_sheet.append(header_xml)
 
+        if lst_item_help:
+            lst_item_help = sorted(lst_item_help, key=lambda item: item.sequence)
+
+            for item_help in lst_item_help:
+                dct_item = {"string": "help"}
+                if item_help.colspan > 1:
+                    dct_item["colspan"] = str(item_help.colspan)
+                item_xml = E.separator(dct_item)
+                lst_item_form_sheet.append(item_xml)
+
+                uid = str(uuid.uuid1())
+                dct_replace[uid] = item_help.action_name
+                item_xml = E.div({}, uid)
+                lst_item_form_sheet.append(item_xml)
+
         if lst_item_form_sheet:
             sheet_xml = E.sheet({}, *lst_item_form_sheet)
             lst_item_form.append(sheet_xml)
 
         form_xml = E.form({}, *lst_item_form)
         str_arch = ET.tostring(form_xml, pretty_print=True)
+        str_content = str_arch.decode()
+
+        for key, value in dct_replace.items():
+            str_content = str_content.replace(key, value)
+
         view_value = self.env["ir.ui.view"].create(
             {
                 "name": code_generator_view_id.view_name,
                 "type": "form",
                 "model": model_name,
-                "arch": str_arch,
+                "arch": str_content,
                 "m2o_model": code_generator_view_id.m2o_model.id,
             }
         )

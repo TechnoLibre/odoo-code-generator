@@ -2,6 +2,9 @@ from odoo import _, models, fields, api
 from odoo.models import MAGIC_COLUMNS
 from lxml.builder import E
 from lxml import etree as ET
+import logging
+
+_logger = logging.getLogger(__name__)
 
 MAGIC_FIELDS = MAGIC_COLUMNS + [
     "display_name",
@@ -35,6 +38,12 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
     enable_generate_all = fields.Boolean(
         string="Enable all feature", default=True, help="Generate with all feature."
+    )
+
+    code_generator_view_ids = fields.Many2many(
+        comodel_name="code.generator.view",
+        string="Code Generator View",
+        ondelete="cascade",
     )
 
     date = fields.Date(
@@ -114,6 +123,22 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
         self.clear_all()
 
+        if not self.code_generator_view_ids:
+            self.generic_generate_view()
+        else:
+            for code_generator_view_id in self.code_generator_view_ids:
+                self.specific_generate_view(code_generator_view_id)
+                # TODO bug attach view to model (o2m_model) when not generate access
+                for model_id in self.code_generator_id.o2m_models:
+                    self._generate_model_access(model_id)
+
+    @api.multi
+    def specific_generate_view(self, code_generator_view_id):
+        if code_generator_view_id.view_type == "form":
+            self._generate_specific_form_views_models(code_generator_view_id)
+
+    @api.multi
+    def generic_generate_view(self):
         o2m_models_view_list = (
             self.code_generator_id.o2m_models
             if self.all_model
@@ -145,6 +170,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                     model_id, model_created_fields_list, model_id.m2o_module
                 )
                 lst_view_generated.append("list")
+
             if model_id in o2m_models_view_form:
                 is_whitelist = bool(
                     model_id.field_id.filtered(lambda field: field.is_show_whitelist_form_view)
@@ -183,8 +209,14 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
         # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
-        lst_field_sorted = model_created_fields.sorted(lambda field: field.code_generator_tree_view_sequence)
-        lst_field = [E.field({"name": a.name}) for a in lst_field_sorted if a.code_generator_tree_view_sequence >= 0]
+        lst_field_sorted = model_created_fields.sorted(
+            lambda field: field.code_generator_tree_view_sequence
+        )
+        lst_field = [
+            E.field({"name": a.name})
+            for a in lst_field_sorted
+            if a.code_generator_tree_view_sequence >= 0
+        ]
         arch_xml = E.tree(
             {
                 # TODO enable this when missing form
@@ -209,8 +241,14 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
         # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
-        lst_field_sorted = model_created_fields.sorted(lambda field: field.code_generator_search_sequence)
-        lst_field = [E.field({"name": a.name}) for a in lst_field_sorted if a.code_generator_search_sequence >= 0]
+        lst_field_sorted = model_created_fields.sorted(
+            lambda field: field.code_generator_search_sequence
+        )
+        lst_field = [
+            E.field({"name": a.name})
+            for a in lst_field_sorted
+            if a.code_generator_search_sequence >= 0
+        ]
         arch_xml = E.search(
             {
                 # TODO enable this when missing form
@@ -261,6 +299,108 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 "model": model_name,
                 "arch": str_arch,
                 "m2o_model": model_created.id,
+            }
+        )
+
+        return view_value
+
+    def _generate_specific_form_views_models(self, code_generator_view_id):
+        model_name = code_generator_view_id.m2o_model.model
+        lst_item_header = []
+        lst_item_body = []
+        lst_item_title = []
+        lst_item_help = []
+        for view_item in code_generator_view_id.view_item_ids:
+            if view_item.section_type == "body":
+                lst_item_body.append(view_item)
+            elif view_item.section_type == "header":
+                lst_item_header.append(view_item)
+            elif view_item.section_type == "title":
+                lst_item_title.append(view_item)
+            elif view_item.section_type == "help":
+                lst_item_help.append(view_item)
+            else:
+                _logger.warning(f"View item '{view_item.section_type}' is not supported.")
+
+        lst_item_form = []
+        lst_item_form_sheet = []
+
+        if lst_item_header:
+            lst_item_header = sorted(lst_item_header, key=lambda item: item.sequence)
+            lst_child = []
+            for item_header in lst_item_header:
+                if item_header.item_type == "field":
+                    item = E.field()
+                elif item_header.item_type == "button":
+                    button_attributes = {
+                        "name": item_header.action_name,
+                        "string": item_header.label,
+                        "type": "object",
+                    }
+                    if item_header.button_type:
+                        button_attributes["class"] = item_header.button_type
+                    item = E.button(button_attributes)
+                else:
+                    _logger.warning(f"Item header type '{item_header.item_type}' is not supported.")
+                    continue
+                lst_child.append(item)
+            header_xml = E.header({}, *lst_child)
+            lst_item_form.append(header_xml)
+
+        if lst_item_title:
+            lst_item_title = sorted(lst_item_title, key=lambda item: item.sequence)
+            lst_child = []
+            i = 0
+            for item_header in lst_item_title:
+                if item_header.item_type == "field":
+
+                    if item_header.edit_only or item_header.has_label:
+                        dct_item_label = {"for": item_header.action_name}
+                        if item_header.edit_only:
+                            dct_item_label["class"] = "oe_edit_only"
+                        item_label = E.label(dct_item_label)
+                        lst_child.append(item_label)
+                    dct_item_field = {"name": item_header.action_name}
+
+                    if item_header.is_required:
+                        dct_item_field["required"] = "1"
+                    if item_header.is_readonly:
+                        dct_item_field["readonly"] = "1"
+                    item_field = E.field(dct_item_field)
+                    if i == 0:
+                        item = E.h1({}, item_field)
+                    elif i == 1:
+                        item = E.h2({}, item_field)
+                    elif i == 2:
+                        item = E.h3({}, item_field)
+                    elif i == 3:
+                        item = E.h4({}, item_field)
+                    else:
+                        item = E.h5({}, item_field)
+                elif item_header.item_type == "button":
+                    _logger.warning(f"Button is not supported in title section.")
+                    continue
+                else:
+                    _logger.warning(f"Item header type '{item_header.item_type}' is not supported.")
+                    continue
+                i += 1
+                lst_child.append(item)
+            header_xml = E.div({"class": "oe_title"}, *lst_child)
+            lst_item_form_sheet.append(header_xml)
+
+        if lst_item_form_sheet:
+            sheet_xml = E.sheet({}, *lst_item_form_sheet)
+            lst_item_form.append(sheet_xml)
+
+        form_xml = E.form({}, *lst_item_form)
+        str_arch = ET.tostring(form_xml, pretty_print=True)
+        view_value = self.env["ir.ui.view"].create(
+            {
+                "name": code_generator_view_id.view_name,
+                "type": "form",
+                "model": model_name,
+                "arch": str_arch,
+                "m2o_model": code_generator_view_id.m2o_model.id,
             }
         )
 

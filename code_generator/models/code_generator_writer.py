@@ -1733,8 +1733,8 @@ class CodeGeneratorData:
     def lst_import_dir(self):
         return list(self._dct_import_dir.keys())
 
-    def add_view_id(self, name, id):
-        self._dct_view_id[name] = id
+    def add_view_id(self, name, str_id):
+        self._dct_view_id[name] = str_id
 
     def add_module_init_path(self, component, import_line):
         self._dct_extra_module_init_path[component].append(import_line)

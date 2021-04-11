@@ -1983,7 +1983,7 @@ class CodeGeneratorData:
             os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
         )
         use_prettier = True
-        use_format_black = False  # Else, oca-autopep8
+        use_format_black = True  # Else, oca-autopep8
         use_html5print = False
         enable_xml_formatter = False
         # Manual format with def with programmer style

@@ -288,25 +288,30 @@ class CodeGeneratorView(models.Model):
         help="Item view to add in this view.",
     )
 
+    has_body_sheet = fields.Boolean(
+        string="Sheet format", help="Use sheet presentation for body of form view."
+    )
+
 
 class CodeGeneratorViewItem(models.Model):
     _name = "code.generator.view.item"
     _description = "Code Generator View Item"
 
-    m2o_fields = fields.Many2one("ir.model.fields", string="Fields")
-
     action_name = fields.Char(string="Action name")
 
     sequence = fields.Integer(string="Sequence", default=1)
 
-    sequence_root = fields.Integer(string="Root sequence", default=1, help="Order in root item of view.")
-
-    sequence_child = fields.Integer(string="Child sequence", default=1, help="Position")
-
+    # TODO create HTML for specific label
     label = fields.Char(string="Label")
 
     item_type = fields.Selection(
-        [("field", "Field"), ("button", "Button"), ("html", "HTML"), ("div", "Division"), ("group", "Group")],
+        [
+            ("field", "Field"),
+            ("button", "Button"),
+            ("html", "HTML"),
+            ("div", "Division"),
+            ("group", "Group"),
+        ],
         default="field",
         help="Choose item type to generate.",
     )
@@ -328,14 +333,46 @@ class CodeGeneratorViewItem(models.Model):
         help="Choose item type to generate.",
     )
 
+    background_type = fields.Selection(
+        [
+            ("", ""),  # Default
+            ("bg-success", "Success"),  # Default
+            # ("bg-success-light", "Success light"),
+            ("bg-success-full", "Success full"),
+            ("bg-warning", "Warning"),
+            # ("bg-warning-light", "Warning light"),
+            ("bg-warning-full", "Warning full"),
+            ("bg-info", "Info"),
+            # ("bg-info-light", "Info light"),
+            ("bg-info-full", "Info full"),
+            ("bg-danger", "Danger"),
+            # ("bg-danger-light", "Danger light"),
+            ("bg-danger-full", "Danger full"),
+            ("bg-light", "Light"),
+            ("bg-dark", "Dark"),
+        ],
+        default="",
+        help="Choose background color of HTML.",
+    )
+
     section_type = fields.Selection(
-        [("header", "Header"), ("title", "Title"), ("body", "Body"), ("help", "Help")],
+        [("header", "Header"), ("title", "Title"), ("body", "Body")],
         default="body",
         help="Choose item type to generate.",
     )
 
     colspan = fields.Integer(
         string="Colspan", default=1, help="Use this to fill more column, check HTML table."
+    )
+
+    placeholder = fields.Char(string="Placeholder")
+
+    password = fields.Boolean(string="Password", help="Hide character.")
+
+    icon = fields.Char(string="Icon", help="Example fa-television. Only supported with button.")
+
+    attrs = fields.Char(
+        string="Attributes", help="Specific condition, search attrs for more information."
     )
 
     is_required = fields.Boolean(string="Required")
@@ -346,9 +383,14 @@ class CodeGeneratorViewItem(models.Model):
 
     is_help = fields.Boolean(string="Help")
 
-    has_label = fields.Boolean(string="Labeled")
+    has_label = fields.Boolean(string="Labeled", help="Label for title.")
 
-    is_child = fields.Boolean(string="Edit only", help="Inside a div or group or ?.")
+    parent_id = fields.Many2one(comodel_name="code.generator.view.item")
+
+    child_id = fields.One2many(
+        comodel_name="code.generator.view.item",
+        inverse_name="parent_id",
+    )
 
     edit_only = fields.Boolean(string="Edit only")
 
@@ -383,3 +425,5 @@ return""",
     )
 
     m2o_model = fields.Many2one("ir.model", string="Model", help="Model", ondelete="cascade")
+
+    is_wip = fields.Boolean(string="Work in progress", help="Temporary function to be fill later.")

@@ -305,13 +305,166 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
         return view_value
 
+    def _generate_xml_button(self, item, model_id):
+        button_attributes = {
+            "name": item.action_name,
+            "string": item.label,
+            "type": "object",
+        }
+        if item.button_type:
+            button_attributes["class"] = item.button_type
+        if item.icon:
+            button_attributes["icon"] = item.icon
+
+        # Create method
+        items = self.env["code.generator.model.code"].search(
+            [
+                ("name", "=", item.action_name),
+                ("m2o_model", "=", model_id),
+                ("m2o_module", "=", self.code_generator_id.id),
+            ]
+        )
+        if not items:
+            value = {
+                "code": '''"""TODO what to run"""
+pass''',
+                "name": item.action_name,
+                "decorator": "@api.multi",
+                "param": "",
+                "m2o_module": self.code_generator_id.id,
+                "m2o_model": model_id,
+                "is_wip": True,
+            }
+            self.env["code.generator.model.code"].create(value)
+        return E.button(button_attributes)
+
+    @staticmethod
+    def _generate_xml_html_help(item, lst_child, dct_replace):
+        """
+
+        :param item:
+        :param lst_child: list of item to add more in some context
+        :param dct_replace: need it to replace html in xml without validation
+        :return:
+        """
+        dct_item = {"string": "Help"}
+        if item.colspan > 1:
+            dct_item["colspan"] = str(item.colspan)
+        item_xml = E.separator(dct_item)
+        lst_child.append(item_xml)
+
+        uid = str(uuid.uuid1())
+        dct_replace[uid] = item.label
+        item_xml = E.div({}, uid)
+        return item_xml
+
+    def _generate_xml_object(self, item, model_id, lst_child=[]):
+        if item.item_type == "field":
+            dct_item = {"name": item.action_name}
+            if item.placeholder:
+                dct_item["placeholder"] = item.placeholder
+            if item.password:
+                dct_item["password"] = "True"
+            item_xml = E.field(dct_item)
+            return item_xml
+        elif item.item_type == "button":
+            return self._generate_xml_button(item, model_id)
+        elif item.item_type == "html":
+            lst_html_child = []
+            dct_item = {}
+            if item.background_type:
+                dct_item["class"] = item.background_type
+                if item.background_type.startswith("bg-warning"):
+                    lst_html_child.append(E.h3({}, "Warning:"))
+                elif item.background_type.startswith("bg-success"):
+                    lst_html_child.append(E.h3({}, "Success:"))
+                elif item.background_type.startswith("bg-info"):
+                    lst_html_child.append(E.h3({}, "Info:"))
+                elif item.background_type.startswith("bg-danger"):
+                    lst_html_child.append(E.h3({}, "Danger:"))
+            lst_html_child.append(item.label)
+            item_xml = E.div(dct_item, *lst_html_child)
+            return item_xml
+        elif item.item_type == "group":
+            dct_item = {}
+            if item.label:
+                dct_item["string"] = item.label
+            if item.attrs:
+                dct_item["attrs"] = item.attrs
+            item_xml = E.group(dct_item, *lst_child)
+            return item_xml
+        elif item.item_type == "div":
+            dct_item = {}
+            if item.attrs:
+                dct_item["attrs"] = item.attrs
+            item_xml = E.div(dct_item, *lst_child)
+            return item_xml
+        else:
+            _logger.warning(f"View item '{item.item_type}' is not supported.")
+
+    def _generate_xml_group_div(self, item, lst_xml, dct_replace, model_id):
+        """
+
+        :param item:
+        :param lst_xml: list of item to add more in some context
+        :param dct_replace: need it to replace html in xml without validation
+        :return:
+        """
+        lst_child = sorted(item.child_id, key=lambda item: item.sequence)
+        lst_item_child = []
+        if lst_child:
+            for item_child_id in lst_child:
+                item_child = self._generate_xml_group_div(
+                    item_child_id, lst_xml, dct_replace, model_id
+                )
+                lst_item_child.append(item_child)
+            item_xml = self._generate_xml_object(item, model_id, lst_child=lst_item_child)
+        else:
+            item_xml = self._generate_xml_object(item, model_id)
+
+        return item_xml
+
+    @staticmethod
+    def _generate_xml_title_field(item, lst_child, level=0):
+        """
+
+        :param item: type odoo.api.code.generator.view.item
+        :param lst_child: list of item to add more in some context
+        :param level: 0 is bigger level (H1), >=4 is H5
+        :return:
+        """
+        if item.edit_only or item.has_label:
+            dct_item_label = {"for": item.action_name}
+            if item.edit_only:
+                dct_item_label["class"] = "oe_edit_only"
+            item_label = E.label(dct_item_label)
+            lst_child.append(item_label)
+        dct_item_field = {"name": item.action_name}
+
+        if item.is_required:
+            dct_item_field["required"] = "1"
+        if item.is_readonly:
+            dct_item_field["readonly"] = "1"
+        item_field = E.field(dct_item_field)
+        if level == 0:
+            result = E.h1({}, item_field)
+        elif level == 1:
+            result = E.h2({}, item_field)
+        elif level == 2:
+            result = E.h3({}, item_field)
+        elif level == 3:
+            result = E.h4({}, item_field)
+        else:
+            result = E.h5({}, item_field)
+        return result
+
     def _generate_specific_form_views_models(self, code_generator_view_id):
         model_name = code_generator_view_id.m2o_model.model
+        model_id = code_generator_view_id.m2o_model.id
         dct_replace = {}
         lst_item_header = []
         lst_item_body = []
         lst_item_title = []
-        lst_item_help = []
         for view_item in code_generator_view_id.view_item_ids:
             if view_item.section_type == "body":
                 lst_item_body.append(view_item)
@@ -319,8 +472,6 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 lst_item_header.append(view_item)
             elif view_item.section_type == "title":
                 lst_item_title.append(view_item)
-            elif view_item.section_type == "help":
-                lst_item_help.append(view_item)
             else:
                 _logger.warning(f"View item '{view_item.section_type}' is not supported.")
 
@@ -333,15 +484,9 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             for item_header in lst_item_header:
                 if item_header.item_type == "field":
                     item = E.field()
+                    # TODO field in header
                 elif item_header.item_type == "button":
-                    button_attributes = {
-                        "name": item_header.action_name,
-                        "string": item_header.label,
-                        "type": "object",
-                    }
-                    if item_header.button_type:
-                        button_attributes["class"] = item_header.button_type
-                    item = E.button(button_attributes)
+                    item = self._generate_xml_button(item_header, model_id)
                 else:
                     _logger.warning(f"Item header type '{item_header.item_type}' is not supported.")
                     continue
@@ -355,30 +500,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             i = 0
             for item_header in lst_item_title:
                 if item_header.item_type == "field":
-
-                    if item_header.edit_only or item_header.has_label:
-                        dct_item_label = {"for": item_header.action_name}
-                        if item_header.edit_only:
-                            dct_item_label["class"] = "oe_edit_only"
-                        item_label = E.label(dct_item_label)
-                        lst_child.append(item_label)
-                    dct_item_field = {"name": item_header.action_name}
-
-                    if item_header.is_required:
-                        dct_item_field["required"] = "1"
-                    if item_header.is_readonly:
-                        dct_item_field["readonly"] = "1"
-                    item_field = E.field(dct_item_field)
-                    if i == 0:
-                        item = E.h1({}, item_field)
-                    elif i == 1:
-                        item = E.h2({}, item_field)
-                    elif i == 2:
-                        item = E.h3({}, item_field)
-                    elif i == 3:
-                        item = E.h4({}, item_field)
-                    else:
-                        item = E.h5({}, item_field)
+                    item = self._generate_xml_title_field(item_header, lst_child, level=i)
                 elif item_header.item_type == "button":
                     _logger.warning(f"Button is not supported in title section.")
                     continue
@@ -390,24 +512,30 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             header_xml = E.div({"class": "oe_title"}, *lst_child)
             lst_item_form_sheet.append(header_xml)
 
-        if lst_item_help:
-            lst_item_help = sorted(lst_item_help, key=lambda item: item.sequence)
-
-            for item_help in lst_item_help:
-                dct_item = {"string": "help"}
-                if item_help.colspan > 1:
-                    dct_item["colspan"] = str(item_help.colspan)
-                item_xml = E.separator(dct_item)
-                lst_item_form_sheet.append(item_xml)
-
-                uid = str(uuid.uuid1())
-                dct_replace[uid] = item_help.action_name
-                item_xml = E.div({}, uid)
-                lst_item_form_sheet.append(item_xml)
+        if lst_item_body:
+            lst_item_root_body = [a for a in lst_item_body if not a.parent_id]
+            lst_item_root_body = sorted(lst_item_root_body, key=lambda item: item.sequence)
+            for item_header in lst_item_root_body:
+                if item_header.is_help:
+                    item_xml = self._generate_xml_html_help(
+                        item_header, lst_item_form_sheet, dct_replace
+                    )
+                    lst_item_form_sheet.append(item_xml)
+                elif item_header.item_type in ("div", "group"):
+                    if not item_header.child_id:
+                        _logger.warning(f"Item type div or group missing child.")
+                        continue
+                    item_xml = self._generate_xml_group_div(
+                        item_header, lst_item_form_sheet, dct_replace, model_id
+                    )
+                    lst_item_form_sheet.append(item_xml)
 
         if lst_item_form_sheet:
-            sheet_xml = E.sheet({}, *lst_item_form_sheet)
-            lst_item_form.append(sheet_xml)
+            if code_generator_view_id.has_body_sheet:
+                sheet_xml = E.sheet({}, *lst_item_form_sheet)
+                lst_item_form.append(sheet_xml)
+            else:
+                lst_item_form += lst_item_form_sheet
 
         form_xml = E.form({}, *lst_item_form)
         str_arch = ET.tostring(form_xml, pretty_print=True)

@@ -269,7 +269,7 @@ class CodeGeneratorView(models.Model):
     )
 
     view_type = fields.Selection(
-        [("tree", "Tree"), ("form", "Form"), ("pivot", "Pivot"), ("graph", "Graph")],
+        [("tree", "Tree"), ("form", "Form"), ("pivot", "Pivot"), ("graph", "Graph"), ("search", "Search")],
         default="form",
         help="Choose view type to generate.",
     )

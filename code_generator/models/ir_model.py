@@ -345,43 +345,43 @@ class IrModel(models.Model):
     )
 
 
-class CodeGeneratorBase(models.AbstractModel):
-    _inherit = "base"
-
-    def _run_safe_eval(self, created=None):
-        """
-
-        :param created:
-        :return:
-        """
-
-        records = created or self
-        for r in records:
-            target_model = self.env["ir.model"].search([("model", "=", r._name)])
-            if (
-                target_model
-                and hasattr(self.env, target_model[0]._name)
-                and hasattr(target_model[0], "o2m_server_constrains")
-            ):
-                codes = target_model.mapped("o2m_server_constrains").mapped("txt_code")
-                for code in codes:
-                    safe_eval(code, SAFE_EVAL_BASE, {"self": r}, mode="exec")
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        result = super(CodeGeneratorBase, self).create(vals_list)
-
-        self._run_safe_eval(result)
-
-        return result
-
-    @api.multi
-    def write(self, vals):
-        result = super(CodeGeneratorBase, self).write(vals)
-
-        self._run_safe_eval()
-
-        return result
+# class CodeGeneratorBase(models.AbstractModel):
+#     _inherit = "base"
+#
+#     def _run_safe_eval(self, created=None):
+#         """
+#
+#         :param created:
+#         :return:
+#         """
+#
+#         records = created or self
+#         for r in records:
+#             target_model = self.env["ir.model"].search([("model", "=", r._name)])
+#             if (
+#                 target_model
+#                 and hasattr(self.env, target_model[0]._name)
+#                 and hasattr(target_model[0], "o2m_server_constrains")
+#             ):
+#                 codes = target_model.mapped("o2m_server_constrains").mapped("txt_code")
+#                 for code in codes:
+#                     safe_eval(code, SAFE_EVAL_BASE, {"self": r}, mode="exec")
+#
+#     @api.model_create_multi
+#     def create(self, vals_list):
+#         result = super(CodeGeneratorBase, self).create(vals_list)
+#
+#         self._run_safe_eval(result)
+#
+#         return result
+#
+#     @api.multi
+#     def write(self, vals):
+#         result = super(CodeGeneratorBase, self).write(vals)
+#
+#         self._run_safe_eval()
+#
+#         return result
 
 
 class IrModelUpdatedFields(models.Model):

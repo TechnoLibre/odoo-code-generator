@@ -52,42 +52,40 @@ class ExtractorView:
 
             lst_view_item_id = []
 
+            # Sheet
+            lst_sheet_xml = mydoc.getElementsByTagName("sheet")
+            has_body_sheet = bool(lst_sheet_xml)
+            sheet_xml = lst_sheet_xml[0] if lst_sheet_xml else None
+            if len(lst_sheet_xml) > 1:
+                _logger.warning("Cannot support multiple <sheet>.")
+
             # Search header
             no_sequence = 1
-            for header_xml in mydoc.getElementsByTagName("header"):
-                # TODO get inside attributes like group
+            lst_header_xml = mydoc.getElementsByTagName("header")
+            if len(lst_header_xml) > 1:
+                _logger.warning("Cannot support multiple header.")
+            for header_xml in lst_header_xml:
+                # TODO get inside attributes for header
                 for child_header in header_xml.childNodes:
                     if child_header.nodeType is Node.TEXT_NODE:
                         data = child_header.data.strip()
                         if data:
                             _logger.warning("Not supported.")
                     elif child_header.nodeType is Node.ELEMENT_NODE:
-                        if child_header.nodeName == "button":
-                            dct_key_keep = {"name": "action_name", "string": "label", "class": "button_type"}
-                            dct_attributes = {
-                                "section_type": "header",
-                                "item_type": "button",
-                                "sequence": no_sequence,
-                            }
-                            for key, value in child_header.attributes.items():
-                                attributes_name = dct_key_keep.get(key)
-                                if attributes_name:
-                                    dct_attributes[attributes_name] = value
-                            # TODO validate dct_attributes has all needed key with dct_key_keep (except button_type)
-                            view_item_id = self._module.env["code.generator.view.item"].create(dct_attributes)
-                            lst_view_item_id.append(view_item_id.id)
-                            no_sequence += 1
-                        else:
-                            _logger.warning("Not supported.")
+                        self._extract_child_xml(
+                            child_header, lst_view_item_id, "header", sequence=no_sequence
+                        )
 
             # Search title
             no_sequence = 1
             nb_oe_title = 0
+            div_title = None
             for div_xml in mydoc.getElementsByTagName("div"):
                 # Find oe_title class
                 # TODO what todo when multiple class? split by ,
                 for key, value in div_xml.attributes.items():
                     if key == "class" and value == "oe_title":
+                        div_title = div_xml
                         nb_oe_title += 1
                         if nb_oe_title > 1:
                             _logger.warning("Cannot support multiple class oe_title.")
@@ -99,7 +97,9 @@ class ExtractorView:
                         elif len(lst_field) > 1:
                             _logger.warning("Not supported title without multiple field, TODO.")
                         else:
-                            dct_field_attrs = dict(div_xml.getElementsByTagName("field")[0].attributes.items())
+                            dct_field_attrs = dict(
+                                div_xml.getElementsByTagName("field")[0].attributes.items()
+                            )
                             name = dct_field_attrs.get("name")
                             if not name:
                                 _logger.warning("Cannot identify field type in title.")
@@ -108,17 +108,53 @@ class ExtractorView:
                                     "action_name": name,
                                     "section_type": "title",
                                     "item_type": "field",
-                                    "sequence": no_sequence
+                                    "sequence": no_sequence,
                                 }
-                                view_item_id = self._module.env["code.generator.view.item"].create(dct_attributes)
+                                view_item_id = self._module.env["code.generator.view.item"].create(
+                                    dct_attributes
+                                )
                                 lst_view_item_id.append(view_item_id.id)
                                 no_sequence += 1
 
-            # Sheet
-            sheet_xml = mydoc.getElementsByTagName("sheet")
-            has_body_sheet = bool(sheet_xml)
-            if len(sheet_xml) > 1:
-                _logger.warning("Cannot support multiple <sheet>.")
+            lst_body_xml = []
+            lst_form_xml = mydoc.getElementsByTagName("form")
+            if not lst_form_xml:
+                _logger.warning("Cannot find <form>.")
+            elif len(lst_form_xml) > 1:
+                _logger.warning("Cannot support multiple <form>.")
+            else:
+                form_xml = lst_form_xml[0]
+                for child_form in form_xml.childNodes:
+                    if child_form.nodeType is Node.TEXT_NODE:
+                        data = child_form.data.strip()
+                        if data:
+                            _logger.warning("Not supported.")
+                    elif child_form.nodeType is Node.ELEMENT_NODE:
+                        if (
+                                child_form == div_title
+                                or child_form == header_xml
+                                or child_form == sheet_xml
+                        ):
+                            continue
+                        if has_body_sheet:
+                            _logger.warning("How can find body xml outside of his sheet?")
+                        else:
+                            lst_body_xml.append(child_form)
+
+            if lst_sheet_xml:
+                lst_body_xml = [a for a in lst_sheet_xml.childNodes]
+            sequence = 1
+            for body_xml in lst_body_xml:
+                if body_xml.nodeType is Node.TEXT_NODE:
+                    data = body_xml.data.strip()
+                    if data:
+                        _logger.warning("Not supported.")
+                elif body_xml.nodeType is Node.ELEMENT_NODE:
+                    # TODO Support recursive xml (parent)
+                    # TODO support help part (2 body with separator)
+                    self._extract_child_xml(body_xml, lst_view_item_id, "body",
+                                            sequence=sequence)
+                    sequence += 1
 
             view_code_generator = self._module.env["code.generator.view"].create(
                 {
@@ -130,6 +166,82 @@ class ExtractorView:
                     "has_body_sheet": has_body_sheet,
                 }
             )
+
+    def _extract_child_xml(self, node, lst_view_item_id, section_type, parent=None, sequence=1):
+        # From background_type
+        lst_key_html_class = (
+            "bg-success",
+            "bg-success-full",
+            "bg-warning",
+            "bg-warning-full",
+            "bg-info",
+            "bg-info-full",
+            "bg-danger",
+            "bg-danger-full",
+            "bg-light",
+            "bg-dark",
+        )
+        dct_key_keep = {"name": "action_name", "string": "label", "attrs": "attrs"}
+        dct_attributes = {
+            "section_type": section_type,
+            "item_type": node.nodeName,
+            "sequence": sequence,
+        }
+
+        if parent:
+            dct_attributes["parent_id"] = parent.id
+
+        if node.nodeName in ("group", "div"):
+            for key, value in node.attributes.items():
+                if key == "class" and value in lst_key_html_class:
+                    # not a real div, it's an html part
+                    dct_attributes["item_type"] = "html"
+                    dct_attributes["background_type"] = value
+                    text_html = ""
+                    for child in node.childNodes:
+                        # ignore element, only get text
+                        if child.nodeType is Node.TEXT_NODE:
+                            data = child.data.strip()
+                            if data:
+                                text_html += data
+                        elif child.nodeType is Node.ELEMENT_NODE:
+                            continue
+                    dct_attributes["label"] = text_html
+
+        elif node.nodeName == "button":
+            dct_key_keep["class"] = "button_type"
+        elif node.nodeName == "field":
+            pass
+        else:
+            _logger.warning(f"Unknown this case '{node.nodeName}'.")
+            return
+
+        for key, value in node.attributes.items():
+            attributes_name = dct_key_keep.get(key)
+            if attributes_name:
+                dct_attributes[attributes_name] = value
+        # TODO validate dct_attributes has all needed key with dct_key_keep (except button_type)
+        view_item_id = self._module.env["code.generator.view.item"].create(dct_attributes)
+        lst_view_item_id.append(view_item_id.id)
+        sequence += 1
+
+        # Child, except HTML
+        if dct_attributes["item_type"] != "html":
+            child_sequence = 1
+            for child in node.childNodes:
+                if child.nodeType is Node.TEXT_NODE:
+                    data = child.data.strip()
+                    if data:
+                        _logger.warning("Not supported.")
+                elif child.nodeType is Node.ELEMENT_NODE:
+                    self._extract_child_xml(
+                        child,
+                        lst_view_item_id,
+                        section_type,
+                        parent=view_item_id,
+                        sequence=child_sequence,
+                    )
+                    child_sequence += 1
 
 
 class ExtractorModule:
@@ -370,12 +482,14 @@ class CodeGeneratorWriter(models.Model):
         if not view_item.code_generator_id:
             return
         code_generator_views_id = view_item.code_generator_id.code_generator_views_id
-        form_view_ids = code_generator_views_id.filtered(lambda view_id: view_id.view_type == "form")
+        form_view_ids = code_generator_views_id.filtered(
+            lambda view_id: view_id.view_type == "form"
+        )
         cw.emit("lst_view_id = []")
-        cw.emit('# form view')
-        cw.emit('if True:')
+        cw.emit("# form view")
+        cw.emit("if True:")
         with cw.indent():
-            cw.emit('lst_item_view = []')
+            cw.emit("lst_item_view = []")
 
             for form_view_id in form_view_ids:
                 tpl_ordered_section = ("header", "title", "body")
@@ -384,12 +498,25 @@ class CodeGeneratorWriter(models.Model):
                 lst_section = [x for x in tpl_ordered_section if x in s]
 
                 for section in lst_section:
-                    cw.emit(f'# {section.upper()}')
-                    view_item_ids = form_view_id.view_item_ids.filtered(lambda field: field.section_type == section)
+                    cw.emit(f"# {section.upper()}")
+                    view_item_ids = form_view_id.view_item_ids.filtered(
+                        lambda field: field.section_type == section and not field.parent_id
+                    )
 
                     for view_item_id in view_item_ids:
-                        with cw.block(before='view_item = env["code.generator.view.item"].create', delim=("(", ")")):
+                        # TODO view_item can be duplicated
+                        var_create_view_item = (
+                            "view_item"
+                            if not view_item_id.child_id
+                            else f"view_item_{view_item_id.section_type}_{view_item_id.sequence}"
+                        )
+                        with cw.block(
+                                before=f'{var_create_view_item} = env["code.generator.view.item"].create',
+                                delim=("(", ")"),
+                        ):
                             with cw.block(delim=("{", "}")):
+                                cw.emit(f'"section_type": "{view_item_id.section_type}",')
+                                cw.emit(f'"item_type": "{view_item_id.item_type}",')
                                 if view_item_id.item_type == "button":
                                     cw.emit(f'"action_name": "{view_item_id.action_name}",')
                                     cw.emit(f'"label": "{view_item_id.label}",')
@@ -399,24 +526,60 @@ class CodeGeneratorWriter(models.Model):
                                     if view_item_id.placeholder:
                                         cw.emit(f'"placeholder": "{view_item_id.placeholder}",')
                                 elif view_item_id.item_type in ("group", "div"):
-                                    cw.emit(f'"label": "{view_item_id.label}",')
+                                    if view_item_id.label:
+                                        cw.emit(f'"label": "{view_item_id.label}",')
+                                    if view_item_id.attrs:
+                                        cw.emit(f'"attrs": "{view_item_id.attrs}",')
                                 elif view_item_id.item_type == "html":
                                     cw.emit(f'"label": "{view_item_id.label}",')
-                                    cw.emit(f'"colspan": {view_item_id.colspan},')
+                                    if view_item_id.colspan != 1:
+                                        cw.emit(f'"colspan": {view_item_id.colspan},')
 
                                 if view_item_id.is_help:
                                     cw.emit(f'"is_help": "{view_item_id.is_help}",')
 
-                                cw.emit(f'"section_type": "{view_item_id.section_type}",')
-                                cw.emit(f'"item_type": "{view_item_id.item_type}",')
                                 cw.emit(f'"sequence": {view_item_id.sequence},')
 
-                                if view_item_id.parent_id:
-                                    # TODO
-                                    pass
-
-                        cw.emit('lst_item_view.append(view_item.id)')
+                        cw.emit(f"lst_item_view.append({var_create_view_item}.id)")
                         cw.emit()
+
+                        for child_item in view_item_id.child_id:
+                            # TODO use recursive, this is dupplicated code, view_item_id to child_item
+                            var_create_view_item_child = (
+                                "view_item"
+                                if not child_item.child_id
+                                else f"view_item_{child_item.section_type}_{child_item.sequence}"
+                            )
+                            with cw.block(
+                                    before=f'{var_create_view_item_child} = env["code.generator.view.item"].create',
+                                    delim=("(", ")"),
+                            ):
+                                with cw.block(delim=("{", "}")):
+                                    cw.emit(f'"section_type": "{child_item.section_type}",')
+                                    cw.emit(f'"item_type": "{child_item.item_type}",')
+                                    if child_item.item_type == "button":
+                                        cw.emit(f'"action_name": "{child_item.action_name}",')
+                                        cw.emit(f'"label": "{child_item.label}",')
+                                        cw.emit(f'"button_type": "{child_item.button_type}",')
+                                    elif child_item.item_type == "field":
+                                        cw.emit(f'"action_name": "{child_item.action_name}",')
+                                        if child_item.placeholder:
+                                            cw.emit(f'"placeholder": "{child_item.placeholder}",')
+                                    elif child_item.item_type in ("group", "div"):
+                                        cw.emit(f'"label": "{child_item.label}",')
+                                    elif child_item.item_type == "html":
+                                        cw.emit(f'"label": "{child_item.label}",')
+                                        cw.emit(f'"colspan": {child_item.colspan},')
+
+                                    if child_item.is_help:
+                                        cw.emit(f'"is_help": "{child_item.is_help}",')
+
+                                    # TODO only parent_id change here
+                                    cw.emit(f'"parent_id": {var_create_view_item}.id,')
+                                    cw.emit(f'"sequence": {child_item.sequence},')
+
+                            cw.emit(f"lst_item_view.append({var_create_view_item_child}.id)")
+                            cw.emit()
 
                 cw.emit('view_code_generator = env["code.generator.view"].create(')
                 with cw.block(delim=("{", "}")):
@@ -426,31 +589,31 @@ class CodeGeneratorWriter(models.Model):
                     cw.emit(f'"m2o_model": {view_item.var_model_name}.id,')
                     cw.emit('"view_item_ids": [(6, 0, lst_item_view)],')
                     cw.emit(f'"has_body_sheet": {form_view_id.has_body_sheet},')
-                cw.emit(')')
-                cw.emit('lst_view_id.append(view_code_generator.id)')
+                cw.emit(")")
+                cw.emit("lst_view_id.append(view_code_generator.id)")
         cw.emit()
-        cw.emit('# tree view')
-        cw.emit('if True:')
+        cw.emit("# tree view")
+        cw.emit("if True:")
         with cw.indent():
             cw.emit("pass")
         cw.emit()
-        cw.emit('# search view')
-        cw.emit('if True:')
+        cw.emit("# search view")
+        cw.emit("if True:")
         with cw.indent():
             cw.emit("pass")
         cw.emit()
-        cw.emit('# act_window view')
-        cw.emit('if True:')
+        cw.emit("# act_window view")
+        cw.emit("if True:")
         with cw.indent():
             cw.emit("pass")
         cw.emit()
-        cw.emit('# action_server view')
-        cw.emit('if True:')
+        cw.emit("# action_server view")
+        cw.emit("if True:")
         with cw.indent():
             cw.emit("pass")
         cw.emit()
-        cw.emit('# menu view')
-        cw.emit('if True:')
+        cw.emit("# menu view")
+        cw.emit("if True:")
         with cw.indent():
             cw.emit("pass")
 
@@ -797,7 +960,7 @@ class CodeGeneratorWriter(models.Model):
                                         cw.emit("##### End Views")
                                         cw.emit()
 
-                                cw.emit('# Action generate view')
+                                cw.emit("# Action generate view")
                                 cw.emit(
                                     "wizard_view = env['code.generator.generate.views.wizard'].create({"
                                 )

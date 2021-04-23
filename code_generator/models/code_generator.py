@@ -86,6 +86,10 @@ class CodeGeneratorModule(models.Model):
 
     o2m_model_views = fields.One2many("ir.ui.view", compute="_get_models_info")
 
+    code_generator_views_id = fields.One2many(
+        "code.generator.view", inverse_name="code_generator_id"
+    )
+
     o2m_model_act_url = fields.One2many(
         comodel_name="ir.actions.act_url", inverse_name="m2o_code_generator"
     )
@@ -269,7 +273,13 @@ class CodeGeneratorView(models.Model):
     )
 
     view_type = fields.Selection(
-        [("tree", "Tree"), ("form", "Form"), ("pivot", "Pivot"), ("graph", "Graph"), ("search", "Search")],
+        [
+            ("tree", "Tree"),
+            ("form", "Form"),
+            ("pivot", "Pivot"),
+            ("graph", "Graph"),
+            ("search", "Search"),
+        ],
         default="form",
         help="Choose view type to generate.",
     )

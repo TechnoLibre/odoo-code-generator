@@ -151,8 +151,6 @@ class ExtractorView:
                     if data:
                         _logger.warning("Not supported.")
                 elif body_xml.nodeType is Node.ELEMENT_NODE:
-                    # TODO Support recursive xml (parent)
-                    # TODO support help part (2 body with separator)
                     status = self._extract_child_xml(
                         body_xml, lst_view_item_id, "body", lst_node=lst_node, sequence=sequence
                     )
@@ -244,8 +242,15 @@ class ExtractorView:
 
         elif node.nodeName == "button":
             dct_key_keep["class"] = "button_type"
+            for key, value in node.attributes.items():
+                if key == "icon":
+                    dct_attributes["icon"] = value
         elif node.nodeName == "field":
-            pass
+            for key, value in node.attributes.items():
+                if key == "password":
+                    dct_attributes["password"] = value
+                if key == "placeholder":
+                    dct_attributes["placeholder"] = value
         elif node.nodeName == "separator":
             # Accumulate nodes
             return True
@@ -253,6 +258,7 @@ class ExtractorView:
             _logger.warning(f"Unknown this case '{node.nodeName}'.")
             return
 
+        # TODO use external function to get attributes items to remove duplicate code, search "node.attributes.items()"
         for key, value in node.attributes.items():
             attributes_name = dct_key_keep.get(key)
             if attributes_name:
@@ -515,6 +521,64 @@ class CodeGeneratorWriter(models.Model):
                 cw.emit('field_x_name.name = "name"')
             cw.emit(f'{var_model_model}.rec_name = "name"')
 
+    def _write_sync_view_component(self, view_item_ids, cw, parent=None):
+        for view_item_id in view_item_ids:
+            # TODO view_item can be duplicated, use unique name
+            var_create_view_item = (
+                "view_item"
+                if not view_item_id.child_id
+                else f"view_item_{view_item_id.section_type}_{view_item_id.sequence}"
+            )
+            with cw.block(
+                    before=f'{var_create_view_item} = env["code.generator.view.item"].create',
+                    delim=("(", ")"),
+            ):
+                with cw.block(delim=("{", "}")):
+                    cw.emit(f'"section_type": "{view_item_id.section_type}",')
+                    cw.emit(f'"item_type": "{view_item_id.item_type}",')
+                    if view_item_id.item_type == "button":
+                        cw.emit(f'"action_name": "{view_item_id.action_name}",')
+                        if view_item_id.button_type:
+                            cw.emit(f'"button_type": "{view_item_id.button_type}",')
+                        if view_item_id.icon:
+                            cw.emit(f'"icon": "{view_item_id.icon}",')
+                    elif view_item_id.item_type == "field":
+                        cw.emit(f'"action_name": "{view_item_id.action_name}",')
+                        if view_item_id.placeholder:
+                            cw.emit(f'"placeholder": "{view_item_id.placeholder}",')
+                        if view_item_id.password:
+                            cw.emit(f'"password": "{view_item_id.password}",')
+                    elif view_item_id.item_type in ("group", "div"):
+                        if view_item_id.attrs:
+                            cw.emit(f'"attrs": "{view_item_id.attrs}",')
+                    elif view_item_id.item_type == "html":
+                        # TODO support help and type bg-warning
+                        if view_item_id.colspan != 1:
+                            cw.emit(f'"colspan": {view_item_id.colspan},')
+                        if view_item_id.background_type:
+                            cw.emit(f'"background_type": "{view_item_id.background_type}",')
+
+                    if view_item_id.label:
+                        if "\n" in view_item_id.label:
+                            cw.emit('"label": """')
+                            for label in view_item_id.label.split("\n"):
+                                cw.emit(label)
+                            cw.emit('""",')
+                        else:
+                            cw.emit(f'"label": "{view_item_id.label}",')
+                    if view_item_id.is_help:
+                        cw.emit(f'"is_help": {view_item_id.is_help},')
+
+                    if parent:
+                        cw.emit(f'"parent_id": {parent}.id,')
+                    cw.emit(f'"sequence": {view_item_id.sequence},')
+
+            cw.emit(f"lst_item_view.append({var_create_view_item}.id)")
+            cw.emit()
+
+            if view_item_id.child_id:
+                self._write_sync_view_component(view_item_id.child_id, cw, parent=var_create_view_item)
+
     def _write_sync_template_views(self, cw, view_item):
         if not view_item.code_generator_id:
             return
@@ -540,87 +604,7 @@ class CodeGeneratorWriter(models.Model):
                         lambda field: field.section_type == section and not field.parent_id
                     )
 
-                    for view_item_id in view_item_ids:
-                        # TODO view_item can be duplicated
-                        var_create_view_item = (
-                            "view_item"
-                            if not view_item_id.child_id
-                            else f"view_item_{view_item_id.section_type}_{view_item_id.sequence}"
-                        )
-                        with cw.block(
-                            before=f'{var_create_view_item} = env["code.generator.view.item"].create',
-                            delim=("(", ")"),
-                        ):
-                            with cw.block(delim=("{", "}")):
-                                cw.emit(f'"section_type": "{view_item_id.section_type}",')
-                                cw.emit(f'"item_type": "{view_item_id.item_type}",')
-                                if view_item_id.item_type == "button":
-                                    cw.emit(f'"action_name": "{view_item_id.action_name}",')
-                                    cw.emit(f'"button_type": "{view_item_id.button_type}",')
-                                elif view_item_id.item_type == "field":
-                                    cw.emit(f'"action_name": "{view_item_id.action_name}",')
-                                    if view_item_id.placeholder:
-                                        cw.emit(f'"placeholder": "{view_item_id.placeholder}",')
-                                elif view_item_id.item_type in ("group", "div"):
-                                    if view_item_id.attrs:
-                                        cw.emit(f'"attrs": "{view_item_id.attrs}",')
-                                elif view_item_id.item_type == "html":
-                                    if view_item_id.colspan != 1:
-                                        cw.emit(f'"colspan": {view_item_id.colspan},')
-
-                                if view_item_id.label:
-                                    if "\n" in view_item_id.label:
-                                        cw.emit('"label": """')
-                                        for label in view_item_id.label.split("\n"):
-                                            cw.emit(label)
-                                        cw.emit('""",')
-                                    else:
-                                        cw.emit(f'"label": "{view_item_id.label}",')
-                                if view_item_id.is_help:
-                                    cw.emit(f'"is_help": {view_item_id.is_help},')
-
-                                cw.emit(f'"sequence": {view_item_id.sequence},')
-
-                        cw.emit(f"lst_item_view.append({var_create_view_item}.id)")
-                        cw.emit()
-
-                        for child_item in view_item_id.child_id:
-                            # TODO use recursive, this is dupplicated code, view_item_id to child_item
-                            var_create_view_item_child = (
-                                "view_item"
-                                if not child_item.child_id
-                                else f"view_item_{child_item.section_type}_{child_item.sequence}"
-                            )
-                            with cw.block(
-                                before=f'{var_create_view_item_child} = env["code.generator.view.item"].create',
-                                delim=("(", ")"),
-                            ):
-                                with cw.block(delim=("{", "}")):
-                                    cw.emit(f'"section_type": "{child_item.section_type}",')
-                                    cw.emit(f'"item_type": "{child_item.item_type}",')
-                                    if child_item.item_type == "button":
-                                        cw.emit(f'"action_name": "{child_item.action_name}",')
-                                        cw.emit(f'"label": "{child_item.label}",')
-                                        cw.emit(f'"button_type": "{child_item.button_type}",')
-                                    elif child_item.item_type == "field":
-                                        cw.emit(f'"action_name": "{child_item.action_name}",')
-                                        if child_item.placeholder:
-                                            cw.emit(f'"placeholder": "{child_item.placeholder}",')
-                                    elif child_item.item_type in ("group", "div"):
-                                        cw.emit(f'"label": "{child_item.label}",')
-                                    elif child_item.item_type == "html":
-                                        cw.emit(f'"label": "{child_item.label}",')
-                                        cw.emit(f'"colspan": {child_item.colspan},')
-
-                                    if child_item.is_help:
-                                        cw.emit(f'"is_help": "{child_item.is_help}",')
-
-                                    # TODO only parent_id change here
-                                    cw.emit(f'"parent_id": {var_create_view_item}.id,')
-                                    cw.emit(f'"sequence": {child_item.sequence},')
-
-                            cw.emit(f"lst_item_view.append({var_create_view_item_child}.id)")
-                            cw.emit()
+                    self._write_sync_view_component(view_item_ids, cw)
 
                 cw.emit('view_code_generator = env["code.generator.view"].create(')
                 with cw.block(delim=("{", "}")):

@@ -131,9 +131,9 @@ class ExtractorView:
                             _logger.warning("Not supported.")
                     elif child_form.nodeType is Node.ELEMENT_NODE:
                         if (
-                                child_form == div_title
-                                or child_form == header_xml
-                                or child_form == sheet_xml
+                            child_form == div_title
+                            or child_form == header_xml
+                            or child_form == sheet_xml
                         ):
                             continue
                         if has_body_sheet:
@@ -144,6 +144,7 @@ class ExtractorView:
             if lst_sheet_xml:
                 lst_body_xml = [a for a in lst_sheet_xml.childNodes]
             sequence = 1
+            lst_node = []
             for body_xml in lst_body_xml:
                 if body_xml.nodeType is Node.TEXT_NODE:
                     data = body_xml.data.strip()
@@ -152,9 +153,16 @@ class ExtractorView:
                 elif body_xml.nodeType is Node.ELEMENT_NODE:
                     # TODO Support recursive xml (parent)
                     # TODO support help part (2 body with separator)
-                    self._extract_child_xml(body_xml, lst_view_item_id, "body",
-                                            sequence=sequence)
+                    status = self._extract_child_xml(
+                        body_xml, lst_view_item_id, "body", lst_node=lst_node, sequence=sequence
+                    )
+                    if status:
+                        lst_node.append(body_xml)
+                    else:
+                        lst_node = []
                     sequence += 1
+            if lst_node:
+                _logger.warning("Missing node in buffer.")
 
             view_code_generator = self._module.env["code.generator.view"].create(
                 {
@@ -167,7 +175,18 @@ class ExtractorView:
                 }
             )
 
-    def _extract_child_xml(self, node, lst_view_item_id, section_type, parent=None, sequence=1):
+    def _extract_child_xml(
+        self, node, lst_view_item_id, section_type, lst_node=[], parent=None, sequence=1
+    ):
+        """
+
+        :param node:
+        :param lst_view_item_id:
+        :param section_type:
+        :param parent:
+        :param sequence:
+        :return: when True, cumulate the node in lst_node for next run, else None
+        """
         # From background_type
         lst_key_html_class = (
             "bg-success",
@@ -192,26 +211,44 @@ class ExtractorView:
             dct_attributes["parent_id"] = parent.id
 
         if node.nodeName in ("group", "div"):
-            for key, value in node.attributes.items():
-                if key == "class" and value in lst_key_html_class:
-                    # not a real div, it's an html part
-                    dct_attributes["item_type"] = "html"
-                    dct_attributes["background_type"] = value
-                    text_html = ""
-                    for child in node.childNodes:
-                        # ignore element, only get text
-                        if child.nodeType is Node.TEXT_NODE:
-                            data = child.data.strip()
-                            if data:
-                                text_html += data
-                        elif child.nodeType is Node.ELEMENT_NODE:
-                            continue
-                    dct_attributes["label"] = text_html
+            if lst_node:
+                # Check cached of nodes
+                # maybe help node
+                for cached_node in lst_node:
+                    # TODO need to check nodeName == "separator" ?
+                    for key, value in cached_node.attributes.items():
+                        if key == "string" and value == "Help":
+                            dct_attributes["is_help"] = True
+                        elif key == "colspan" and value != 1:
+                            dct_attributes["colspan"] = value
+                dct_attributes["label"] = "\n".join(
+                    [a.strip() for a in node.toxml().split("\n")[1:-1]]
+                )
+                dct_attributes["item_type"] = "html"
+            else:
+                for key, value in node.attributes.items():
+                    if key == "class" and value in lst_key_html_class:
+                        # not a real div, it's an html part
+                        dct_attributes["item_type"] = "html"
+                        dct_attributes["background_type"] = value
+                        text_html = ""
+                        for child in node.childNodes:
+                            # ignore element, only get text
+                            if child.nodeType is Node.TEXT_NODE:
+                                data = child.data.strip()
+                                if data:
+                                    text_html += data
+                            elif child.nodeType is Node.ELEMENT_NODE:
+                                continue
+                        dct_attributes["label"] = text_html
 
         elif node.nodeName == "button":
             dct_key_keep["class"] = "button_type"
         elif node.nodeName == "field":
             pass
+        elif node.nodeName == "separator":
+            # Accumulate nodes
+            return True
         else:
             _logger.warning(f"Unknown this case '{node.nodeName}'.")
             return
@@ -287,10 +324,10 @@ class ExtractorModule:
                 # Detect good _name
                 for node in children.body:
                     if (
-                            type(node) is ast.Assign
-                            and node.targets
-                            and node.targets[0].id == "_name"
-                            and node.value.s == self.model
+                        type(node) is ast.Assign
+                        and node.targets
+                        and node.targets[0].id == "_name"
+                        and node.value.s == self.model
                     ):
                         return children
 
@@ -312,9 +349,9 @@ class ExtractorModule:
         for node in class_model_ast.body:
             sequence += 1
             if (
-                    type(node) is ast.Assign
-                    and type(node.value) is ast.Call
-                    and node.value.func.value.id == "fields"
+                type(node) is ast.Assign
+                and type(node.value) is ast.Call
+                and node.value.func.value.id == "fields"
             ):
                 var_name = node.targets[0].id
                 d = {
@@ -373,14 +410,14 @@ class CodeGeneratorWriter(models.Model):
         pass
 
     def _write_sync_template_model(
-            self,
-            module,
-            model_model,
-            cw,
-            var_model_model,
-            lst_keep_f2exports,
-            module_file_sync,
-            lst_force_f2exports=None,
+        self,
+        module,
+        model_model,
+        cw,
+        var_model_model,
+        lst_keep_f2exports,
+        module_file_sync,
+        lst_force_f2exports=None,
     ):
         if module_file_sync and module_file_sync.is_enabled:
             dct_field_ast = module_file_sync.dct_model.get(model_model)
@@ -511,32 +548,36 @@ class CodeGeneratorWriter(models.Model):
                             else f"view_item_{view_item_id.section_type}_{view_item_id.sequence}"
                         )
                         with cw.block(
-                                before=f'{var_create_view_item} = env["code.generator.view.item"].create',
-                                delim=("(", ")"),
+                            before=f'{var_create_view_item} = env["code.generator.view.item"].create',
+                            delim=("(", ")"),
                         ):
                             with cw.block(delim=("{", "}")):
                                 cw.emit(f'"section_type": "{view_item_id.section_type}",')
                                 cw.emit(f'"item_type": "{view_item_id.item_type}",')
                                 if view_item_id.item_type == "button":
                                     cw.emit(f'"action_name": "{view_item_id.action_name}",')
-                                    cw.emit(f'"label": "{view_item_id.label}",')
                                     cw.emit(f'"button_type": "{view_item_id.button_type}",')
                                 elif view_item_id.item_type == "field":
                                     cw.emit(f'"action_name": "{view_item_id.action_name}",')
                                     if view_item_id.placeholder:
                                         cw.emit(f'"placeholder": "{view_item_id.placeholder}",')
                                 elif view_item_id.item_type in ("group", "div"):
-                                    if view_item_id.label:
-                                        cw.emit(f'"label": "{view_item_id.label}",')
                                     if view_item_id.attrs:
                                         cw.emit(f'"attrs": "{view_item_id.attrs}",')
                                 elif view_item_id.item_type == "html":
-                                    cw.emit(f'"label": "{view_item_id.label}",')
                                     if view_item_id.colspan != 1:
                                         cw.emit(f'"colspan": {view_item_id.colspan},')
 
+                                if view_item_id.label:
+                                    if "\n" in view_item_id.label:
+                                        cw.emit('"label": """')
+                                        for label in view_item_id.label.split("\n"):
+                                            cw.emit(label)
+                                        cw.emit('""",')
+                                    else:
+                                        cw.emit(f'"label": "{view_item_id.label}",')
                                 if view_item_id.is_help:
-                                    cw.emit(f'"is_help": "{view_item_id.is_help}",')
+                                    cw.emit(f'"is_help": {view_item_id.is_help},')
 
                                 cw.emit(f'"sequence": {view_item_id.sequence},')
 
@@ -551,8 +592,8 @@ class CodeGeneratorWriter(models.Model):
                                 else f"view_item_{child_item.section_type}_{child_item.sequence}"
                             )
                             with cw.block(
-                                    before=f'{var_create_view_item_child} = env["code.generator.view.item"].create',
-                                    delim=("(", ")"),
+                                before=f'{var_create_view_item_child} = env["code.generator.view.item"].create',
+                                delim=("(", ")"),
                             ):
                                 with cw.block(delim=("{", "}")):
                                     cw.emit(f'"section_type": "{child_item.section_type}",')
@@ -657,14 +698,14 @@ class CodeGeneratorWriter(models.Model):
                 cw.emit(line)
 
         def _add_hook(
-                cw,
-                hook_show,
-                hook_code,
-                hook_feature_gen_conf,
-                post_init_hook_feature_code_generator,
-                uninstall_hook_feature_code_generator,
-                method_name,
-                has_second_arg,
+            cw,
+            hook_show,
+            hook_code,
+            hook_feature_gen_conf,
+            post_init_hook_feature_code_generator,
+            uninstall_hook_feature_code_generator,
+            method_name,
+            has_second_arg,
         ):
             if hook_show:
                 cw.emit()
@@ -921,9 +962,9 @@ class CodeGeneratorWriter(models.Model):
                                             "one2many"
                                         )
                                         for (
-                                                field_id,
-                                                model_model,
-                                                variable_model_model,
+                                            field_id,
+                                            model_model,
+                                            variable_model_model,
                                         ) in lst_keep_f2exports:
                                             # Finish to print one2many move at the end
                                             self._write_sync_template_model(

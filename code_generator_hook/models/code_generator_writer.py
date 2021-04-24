@@ -487,10 +487,9 @@ class CodeGeneratorWriter(models.Model):
                     )
                     cw.emit(f'"selection": "{str(field_selection.get("selection"))}",')
                 cw.emit(f'"model_id": {var_model_model}.id,')
-                # if type(field_id.default) is not bool or field_id.default:
                 field_default = ast_attr.get("default") if ast_attr else None
                 if field_default:
-                    if type(field_default) is str:
+                    if field_id.ttype in ("char", "selection"):
                         cw.emit(f'"default": "{field_default}",')
                     else:
                         cw.emit(f'"default": {field_default},')
@@ -504,7 +503,9 @@ class CodeGeneratorWriter(models.Model):
                     cw.emit(f'"required": {field_id.required},')
                 if field_id.help:
                     cw.emit(f'"help": "{field_id.help}",')
-            cw.emit(f'{var_id_view} = env["ir.model.fields"].create({var_value_field_name})')
+            # If need a variable, uncomment next line
+            # cw.emit(f'{var_id_view} = env["ir.model.fields"].create({var_value_field_name})')
+            cw.emit(f'env["ir.model.fields"].create({var_value_field_name})')
             cw.emit()
 
         if lst_force_f2exports:
@@ -530,8 +531,8 @@ class CodeGeneratorWriter(models.Model):
                 else f"view_item_{view_item_id.section_type}_{view_item_id.sequence}"
             )
             with cw.block(
-                    before=f'{var_create_view_item} = env["code.generator.view.item"].create',
-                    delim=("(", ")"),
+                before=f'{var_create_view_item} = env["code.generator.view.item"].create',
+                delim=("(", ")"),
             ):
                 with cw.block(delim=("{", "}")):
                     cw.emit(f'"section_type": "{view_item_id.section_type}",')
@@ -547,7 +548,7 @@ class CodeGeneratorWriter(models.Model):
                         if view_item_id.placeholder:
                             cw.emit(f'"placeholder": "{view_item_id.placeholder}",')
                         if view_item_id.password:
-                            cw.emit(f'"password": "{view_item_id.password}",')
+                            cw.emit(f'"password": {view_item_id.password},')
                     elif view_item_id.item_type in ("group", "div"):
                         if view_item_id.attrs:
                             cw.emit(f'"attrs": "{view_item_id.attrs}",')
@@ -577,7 +578,9 @@ class CodeGeneratorWriter(models.Model):
             cw.emit()
 
             if view_item_id.child_id:
-                self._write_sync_view_component(view_item_id.child_id, cw, parent=var_create_view_item)
+                self._write_sync_view_component(
+                    view_item_id.child_id, cw, parent=var_create_view_item
+                )
 
     def _write_sync_template_views(self, cw, view_item):
         if not view_item.code_generator_id:

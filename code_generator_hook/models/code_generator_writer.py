@@ -338,15 +338,40 @@ class ExtractorModule:
                         return children
 
     def extract_lambda(self, node):
-        args = ", ".join([a.arg for a in node.value.args.args])
+        args = ", ".join([a.arg for a in node.args.args])
         value = ""
-        if type(node.value.body) is ast.Call:
+        if type(node.body) is ast.Call:
             # Support -> lambda self: self._default_folder()
-            body = node.value.body.func
+            body = node.body.func
             value = f"{body.value.id}.{body.attr}()"
         else:
             _logger.error("Lambda not supported.")
         return f"lambda {args}: {value}"
+
+    def _fill_search_field(self, ast_obj, var_name):
+        ast_obj_type = type(ast_obj)
+        if ast_obj_type is ast.Str:
+            result = ast_obj.s
+        elif ast_obj_type is ast.Lambda:
+            result = self.extract_lambda(ast_obj)
+        elif ast_obj_type is ast.NameConstant:
+            result = ast_obj.value
+        elif ast_obj_type is ast.Num:
+            result = ast_obj.n
+        elif ast_obj_type is ast.List:
+            lst_value = [self._fill_search_field(a, var_name) for a in ast_obj.elts]
+            result = lst_value
+        elif ast_obj_type is ast.Tuple:
+            lst_value = [self._fill_search_field(a, var_name) for a in ast_obj.elts]
+            result = tuple(lst_value)
+        else:
+            # TODO missing ast.Dict?
+            result = None
+            _logger.error(
+                f"Cannot support keyword of variable {var_name} type {ast_obj_type} in filename "
+                f"{self.py_filename}."
+            )
+        return result
 
     def search_field(self, class_model_ast):
         dct_field = {}
@@ -365,20 +390,10 @@ class ExtractorModule:
                     "sequence": sequence,
                 }
                 for keyword in node.value.keywords:
-                    keyword_type = type(keyword.value)
-                    if keyword_type is ast.Str:
-                        d[keyword.arg] = keyword.value.s
-                    elif keyword_type is ast.Lambda:
-                        d[keyword.arg] = self.extract_lambda(keyword)
-                    elif keyword_type is ast.NameConstant:
-                        d[keyword.arg] = keyword.value.value
-                    elif keyword_type is ast.Num:
-                        d[keyword.arg] = keyword.value.n
-                    else:
-                        _logger.error(
-                            f"Cannot support keyword of variable {var_name} type {keyword_type} in filename "
-                            f"{self.py_filename}."
-                        )
+                    value = self._fill_search_field(keyword.value, var_name)
+                    # Waste to stock None value
+                    if value is not None:
+                        d[keyword.arg] = value
 
                 dct_field[var_name] = d
 

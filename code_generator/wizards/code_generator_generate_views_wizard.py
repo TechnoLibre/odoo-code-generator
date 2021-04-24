@@ -577,14 +577,27 @@ pass''',
         return view_value
 
     def _generate_model_access(self, model_created):
+        # Unique access
         # group_id = self.env['res.groups'].search([('name', '=', 'Code Generator / Manager')])
         # group_id = self.env['res.groups'].search([('name', '=', 'Internal User')])
+        # TODO search system lang
         lang = "en_US"
         group_id = self.env.ref("base.group_user").with_context(lang=lang)
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
+        name = "%s Access %s" % (model_name_str, group_id.full_name)
+        existing_access = self.env["ir.model.access"].search(
+            [
+                ("model_id", "=", model_created.id),
+                ("group_id", "=", group_id.id),
+                ("name", "=", name),
+            ]
+        )
+        if existing_access:
+            return
+
         v = {
-            "name": "%s Access %s" % (model_name_str, group_id.full_name),
+            "name": name,
             "model_id": model_created.id,
             "group_id": group_id.id,
             "perm_read": True,

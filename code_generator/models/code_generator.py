@@ -303,6 +303,13 @@ class CodeGeneratorView(models.Model):
     )
 
 
+class CodeGeneratorViewType(models.Model):
+    _name = "code.generator.view.type"
+    _description = "Code Generator View Type"
+
+    name = fields.Char(string="View name")
+
+
 class CodeGeneratorViewItem(models.Model):
     _name = "code.generator.view.item"
     _description = "Code Generator View Item"
@@ -313,6 +320,8 @@ class CodeGeneratorViewItem(models.Model):
 
     # TODO create HTML for specific label
     label = fields.Char(string="Label")
+
+    view_type = fields.Many2one(string="View type")
 
     item_type = fields.Selection(
         [

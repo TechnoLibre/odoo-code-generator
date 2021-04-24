@@ -117,13 +117,17 @@ class ExtractorView:
                                 no_sequence += 1
 
             lst_body_xml = []
+            # Detect
             lst_form_xml = mydoc.getElementsByTagName("form")
-            if not lst_form_xml:
+            lst_search_xml = mydoc.getElementsByTagName("search")
+            lst_tree_xml = mydoc.getElementsByTagName("tree")
+            lst_content = lst_form_xml + lst_search_xml + lst_tree_xml
+            if not lst_content:
                 _logger.warning("Cannot find <form>.")
-            elif len(lst_form_xml) > 1:
-                _logger.warning("Cannot support multiple <form>.")
+            elif len(lst_content) > 1:
+                _logger.warning("Cannot support multiple <form>/<tree>/<search.")
             else:
-                form_xml = lst_form_xml[0]
+                form_xml = lst_content[0]
                 for child_form in form_xml.childNodes:
                     if child_form.nodeType is Node.TEXT_NODE:
                         data = child_form.data.strip()
@@ -603,6 +607,9 @@ class CodeGeneratorWriter(models.Model):
         code_generator_views_id = view_item.code_generator_id.code_generator_views_id
         form_view_ids = code_generator_views_id.filtered(
             lambda view_id: view_id.view_type == "form"
+        )
+        search_view_ids = code_generator_views_id.filtered(
+            lambda view_id: view_id.view_type == "search"
         )
         cw.emit("lst_view_id = []")
         cw.emit("# form view")

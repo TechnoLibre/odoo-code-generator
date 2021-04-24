@@ -793,7 +793,8 @@ class CodeGeneratorWriter(models.Model):
 
             view_type = view.type
 
-            if view_type in ["tree", "form"]:
+            # TODO use generic list
+            if view_type in ["tree", "form", "search", "graph", "pivot", "kanban"]:
 
                 str_id = f"{model_model}_view_{view_type}"
                 if str_id in lst_id:

@@ -601,6 +601,31 @@ class CodeGeneratorWriter(models.Model):
                     view_item_id.child_id, cw, parent=var_create_view_item
                 )
 
+    def _write_block_template_views(self, cw, view_id, view_item, tpl_ordered_section, view_type):
+        tpl_available_section = view_id.view_item_ids.mapped("section_type")
+        s = set(tpl_available_section)
+        lst_section = [x for x in tpl_ordered_section if x in s]
+
+        for section in lst_section:
+            cw.emit(f"# {section.upper()}")
+            view_item_ids = view_id.view_item_ids.filtered(
+                lambda field: field.section_type == section and not field.parent_id
+            )
+
+            self._write_sync_view_component(view_item_ids, cw)
+
+        cw.emit('view_code_generator = env["code.generator.view"].create(')
+        with cw.block(delim=("{", "}")):
+            cw.emit('"code_generator_id": code_generator_id.id,')
+            # TODO change
+            cw.emit(f'"view_type": "{view_type}",')
+            cw.emit(f'# "view_name": "view_backup_conf_form",')
+            cw.emit(f'"m2o_model": {view_item.var_model_name}.id,')
+            cw.emit('"view_item_ids": [(6, 0, lst_item_view)],')
+            cw.emit(f'"has_body_sheet": {view_id.has_body_sheet},')
+        cw.emit(")")
+        cw.emit("lst_view_id.append(view_code_generator.id)")
+
     def _write_sync_template_views(self, cw, view_item):
         if not view_item.code_generator_id:
             return
@@ -611,46 +636,41 @@ class CodeGeneratorWriter(models.Model):
         search_view_ids = code_generator_views_id.filtered(
             lambda view_id: view_id.view_type == "search"
         )
+        tree_view_ids = code_generator_views_id.filtered(
+            lambda view_id: view_id.view_type == "tree"
+        )
         cw.emit("lst_view_id = []")
         cw.emit("# form view")
         cw.emit("if True:")
         with cw.indent():
             cw.emit("lst_item_view = []")
 
-            for form_view_id in form_view_ids:
+            for view_id in form_view_ids:
                 tpl_ordered_section = ("header", "title", "body")
-                tpl_available_section = form_view_id.view_item_ids.mapped("section_type")
-                s = set(tpl_available_section)
-                lst_section = [x for x in tpl_ordered_section if x in s]
-
-                for section in lst_section:
-                    cw.emit(f"# {section.upper()}")
-                    view_item_ids = form_view_id.view_item_ids.filtered(
-                        lambda field: field.section_type == section and not field.parent_id
-                    )
-
-                    self._write_sync_view_component(view_item_ids, cw)
-
-                cw.emit('view_code_generator = env["code.generator.view"].create(')
-                with cw.block(delim=("{", "}")):
-                    cw.emit('"code_generator_id": code_generator_id.id,')
-                    cw.emit('"view_type": "form",')
-                    cw.emit(f'# "view_name": "view_backup_conf_form",')
-                    cw.emit(f'"m2o_model": {view_item.var_model_name}.id,')
-                    cw.emit('"view_item_ids": [(6, 0, lst_item_view)],')
-                    cw.emit(f'"has_body_sheet": {form_view_id.has_body_sheet},')
-                cw.emit(")")
-                cw.emit("lst_view_id.append(view_code_generator.id)")
+                self._write_block_template_views(
+                    cw, view_id, view_item, tpl_ordered_section, "form"
+                )
         cw.emit()
         cw.emit("# tree view")
         cw.emit("if True:")
         with cw.indent():
-            cw.emit("pass")
+            cw.emit("lst_item_view = []")
+            for view_id in tree_view_ids:
+                tpl_ordered_section = ("body",)
+                self._write_block_template_views(
+                    cw, view_id, view_item, tpl_ordered_section, "tree"
+                )
+
         cw.emit()
         cw.emit("# search view")
         cw.emit("if True:")
         with cw.indent():
-            cw.emit("pass")
+            cw.emit("lst_item_view = []")
+            for view_id in search_view_ids:
+                tpl_ordered_section = ("body",)
+                self._write_block_template_views(
+                    cw, view_id, view_item, tpl_ordered_section, "search"
+                )
         cw.emit()
         cw.emit("# act_window view")
         cw.emit("if True:")

@@ -135,8 +135,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
     @api.multi
     def specific_generate_view(self, code_generator_view_id):
-        if code_generator_view_id.view_type == "form":
-            self._generate_specific_form_views_models(code_generator_view_id)
+        self._generate_specific_form_views_models(code_generator_view_id)
 
     @api.multi
     def generic_generate_view(self):
@@ -459,6 +458,7 @@ pass''',
         return result
 
     def _generate_specific_form_views_models(self, code_generator_view_id):
+        view_type = code_generator_view_id.view_type
         model_name = code_generator_view_id.m2o_model.model
         model_id = code_generator_view_id.m2o_model.id
         dct_replace = {}
@@ -529,6 +529,11 @@ pass''',
                         item_header, lst_item_form_sheet, dct_replace, model_id
                     )
                     lst_item_form_sheet.append(item_xml)
+                elif item_header.item_type in ("field",):
+                    item_xml = self._generate_xml_object(item_header, model_id)
+                    lst_item_form_sheet.append(item_xml)
+                else:
+                    _logger.warning(f"Unknown type xml {item_header.item_type}")
 
         if lst_item_form_sheet:
             if code_generator_view_id.has_body_sheet:
@@ -537,7 +542,22 @@ pass''',
             else:
                 lst_item_form += lst_item_form_sheet
 
-        form_xml = E.form({}, *lst_item_form)
+        if view_type == "form":
+            form_xml = E.form({}, *lst_item_form)
+        elif view_type == "search":
+            form_xml = E.search({}, *lst_item_form)
+        elif view_type == "tree":
+            form_xml = E.tree({}, *lst_item_form)
+        elif view_type == "kanban":
+            form_xml = E.kanban({}, *lst_item_form)
+        elif view_type == "graph":
+            form_xml = E.graph({}, *lst_item_form)
+        elif view_type == "pivot":
+            form_xml = E.pivot({}, *lst_item_form)
+        else:
+            _logger.warning(f"Unknown xml view_type {view_type}")
+            return
+
         str_arch = ET.tostring(form_xml, pretty_print=True)
         str_content = str_arch.decode()
 
@@ -547,7 +567,7 @@ pass''',
         view_value = self.env["ir.ui.view"].create(
             {
                 "name": code_generator_view_id.view_name,
-                "type": "form",
+                "type": view_type,
                 "model": model_name,
                 "arch": str_content,
                 "m2o_model": code_generator_view_id.m2o_model.id,

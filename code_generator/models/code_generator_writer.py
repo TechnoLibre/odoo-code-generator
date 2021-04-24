@@ -1985,7 +1985,7 @@ class CodeGeneratorData:
         use_prettier = True
         use_format_black = True  # Else, oca-autopep8
         use_html5print = False
-        enable_xml_formatter = False
+        enable_xml_formatter = False  # Else, prettier-xml
         # Manual format with def with programmer style
         for path_file in self.lst_path_file:
             relative_path = path_file[len(self.module_path) + 1 :]
@@ -2081,6 +2081,16 @@ class CodeGeneratorData:
                     result = subprocess_cmd(cmd)
                     if result:
                         _logger.warning(result)
+
+            elif path_file.endswith(".xml"):
+                if use_prettier and not enable_xml_formatter:
+                    cmd = (
+                        f"prettier --xml-whitespace-sensitivity ignore --prose-wrap always --tab-width 4 "
+                        f"--no-bracket-spacing --print-width 120 --write {path_file}"
+                    )
+                    result = subprocess_cmd(cmd)
+                    if result:
+                        _logger.info(result)
 
         # Automatic format
         # TODO check diff before and after format to auto improvement of generation

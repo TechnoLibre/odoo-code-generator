@@ -429,11 +429,15 @@ class IrModelFields(models.Model):
         string="Hide in blacklist form view",
         help="Hide from view when field is blacklisted. View form only.",
     )
-
+    # This is used to choose order to show field in model
     code_generator_sequence = fields.Integer(
         string="Sequence Code Generator", help="Sequence to write this field from Code Generator."
     )
 
+    # TODO remove code_generator_tree_view_sequence and code_generator_search_sequence
+    # TODO wrong architecture, separate view order from model
+    # TODO This was a work around
+    # TODO or maybe it's useful in first iteration of code generator, remove this later when A USE C GENERATE B
     code_generator_tree_view_sequence = fields.Integer(
         string="Tree view sequence",
         help="Sequence to write this field in tree view from Code Generator.",

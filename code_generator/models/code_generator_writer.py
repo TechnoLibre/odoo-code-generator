@@ -674,18 +674,26 @@ class CodeGeneratorWriter(models.Model):
         application_icon = None
         menus = module.with_context({"ir.ui.menu.full_list": True}).o2m_menus
         lst_menu = []
+        max_loop = 500
+        i = 0
         lst_items = [a for a in menus]
+        origin_lst_items = lst_items[:]
         # Sorted menu by order of parent asc, and sort child by view_name
         while lst_items:
             has_update = False
             lst_item_cache = []
             for item in lst_items[:]:
+                i += 1
+                if i > max_loop:
+                    _logger.error("Overrun loop when reorder menu.")
+                    lst_items = []
+                    break
                 # Expect first menu by id is a root menu
                 if not item.parent_id:
                     lst_menu.append(item)
                     lst_items.remove(item)
                     has_update = True
-                elif item.parent_id in lst_menu:
+                elif item.parent_id in lst_menu or item.parent_id not in origin_lst_items:
                     lst_item_cache.append(item)
                     lst_items.remove(item)
                     has_update = True
@@ -709,7 +717,18 @@ class CodeGeneratorWriter(models.Model):
 
         for menu in lst_menu:
 
-            dct_menu_item = {"id": self._get_menu_data_name(menu), "name": menu.name}
+            menu_id = self._get_menu_data_name(menu)
+            menu_name = menu.name
+            dct_menu_item = {"id": menu_id}
+            if menu_name != menu_id:
+                dct_menu_item["name"] = menu_name
+
+            try:
+                menu.action
+            except Exception as e:
+                # missing action on menu
+                _logger.error(f"Missing action window on menu {menu.name}.")
+                continue
 
             if menu.action:
                 dct_menu_item["action"] = self._get_action_data_name(menu.action)
@@ -885,89 +904,175 @@ class CodeGeneratorWriter(models.Model):
         # Action Windows
         #
         for act_window in model.o2m_act_window:
-            # TODO detect form to reproduce, <act_window or <record model="ir.actions.act_window"
-            lst_field = []
+            # Use descriptive method when contain this attributes, not supported in simplify view
+            use_complex_view = bool(
+                act_window.groups_id
+                or act_window.help
+                or act_window.multi
+                or not act_window.auto_search
+                or act_window.filter
+                or act_window.search_view_id
+                or act_window.usage
+            )
+            if use_complex_view:
+                lst_field = []
 
-            if act_window.name:
-                lst_field.append(E.field({"name": "name"}, act_window.name))
+                if act_window.name:
+                    lst_field.append(E.field({"name": "name"}, act_window.name))
 
-            if act_window.res_model or act_window.m2o_res_model:
-                lst_field.append(
-                    E.field(
-                        {"name": "res_model"},
-                        act_window.res_model or act_window.m2o_res_model.model,
+                if act_window.res_model or act_window.m2o_res_model:
+                    lst_field.append(
+                        E.field(
+                            {"name": "res_model"},
+                            act_window.res_model or act_window.m2o_res_model.model,
+                        )
                     )
-                )
 
-            if act_window.binding_model_id:
-                binding_model = self._get_model_data_name(act_window.binding_model_id)
-                lst_field.append(E.field({"name": "binding_model_id", "ref": binding_model}))
+                if act_window.binding_model_id:
+                    binding_model = self._get_model_data_name(act_window.binding_model_id)
+                    lst_field.append(E.field({"name": "binding_model_id", "ref": binding_model}))
 
-            if act_window.view_id:
-                lst_field.append(
-                    E.field(
-                        {"name": "view_id", "ref": self._get_view_data_name(act_window.view_id)}
+                if act_window.view_id:
+                    lst_field.append(
+                        E.field(
+                            {"name": "view_id", "ref": self._get_view_data_name(act_window.view_id)}
+                        )
                     )
-                )
 
-            if act_window.domain != "[]" and act_window.domain:
-                lst_field.append(E.field({"name": "domain"}, act_window.domain))
+                if act_window.domain != "[]" and act_window.domain:
+                    lst_field.append(E.field({"name": "domain"}, act_window.domain))
 
-            if act_window.context != "{}":
-                lst_field.append(E.field({"name": "context"}, act_window.context))
+                if act_window.context != "{}":
+                    lst_field.append(E.field({"name": "context"}, act_window.context))
 
-            if act_window.src_model or act_window.m2o_src_model:
-                lst_field.append(
-                    E.field(
-                        {"name": "src_model"},
-                        act_window.src_model or act_window.m2o_src_model.model,
+                if act_window.src_model or act_window.m2o_src_model:
+                    lst_field.append(
+                        E.field(
+                            {"name": "src_model"},
+                            act_window.src_model or act_window.m2o_src_model.model,
+                        )
                     )
-                )
 
-            if act_window.target != "current":
-                lst_field.append(E.field({"name": "target"}, act_window.target))
+                if act_window.target != "current":
+                    lst_field.append(E.field({"name": "target"}, act_window.target))
 
-            if act_window.view_mode != "tree,form":
-                lst_field.append(E.field({"name": "view_mode"}, act_window.view_mode))
+                if act_window.view_mode != "tree,form":
+                    lst_field.append(E.field({"name": "view_mode"}, act_window.view_mode))
 
-            if act_window.view_type != "form":
-                lst_field.append(E.field({"name": "view_type"}, act_window.view_type))
+                if act_window.view_type != "form":
+                    lst_field.append(E.field({"name": "view_type"}, act_window.view_type))
 
-            if act_window.usage:
-                lst_field.append(E.field({"name": "usage", "eval": True}))
+                if act_window.usage:
+                    lst_field.append(E.field({"name": "usage", "eval": True}))
 
-            if act_window.limit != 80:
-                lst_field.append(E.field({"name": "limit"}, act_window.limit))
+                if act_window.limit != 80:
+                    lst_field.append(E.field({"name": "limit"}, act_window.limit))
 
-            if act_window.search_view_id:
-                lst_field.append(
-                    E.field(
-                        {
-                            "name": "search_view_id",
-                            "ref": self._get_view_data_name(act_window.search_view_id),
-                        }
+                if act_window.search_view_id:
+                    lst_field.append(
+                        E.field(
+                            {
+                                "name": "search_view_id",
+                                "ref": self._get_view_data_name(act_window.search_view_id),
+                            }
+                        )
                     )
-                )
 
-            if act_window.filter:
-                lst_field.append(E.field({"name": "filter", "eval": True}))
+                if act_window.filter:
+                    lst_field.append(E.field({"name": "filter", "eval": True}))
 
-            if not act_window.auto_search:
-                lst_field.append(E.field({"name": "auto_search", "eval": False}))
+                if not act_window.auto_search:
+                    lst_field.append(E.field({"name": "auto_search", "eval": False}))
 
-            if act_window.multi:
-                lst_field.append(E.field({"name": "multi", "eval": True}))
+                if act_window.multi:
+                    lst_field.append(E.field({"name": "multi", "eval": True}))
 
-            if act_window.help:
-                lst_field.append(E.field({"name": "name", "type": "html"}, act_window.help))
+                if act_window.help:
+                    lst_field.append(E.field({"name": "name", "type": "html"}, act_window.help))
 
-            if act_window.groups_id:
-                lst_field.append(self._get_m2m_groups_etree(act_window.groups_id))
+                if act_window.groups_id:
+                    lst_field.append(self._get_m2m_groups_etree(act_window.groups_id))
 
-            record_id = self._get_action_data_name(act_window, creating=True)
-            info = E.record({"model": "ir.actions.act_window", "id": record_id}, *lst_field)
-            lst_item_xml.append(ET.Comment("end line"))
-            lst_item_xml.append(info)
+                record_id = self._get_action_data_name(act_window, creating=True)
+                info = E.record({"model": "ir.actions.act_window", "id": record_id}, *lst_field)
+                lst_item_xml.append(ET.Comment("end line"))
+                lst_item_xml.append(info)
+            else:
+                record_id = self._get_action_data_name(act_window, creating=True)
+                dct_act_window = {"id": record_id}
+
+                if act_window.name:
+                    dct_act_window["name"] = act_window.name
+
+                if act_window.res_model or act_window.m2o_res_model:
+                    dct_act_window["res_model"] = (
+                        act_window.res_model or act_window.m2o_res_model.model
+                    )
+
+                if act_window.binding_model_id:
+                    # TODO replace ref
+                    pass
+
+                if act_window.view_id:
+                    # TODO replace ref
+                    pass
+
+                if act_window.domain != "[]" and act_window.domain:
+                    dct_act_window["domain"] = (
+                        act_window.res_model or act_window.m2o_res_model.model
+                    )
+
+                if act_window.context != "{}":
+                    dct_act_window["context"] = act_window.context
+
+                if act_window.src_model or act_window.m2o_src_model:
+                    dct_act_window["src_model"] = (
+                        act_window.src_model or act_window.m2o_src_model.model
+                    )
+
+                if act_window.target != "current":
+                    dct_act_window["target"] = act_window.target
+
+                if act_window.view_mode != "tree,form":
+                    dct_act_window["view_mode"] = act_window.view_mode
+
+                if act_window.view_type != "form":
+                    dct_act_window["view_type"] = act_window.view_type
+
+                if act_window.usage:
+                    # TODO replace ref
+                    pass
+
+                if act_window.limit != 80:
+                    dct_act_window["limit"] = act_window.limit
+
+                if act_window.search_view_id:
+                    # TODO replace ref
+                    pass
+
+                if act_window.filter:
+                    # TODO replace ref
+                    pass
+
+                if not act_window.auto_search:
+                    # TODO replace ref
+                    pass
+
+                if act_window.multi:
+                    # TODO replace ref
+                    pass
+
+                if act_window.help:
+                    # TODO how add type html and contents?
+                    pass
+
+                if act_window.groups_id:
+                    # TODO check _get_m2m_groups_etree
+                    pass
+
+                info = E.act_window(dct_act_window)
+                lst_item_xml.append(ET.Comment("end line"))
+                lst_item_xml.append(info)
 
         #
         # Server Actions

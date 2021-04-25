@@ -129,16 +129,12 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         else:
             lst_view_generated = []
             for code_generator_view_id in self.code_generator_view_ids:
-                view_id = self.specific_generate_view(code_generator_view_id)
+                view_id = self._generate_specific_form_views_models(code_generator_view_id)
                 lst_view_generated.append(view_id.type)
                 # TODO bug attach view to model (o2m_model) when not generate access
                 for model_id in self.code_generator_id.o2m_models:
                     self._generate_model_access(model_id)
             self._generate_menu(model_id, model_id.m2o_module, lst_view_generated)
-
-    @api.multi
-    def specific_generate_view(self, code_generator_view_id):
-        return self._generate_specific_form_views_models(code_generator_view_id)
 
     @api.multi
     def generic_generate_view(self):
@@ -166,8 +162,8 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 )
                 model_created_fields_list = model_id.field_id.filtered(
                     lambda field: field.name not in MAGIC_FIELDS
-                    and not field.is_hide_blacklist_list_view
-                    and (not is_whitelist or (is_whitelist and field.is_show_whitelist_list_view))
+                                  and not field.is_hide_blacklist_list_view
+                                  and (not is_whitelist or (is_whitelist and field.is_show_whitelist_list_view))
                 )
                 self._generate_list_views_models(
                     model_id, model_created_fields_list, model_id.m2o_module
@@ -180,8 +176,8 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 )
                 model_created_fields_form = model_id.field_id.filtered(
                     lambda field: field.name not in MAGIC_FIELDS
-                    and not field.is_hide_blacklist_form_view
-                    and (not is_whitelist or (is_whitelist and field.is_show_whitelist_form_view))
+                                  and not field.is_hide_blacklist_form_view
+                                  and (not is_whitelist or (is_whitelist and field.is_show_whitelist_form_view))
                 )
                 self._generate_form_views_models(
                     model_id, model_created_fields_form, model_id.m2o_module
@@ -189,16 +185,13 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 lst_view_generated.append("form")
 
             # Menu and action_windows
-            if lst_view_generated:
-                self._generate_menu(model_id, model_id.m2o_module, lst_view_generated)
+            self._generate_menu(model_id, model_id.m2o_module, lst_view_generated)
 
         # for model_id in o2m_models_view_form:
         #     print(model_id)
         # model_created_fields = model_id.field_id.filtered(lambda field: field.name not in MAGIC_FIELDS).mapped(
         #     'name')
         #
-        # self._generate_list_views_models(model_id, model_created_fields, model_id.m2o_module)
-        # self._generate_menu(model_id, model_id.m2o_module)
 
         for model_id in self.code_generator_id.o2m_models:
             self._generate_model_access(model_id)
@@ -626,11 +619,12 @@ pass''',
     def _generate_menu(self, model_created, module, lst_view_generated):
         # group_id = self.env['res.groups'].search([('name', '=', 'Code Generator / Manager')])
         # group_id = self.env['res.groups'].search([('name', '=', 'Internal User')])
+        is_generic_menu = not model_created.m2o_module.code_generator_menus_id
         group_id = self.env.ref("base.group_user")
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
         module_name = module.name
-        if module.application:
+        if module.application and is_generic_menu:
             # Create root if not exist
             if not self.generated_root_menu:
                 v = {
@@ -653,10 +647,11 @@ pass''',
 
         help_str = f"""<p class="o_view_nocontent_empty_folder">
         Add a new {model_name_str}
-      </p>
-      <p>
-        Databases whose tables could be imported to Odoo and then be exported into code
-      </p>"""
+          </p>
+          <p>
+            Databases whose tables could be imported to Odoo and then be exported into code
+          </p>
+        """
 
         # Special case, cannot support search view type in action_view
         try:
@@ -682,7 +677,7 @@ pass''',
         action_id = self.env["ir.actions.act_window"].create(v)
 
         # Create menu
-        if module.application:
+        if module.application and is_generic_menu:
             self.nb_sub_menu += 1
 
             v = {
@@ -697,3 +692,20 @@ pass''',
                 v["parent_id"] = self.generated_parent_menu.id
 
             access_value = self.env["ir.ui.menu"].create(v)
+        elif not is_generic_menu:
+            cg_menu_ids = model_created.m2o_module.code_generator_menus_id
+            # TODO check different case, with act_window, without, multiple menu, single menu
+            for menu_id in cg_menu_ids:
+                v = {
+                    "name": menu_id.id_name,
+                    "action": "ir.actions.act_window,%s" % action_id.id,
+                    # 'group_id': group_id.id,
+                    "m2o_module": module.id,
+                }
+                if menu_id.sequence != 10:
+                    v["sequence"] = menu_id.sequence
+
+                if menu_id.parent_id_name:
+                    v["parent_id"] = self.env.ref(menu_id.parent_id_name).id
+
+                access_value = self.env["ir.ui.menu"].create(v)

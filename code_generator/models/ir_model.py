@@ -182,6 +182,7 @@ class IrActionsReport(models.Model):
         string="Code generator Model",
         help="Model related with this report",
         compute="_compute_m2os",
+        store=True,
     )
 
     m2o_template = fields.Many2one(

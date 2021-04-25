@@ -167,16 +167,28 @@ class ExtractorView:
             if lst_node:
                 _logger.warning("Missing node in buffer.")
 
-            view_code_generator = self._module.env["code.generator.view"].create(
-                {
-                    "code_generator_id": self.code_generator_id.id,
-                    "view_type": view_id.type,
-                    # "view_name": "view_backup_conf_form",
-                    # "m2o_model": model_db_backup.id,
-                    "view_item_ids": [(6, 0, lst_view_item_id)],
-                    "has_body_sheet": has_body_sheet,
-                }
+            value = {
+                "code_generator_id": self.code_generator_id.id,
+                "view_type": view_id.type,
+                # "view_name": "view_backup_conf_form",
+                # "m2o_model": model_db_backup.id,
+                "view_item_ids": [(6, 0, lst_view_item_id)],
+                "has_body_sheet": has_body_sheet,
+            }
+
+            # ID
+            ir_model_data = self._module.env["ir.model.data"].search(
+                [
+                    ("model", "=", "ir.ui.view"),
+                    ("res_id", "=", view_id.id),
+                ]
             )
+            if ir_model_data:
+                first_name = ir_model_data[0].name
+                if len(ir_model_data) > 1:
+                    _logger.warning(f"Duplicated view model id {first_name}")
+                value["id_name"] = first_name
+            view_code_generator = self._module.env["code.generator.view"].create(value)
 
     def _extract_child_xml(
         self, node, lst_view_item_id, section_type, lst_node=[], parent=None, sequence=1
@@ -618,12 +630,14 @@ class CodeGeneratorWriter(models.Model):
         cw.emit('view_code_generator = env["code.generator.view"].create(')
         with cw.block(delim=("{", "}")):
             cw.emit('"code_generator_id": code_generator_id.id,')
-            # TODO change
             cw.emit(f'"view_type": "{view_type}",')
             cw.emit(f'# "view_name": "view_backup_conf_form",')
             cw.emit(f'"m2o_model": {view_item.var_model_name}.id,')
             cw.emit('"view_item_ids": [(6, 0, lst_item_view)],')
-            cw.emit(f'"has_body_sheet": {view_id.has_body_sheet},')
+            if view_id.has_body_sheet:
+                cw.emit(f'"has_body_sheet": {view_id.has_body_sheet},')
+            if view_id.id_name:
+                cw.emit(f'"id_name": "{view_id.id_name}",')
         cw.emit(")")
         cw.emit("lst_view_id.append(view_code_generator.id)")
 

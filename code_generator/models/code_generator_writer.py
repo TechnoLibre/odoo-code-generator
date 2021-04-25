@@ -429,6 +429,27 @@ class CodeGeneratorWriter(models.Model):
     def set_manifest_file_extra(self, cw, module):
         pass
 
+    def _get_id_view_model_data(self, record, is_internal=False):
+        """
+        Function to obtain the model data from a record
+        :param record:
+        :param is_internal: if False, add module name for external reference
+        :return:
+        """
+
+        ir_model_data = self.env["ir.model.data"].search(
+            [
+                ("model", "=", record.model),
+                ("res_id", "=", record.id),
+            ]
+        )
+        if not ir_model_data:
+            return
+
+        if is_internal:
+            return ir_model_data[0].name
+        return f"{ir_model_data[0].module}.{ir_model_data[0].name}"
+
     def _get_ir_model_data(self, record, give_a_default=False):
         """
         Function to obtain the model data from a record
@@ -793,10 +814,16 @@ class CodeGeneratorWriter(models.Model):
 
             view_type = view.type
 
-            # TODO use generic list
-            if view_type in ["tree", "form", "search", "graph", "pivot", "kanban"]:
+            lst_view_type = list(
+                dict(self.env["code.generator.view"]._fields["view_type"].selection).keys()
+            )
+            if view_type in lst_view_type:
 
-                str_id = f"{model_model}_view_{view_type}"
+                str_id_system = self._get_id_view_model_data(view, is_internal=True)
+                if not str_id_system:
+                    str_id = f"{model_model}_view_{view_type}"
+                else:
+                    str_id = str_id_system
                 if str_id in lst_id:
                     count_id = lst_id.count(str_id)
                     str_id += str(count_id)
@@ -852,13 +879,13 @@ class CodeGeneratorWriter(models.Model):
                 lst_item_xml.append(info)
 
             else:
-                print(f"Error, view type {view_type} of {view.name} not supported.")
+                _logger.error(f"View type {view_type} of {view.name} not supported.")
 
         #
         # Action Windows
         #
         for act_window in model.o2m_act_window:
-
+            # TODO detect form to reproduce, <act_window or <record model="ir.actions.act_window"
             lst_field = []
 
             if act_window.name:
@@ -1748,7 +1775,7 @@ class CodeGeneratorData:
                     set_files.add(file_name)
                     break
             else:
-                print(f"ERROR cannot find key {meta}.")
+                _logger.error(f"Cannot find key {meta}.")
         return list(set_files)
 
     def reorder_manifest_data_files(self):
@@ -1780,7 +1807,7 @@ class CodeGeneratorData:
                 del dct_hold_file[delete_file]
 
         if dct_hold_file:
-            print(f"ERROR, cannot order manifest files dependencies : {dct_hold_file}")
+            _logger.error(f"Cannot order manifest files dependencies: {dct_hold_file}")
         self._lst_manifest_data_files = lst_manifest
 
     def copy_directory(self, source_directory_path, directory_path):
@@ -1825,7 +1852,7 @@ class CodeGeneratorData:
                 insert_first=insert_first,
             )
         except Exception as e:
-            print(e)
+            _logger.error(e)
             raise e
 
     def write_file_str(self, file_path, content, mode="w", data_file=False, insert_first=False):
@@ -1855,7 +1882,7 @@ class CodeGeneratorData:
 
         # file_path suppose to be a relative path
         if file_path[0] == "/":
-            print(f"WARNING, path {file_path} not suppose to start with '/'.")
+            _logger.warning(f"Path {file_path} not suppose to start with '/'.")
             file_path = file_path[1:]
 
         absolute_path = os.path.join(self._path, self._module_name, file_path)
@@ -1895,7 +1922,7 @@ class CodeGeneratorData:
             dir_name = os.path.dirname(file_path)
             if len(self._split_path_all(dir_name)) > 1:
                 # This is a odoo limitation, but we can support it if need it
-                print("WARNING, you add python file more depth of 1 directory.")
+                _logger.warning("You add python file more depth of 1 directory.")
                 return
             python_module_name = os.path.splitext(os.path.basename(file_path))[0]
             self._dct_import_dir[dir_name].append(python_module_name)
@@ -1917,7 +1944,7 @@ class CodeGeneratorData:
                 shutil.rmtree(path_sync_code)
             shutil.copytree(self._module_path, path_sync_code)
         except Exception as e:
-            print(e)
+            _logger.error(e)
 
     def generate_python_init_file(self):
         for component, lst_module in self._dct_import_dir.items():

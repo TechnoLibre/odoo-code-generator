@@ -272,6 +272,8 @@ class CodeGeneratorView(models.Model):
         ondelete="cascade",
     )
 
+    id_name = fields.Char(string="ID", help="Specify id name.")
+
     view_type = fields.Selection(
         [
             ("tree", "Tree"),

@@ -577,6 +577,17 @@ pass''',
             }
         )
 
+        if code_generator_view_id.id_name:
+            self.env["ir.model.data"].create(
+                {
+                    "name": code_generator_view_id.id_name,
+                    "model": model_name,
+                    "module": code_generator_view_id.code_generator_id.name,
+                    "res_id": view_value.id,
+                    "noupdate": True,  # If it's False, target record (res_id) will be removed while module update
+                }
+            )
+
         return view_value
 
     def _generate_model_access(self, model_created):
@@ -619,25 +630,26 @@ pass''',
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
         module_name = module.name
-        # Create root if not exist
-        if not self.generated_root_menu:
-            v = {
-                "name": f"root_{module_name}",
-                "sequence": 20,
-                "web_icon": f"code_generator,static/description/icon_new_application.png",
-                # 'group_id': group_id.id,
-                "m2o_module": module.id,
-            }
-            self.generated_root_menu = self.env["ir.ui.menu"].create(v)
-        if not self.generated_parent_menu:
-            v = {
-                "name": _("Models"),
-                "sequence": 1,
-                "parent_id": self.generated_root_menu.id,
-                # 'group_id': group_id.id,
-                "m2o_module": module.id,
-            }
-            self.generated_parent_menu = self.env["ir.ui.menu"].create(v)
+        if module.application:
+            # Create root if not exist
+            if not self.generated_root_menu:
+                v = {
+                    "name": f"root_{module_name}",
+                    "sequence": 20,
+                    "web_icon": f"code_generator,static/description/icon_new_application.png",
+                    # 'group_id': group_id.id,
+                    "m2o_module": module.id,
+                }
+                self.generated_root_menu = self.env["ir.ui.menu"].create(v)
+            if not self.generated_parent_menu:
+                v = {
+                    "name": _("Models"),
+                    "sequence": 1,
+                    "parent_id": self.generated_root_menu.id,
+                    # 'group_id': group_id.id,
+                    "m2o_module": module.id,
+                }
+                self.generated_parent_menu = self.env["ir.ui.menu"].create(v)
 
         help_str = f"""<p class="o_view_nocontent_empty_folder">
         Add a new {model_name_str}
@@ -670,16 +682,18 @@ pass''',
         action_id = self.env["ir.actions.act_window"].create(v)
 
         # Create menu
+        if module.application:
+            self.nb_sub_menu += 1
 
-        self.nb_sub_menu += 1
+            v = {
+                "name": model_name_str,
+                "sequence": self.nb_sub_menu,
+                "action": "ir.actions.act_window,%s" % action_id.id,
+                # 'group_id': group_id.id,
+                "m2o_module": module.id,
+            }
 
-        v = {
-            "name": model_name_str,
-            "sequence": self.nb_sub_menu,
-            "parent_id": self.generated_parent_menu.id,
-            "action": "ir.actions.act_window,%s" % action_id.id,
-            # 'group_id': group_id.id,
-            "m2o_module": module.id,
-        }
+            if self.generated_parent_menu:
+                v["parent_id"] = self.generated_parent_menu.id
 
-        access_value = self.env["ir.ui.menu"].create(v)
+            access_value = self.env["ir.ui.menu"].create(v)

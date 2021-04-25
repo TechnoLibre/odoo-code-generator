@@ -422,7 +422,7 @@ class IrModelFields(models.Model):
         help="Hide from view when field is blacklisted. View list only.",
     )
     is_show_whitelist_form_view = fields.Boolean(
-        string="Show in whitelist list view",
+        string="Show in whitelist form view",
         help="If a field in model is in whitelist, all is not will be hide. " "View form only.",
     )
     is_hide_blacklist_form_view = fields.Boolean(

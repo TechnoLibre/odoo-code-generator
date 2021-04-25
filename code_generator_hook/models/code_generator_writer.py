@@ -37,6 +37,7 @@ class ExtractorView:
         self.code_generator_id = None
         model_name = model_model.replace(".", "_")
         self.var_model_name = f"model_{model_name}"
+        self.var_model = model_model
         if self.view_ids:
             # create temporary module
             value = {
@@ -675,6 +676,9 @@ class CodeGeneratorWriter(models.Model):
         cw.emit("# act_window view")
         cw.emit("if True:")
         with cw.indent():
+            # act_window_ids = self.env["ir.actions.act_window"].search([("res_model", "=", view_item.var_model)])
+            # for act_window in act_window_ids:
+            #     print(act_window)
             cw.emit("pass")
         cw.emit()
         cw.emit("# action_server view")
@@ -1020,7 +1024,6 @@ class CodeGeneratorWriter(models.Model):
                             if module.enable_template_wizard_view:
                                 cw.emit("# Generate view")
 
-                                # TODO
                                 custom_view = module.enable_sync_template
                                 if module.enable_sync_template:
                                     for view_item in lst_view_item_code_generator:

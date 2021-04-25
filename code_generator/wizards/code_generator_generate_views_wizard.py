@@ -127,15 +127,18 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         if not self.code_generator_view_ids:
             self.generic_generate_view()
         else:
+            lst_view_generated = []
             for code_generator_view_id in self.code_generator_view_ids:
-                self.specific_generate_view(code_generator_view_id)
+                view_id = self.specific_generate_view(code_generator_view_id)
+                lst_view_generated.append(view_id.type)
                 # TODO bug attach view to model (o2m_model) when not generate access
                 for model_id in self.code_generator_id.o2m_models:
                     self._generate_model_access(model_id)
+            self._generate_menu(model_id, model_id.m2o_module, lst_view_generated)
 
     @api.multi
     def specific_generate_view(self, code_generator_view_id):
-        self._generate_specific_form_views_models(code_generator_view_id)
+        return self._generate_specific_form_views_models(code_generator_view_id)
 
     @api.multi
     def generic_generate_view(self):
@@ -586,6 +589,7 @@ pass''',
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
         name = "%s Access %s" % (model_name_str, group_id.full_name)
+        # TODO maybe search by permission and model, ignore the name
         existing_access = self.env["ir.model.access"].search(
             [
                 ("model_id", "=", model_created.id),
@@ -641,6 +645,12 @@ pass''',
       <p>
         Databases whose tables could be imported to Odoo and then be exported into code
       </p>"""
+
+        # Special case, cannot support search view type in action_view
+        try:
+            lst_view_generated.remove("search")
+        except:
+            pass
 
         view_mode = ",".join(sorted(set(lst_view_generated), reverse=True))
         view_type = "form" if "form" in lst_view_generated else lst_view_generated[0]

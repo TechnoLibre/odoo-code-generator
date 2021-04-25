@@ -278,7 +278,9 @@ class CodeGeneratorView(models.Model):
             ("form", "Form"),
             ("pivot", "Pivot"),
             ("graph", "Graph"),
-            ("search", "Search"),
+            ("search", "Search"),  # Special
+            ("activity", "Activity"),
+            ("calendar", "Calendar"),
         ],
         default="form",
         help="Choose view type to generate.",

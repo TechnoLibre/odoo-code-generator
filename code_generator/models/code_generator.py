@@ -86,6 +86,10 @@ class CodeGeneratorModule(models.Model):
 
     o2m_model_views = fields.One2many("ir.ui.view", compute="_get_models_info")
 
+    code_generator_menus_id = fields.One2many(
+        "code.generator.menu", inverse_name="code_generator_id"
+    )
+
     code_generator_views_id = fields.One2many(
         "code.generator.view", inverse_name="code_generator_id"
     )
@@ -260,6 +264,28 @@ class CodeGeneratorModuleTemplateDependency(models.Model):
 
     depend_id = fields.Many2one("ir.module.module", "Dependency", compute=None)
 
+
+class CodeGeneratorMenu(models.Model):
+    _name = "code.generator.menu"
+    _description = "Code Generator Menu"
+
+    # TODO missing groups_id and active and web_icon or web_icon_data
+    code_generator_id = fields.Many2one(
+        comodel_name="code.generator.module",
+        string="Code Generator",
+        required=True,
+        ondelete="cascade",
+    )
+
+    id_name = fields.Char(string="Menu id", help="Specify id name of this menu.")
+
+    parent_id_name = fields.Char(
+        string="Menu parent id", help="Specify id name of parent menu, optional."
+    )
+
+    name = fields.Char(string="Menu name", help="Name of the menu.")
+
+    sequence = fields.Integer(string="Sequence", default=10)
 
 class CodeGeneratorView(models.Model):
     _name = "code.generator.view"

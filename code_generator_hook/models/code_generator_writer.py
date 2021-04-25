@@ -46,6 +46,40 @@ class ExtractorView:
             }
             self.code_generator_id = module.env["code.generator.module"].create(value)
             self._parse_view_ids()
+            self._parse_menu()
+
+    def _parse_menu(self):
+        ir_model_data_ids = self._module.env["ir.model.data"].search(
+            [
+                ("model", "=", "ir.ui.menu"),
+                ("module", "=", self._module.template_module_name),
+            ]
+        )
+        if not ir_model_data_ids:
+            return
+        lst_id_menu = [a.res_id for a in ir_model_data_ids]
+        menu_ids = self._module.env["ir.ui.menu"].browse(lst_id_menu)
+        for menu_id in menu_ids:
+            # TODO optimise this request, this is duplicated
+            menu_data_id = self._module.env["ir.model.data"].search(
+                [("model", "=", "ir.ui.menu"), ("res_id", "=", menu_id.id)]
+            )
+            dct_menu_value = {
+                "code_generator_id": self.code_generator_id.id,
+                "id_name": menu_data_id.name,
+                "name": menu_id.name,
+            }
+            if menu_id.sequence != 10:
+                dct_menu_value["sequence"] = menu_id.sequence
+            if menu_id.parent_id:
+                menu_data_parent_id = self._module.env["ir.model.data"].search(
+                    [("model", "=", "ir.ui.menu"), ("res_id", "=", menu_id.parent_id.id)]
+                )
+                dct_menu_value["parent_id_name"] = menu_data_parent_id.complete_name
+
+            self._module.env["code.generator.menu"].create(dct_menu_value)
+            # If need to associated
+            # menu_id.m2o_module = self._module.id
 
     def _parse_view_ids(self):
         for view_id in self.view_ids:
@@ -703,7 +737,29 @@ class CodeGeneratorWriter(models.Model):
         cw.emit("# menu view")
         cw.emit("if True:")
         with cw.indent():
-            cw.emit("pass")
+            if view_item.code_generator_id.code_generator_menus_id:
+                for menu_id in view_item.code_generator_id.code_generator_menus_id:
+                    # env["code.generator.menu"].create(
+                    #     {
+                    #         "code_generator_id": code_generator_id.id,
+                    #         "parent_id_name": "base.next_id_9",
+                    #         "id_name": "backup_conf_menu",
+                    #     }
+                    # )
+                    with cw.block(
+                        before='env["code.generator.menu"].create',
+                        delim=("(", ")"),
+                    ):
+                        with cw.block(delim=("{", "}")):
+                            cw.emit('"code_generator_id": code_generator_id.id,')
+                            cw.emit(f'"name": "{menu_id.name}",')
+                            cw.emit(f'"id_name": "{menu_id.id_name}",')
+                            if menu_id.sequence != 10:
+                                cw.emit(f'"sequence": "{menu_id.sequence}",')
+                            if menu_id.parent_id_name:
+                                cw.emit(f'"parent_id_name": "{menu_id.parent_id_name}",')
+            else:
+                cw.emit("pass")
 
         # TODO implement portal
         # cw.emit()

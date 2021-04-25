@@ -437,6 +437,13 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
+        # special trick for some record
+        xml_id = getattr(record, "xml_id")
+        if xml_id:
+            if is_internal:
+                return xml_id.split(".")[1]
+            return xml_id
+
         ir_model_data = self.env["ir.model.data"].search(
             [
                 ("model", "=", record.model),
@@ -523,7 +530,7 @@ class CodeGeneratorWriter(models.Model):
             else "%s_%sview" % (self._get_model_model(view.model), view.type)
         )
 
-    def _get_action_data_name(self, action, server=False, creating=False):
+    def _get_action_data_name(self, action, server=False, creating=False, module=None):
         """
         Function to obtain the res_id-like action name
         :param action:
@@ -533,7 +540,15 @@ class CodeGeneratorWriter(models.Model):
         """
 
         if not creating and self._get_ir_model_data(action):
-            return self._get_ir_model_data(action)
+            action_name = self._get_ir_model_data(action)
+            if not module or "." not in action_name:
+                return action_name
+            lst_action = action_name.split(".")
+            if module.name == lst_action[0]:
+                # remove internal name
+                return lst_action[1]
+            # link is external
+            return action_name
 
         else:
             model = (
@@ -731,7 +746,7 @@ class CodeGeneratorWriter(models.Model):
                 continue
 
             if menu.action:
-                dct_menu_item["action"] = self._get_action_data_name(menu.action)
+                dct_menu_item["action"] = self._get_action_data_name(menu.action, module=module)
 
             if not menu.active:
                 dct_menu_item["active"] = "False"
@@ -914,6 +929,11 @@ class CodeGeneratorWriter(models.Model):
                 or act_window.search_view_id
                 or act_window.usage
             )
+
+            record_id = self._get_id_view_model_data(act_window, is_internal=True)
+            if not record_id:
+                record_id = self._get_action_data_name(act_window, creating=True)
+
             if use_complex_view:
                 lst_field = []
 
@@ -993,12 +1013,10 @@ class CodeGeneratorWriter(models.Model):
                 if act_window.groups_id:
                     lst_field.append(self._get_m2m_groups_etree(act_window.groups_id))
 
-                record_id = self._get_action_data_name(act_window, creating=True)
                 info = E.record({"model": "ir.actions.act_window", "id": record_id}, *lst_field)
                 lst_item_xml.append(ET.Comment("end line"))
                 lst_item_xml.append(info)
             else:
-                record_id = self._get_action_data_name(act_window, creating=True)
                 dct_act_window = {"id": record_id}
 
                 if act_window.name:

@@ -265,6 +265,15 @@ class CodeGeneratorModuleTemplateDependency(models.Model):
     depend_id = fields.Many2one("ir.module.module", "Dependency", compute=None)
 
 
+class CodeGeneratorActWindow(models.Model):
+    _name = "code.generator.act_window"
+    _description = "Code Generator Act Window"
+
+    name = fields.Char(string="name")
+
+    id_name = fields.Char(string="Action id", help="Specify id name of this action window.")
+
+
 class CodeGeneratorMenu(models.Model):
     _name = "code.generator.menu"
     _description = "Code Generator Menu"
@@ -286,6 +295,13 @@ class CodeGeneratorMenu(models.Model):
     name = fields.Char(string="Menu name", help="Name of the menu.")
 
     sequence = fields.Integer(string="Sequence", default=10)
+
+    m2o_act_window = fields.Many2one(
+        comodel_name="code.generator.act_window",
+        string="Action Windows",
+        help="Act window to open when click on this menu.",
+    )
+
 
 class CodeGeneratorView(models.Model):
     _name = "code.generator.view"

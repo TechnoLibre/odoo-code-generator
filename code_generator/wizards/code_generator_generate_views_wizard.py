@@ -162,8 +162,8 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 )
                 model_created_fields_list = model_id.field_id.filtered(
                     lambda field: field.name not in MAGIC_FIELDS
-                                  and not field.is_hide_blacklist_list_view
-                                  and (not is_whitelist or (is_whitelist and field.is_show_whitelist_list_view))
+                    and not field.is_hide_blacklist_list_view
+                    and (not is_whitelist or (is_whitelist and field.is_show_whitelist_list_view))
                 )
                 self._generate_list_views_models(
                     model_id, model_created_fields_list, model_id.m2o_module
@@ -176,8 +176,8 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 )
                 model_created_fields_form = model_id.field_id.filtered(
                     lambda field: field.name not in MAGIC_FIELDS
-                                  and not field.is_hide_blacklist_form_view
-                                  and (not is_whitelist or (is_whitelist and field.is_show_whitelist_form_view))
+                    and not field.is_hide_blacklist_form_view
+                    and (not is_whitelist or (is_whitelist and field.is_show_whitelist_form_view))
                 )
                 self._generate_form_views_models(
                     model_id, model_created_fields_form, model_id.m2o_module
@@ -662,22 +662,22 @@ pass''',
         view_mode = ",".join(sorted(set(lst_view_generated), reverse=True))
         view_type = "form" if "form" in lst_view_generated else lst_view_generated[0]
 
-        # Create action
-        v = {
-            "name": f"{model_name_str}_action_view",
-            "res_model": model_name,
-            "type": "ir.actions.act_window",
-            "view_mode": view_mode,
-            "view_type": view_type,
-            # 'help': help_str,
-            # 'search_view_id': self.search_view_id.id,
-            "context": {},
-            "m2o_res_model": model_created.id,
-        }
-        action_id = self.env["ir.actions.act_window"].create(v)
-
         # Create menu
         if module.application and is_generic_menu:
+            # Create action
+            v = {
+                "name": f"{model_name_str}_action_view",
+                "res_model": model_name,
+                "type": "ir.actions.act_window",
+                "view_mode": view_mode,
+                "view_type": view_type,
+                # 'help': help_str,
+                # 'search_view_id': self.search_view_id.id,
+                "context": {},
+                "m2o_res_model": model_created.id,
+            }
+            action_id = self.env["ir.actions.act_window"].create(v)
+
             self.nb_sub_menu += 1
 
             v = {
@@ -696,6 +696,47 @@ pass''',
             cg_menu_ids = model_created.m2o_module.code_generator_menus_id
             # TODO check different case, with act_window, without, multiple menu, single menu
             for menu_id in cg_menu_ids:
+                if menu_id.m2o_act_window:
+                    # Create action
+                    v = {
+                        "name": menu_id.m2o_act_window.name,
+                        "res_model": model_name,
+                        "type": "ir.actions.act_window",
+                        "view_mode": view_mode,
+                        "view_type": view_type,
+                        # 'help': help_str,
+                        # 'search_view_id': self.search_view_id.id,
+                        "context": {},
+                        "m2o_res_model": model_created.id,
+                    }
+                    action_id = self.env["ir.actions.act_window"].create(v)
+                    if menu_id.m2o_act_window.id_name:
+                        # Write id name
+                        self.env["ir.model.data"].create(
+                            {
+                                "name": menu_id.m2o_act_window.id_name,
+                                "model": "ir.actions.act_window",
+                                "module": module.name,
+                                "res_id": action_id.id,
+                                "noupdate": True,
+                                # If it's False, target record (res_id) will be removed while module update
+                            }
+                        )
+                else:
+                    # Create action
+                    v = {
+                        "name": f"{model_name_str}_action_view",
+                        "res_model": model_name,
+                        "type": "ir.actions.act_window",
+                        "view_mode": view_mode,
+                        "view_type": view_type,
+                        # 'help': help_str,
+                        # 'search_view_id': self.search_view_id.id,
+                        "context": {},
+                        "m2o_res_model": model_created.id,
+                    }
+                    action_id = self.env["ir.actions.act_window"].create(v)
+
                 v = {
                     "name": menu_id.id_name,
                     "action": "ir.actions.act_window,%s" % action_id.id,

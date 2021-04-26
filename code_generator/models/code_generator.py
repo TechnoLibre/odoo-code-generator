@@ -275,6 +275,7 @@ class CodeGeneratorActWindow(models.Model):
 
     name = fields.Char(string="name")
 
+    # TODO use ir.model.data instead if id_name
     id_name = fields.Char(string="Action id", help="Specify id name of this action window.")
 
     code_generator_id = fields.Many2one(
@@ -297,8 +298,10 @@ class CodeGeneratorMenu(models.Model):
         ondelete="cascade",
     )
 
+    # TODO use ir.model.data instead if id_name
     id_name = fields.Char(string="Menu id", help="Specify id name of this menu.")
 
+    # TODO use ir.model.data instead if parent_id_name
     parent_id_name = fields.Char(
         string="Menu parent id", help="Specify id name of parent menu, optional."
     )
@@ -323,6 +326,7 @@ class CodeGeneratorView(models.Model):
         ondelete="cascade",
     )
 
+    # TODO use ir.model.data instead if id_name
     id_name = fields.Char(string="View id", help="Specify id name of this view.")
 
     view_type = fields.Selection(

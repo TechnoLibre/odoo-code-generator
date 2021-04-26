@@ -1143,6 +1143,10 @@ class CodeGeneratorWriter(models.Model):
                 record_id = self._get_action_data_name(server_action, server=True, creating=True)
             info = E.record({"id": record_id, "model": "ir.actions.server"}, *lst_field)
             lst_item_xml.append(ET.Comment("end line"))
+
+            if server_action.comment:
+                lst_item_xml.append(ET.Comment(text=f" {server_action.comment} "))
+
             lst_item_xml.append(info)
 
         lst_item_xml.append(ET.Comment("end line"))

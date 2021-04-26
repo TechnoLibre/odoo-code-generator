@@ -47,6 +47,44 @@ class ExtractorView:
             self.code_generator_id = module.env["code.generator.module"].create(value)
             self._parse_view_ids()
             self._parse_menu()
+            self._parse_action_server()
+
+    def _parse_action_server(self):
+        # Search comment node associated to action_server
+        module = self._module
+        if not module.template_module_path_generated_extension:
+            return
+        relative_path_generated_module = module.template_module_path_generated_extension.replace(
+            "'", ""
+        ).replace(", ", "/")
+        path_generated_module = os.path.normpath(
+            os.path.join(
+                module.path_sync_code,
+                relative_path_generated_module,
+                module.template_module_name,
+                "**",
+                "*.xml",
+            )
+        )
+        lst_xml_file = glob.glob(path_generated_module)
+        for xml_file in lst_xml_file:
+            my_xml = minidom.parse(xml_file)
+            lst_record = my_xml.getElementsByTagName("record")
+            for record in lst_record:
+                # detect action_server_backup
+                searched_record = "model", "ir.actions.server"
+
+                if searched_record in record.attributes.items():
+                    last_record = record.previousSibling.previousSibling
+                    if last_record.nodeType is Node.COMMENT_NODE:
+                        record_id = dict(record.attributes.items()).get("id")
+                        if not record_id:
+                            _logger.warning("Missing id when searching ir.actions.server.")
+                            continue
+                        xml_id = f"{module.template_module_name}.{record_id}"
+                        result = self._module.env.ref(xml_id, raise_if_not_found=False)
+                        if result:
+                            result.comment = last_record.data.strip()
 
     def _parse_menu(self):
         ir_model_data_ids = self._module.env["ir.model.data"].search(
@@ -725,9 +763,13 @@ class CodeGeneratorWriter(models.Model):
                             cw.emit(f'"binding_model_id": {var_model_id}.id,')
                             cw.emit(f'"state": "{act_server.state}",')
                             cw.emit(f'"code": "{act_server.code}",')
+                            if act_server.comment:
+                                comment = act_server.comment.replace('"', '\\"')
+                                cw.emit(f'"comment": "{comment}",')
                     cw.emit()
                     if var_act_server_id:
                         # TODO instead of creating id, maybe add this feature directly in ir.actions.server?
+                        cw.emit("# Add record id name")
                         with cw.block(
                             before=f'env["ir.model.data"].create',
                             delim=("(", ")"),

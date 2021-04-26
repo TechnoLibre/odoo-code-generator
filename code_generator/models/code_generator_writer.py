@@ -670,7 +670,7 @@ class CodeGeneratorWriter(models.Model):
                 else uuid.uuid1().int,
             )
             lst_id.append(id_record)
-            record_xml = E.record({"model": model.model, "id": id_record}, *lst_field)
+            record_xml = E.record({"id": id_record, "model": model.model}, *lst_field)
             lst_menu_xml.append(record_xml)
 
         module_file = E.odoo({}, *lst_menu_xml)
@@ -902,7 +902,7 @@ class CodeGeneratorWriter(models.Model):
                 if view.groups_id:
                     lst_field.append(self._get_m2m_groups_etree(view.groups_id))
 
-                info = E.record({"model": "ir.ui.view", "id": str_id}, *lst_field)
+                info = E.record({"id": str_id, "model": "ir.ui.view"}, *lst_field)
                 lst_item_xml.append(ET.Comment("end line"))
                 lst_item_xml.append(info)
 
@@ -1020,7 +1020,7 @@ class CodeGeneratorWriter(models.Model):
                 if act_window.groups_id:
                     lst_field.append(self._get_m2m_groups_etree(act_window.groups_id))
 
-                info = E.record({"model": "ir.actions.act_window", "id": record_id}, *lst_field)
+                info = E.record({"id": record_id, "model": "ir.actions.act_window"}, *lst_field)
                 lst_item_xml.append(ET.Comment("end line"))
                 lst_item_xml.append(info)
             else:
@@ -1136,8 +1136,12 @@ class CodeGeneratorWriter(models.Model):
                         E.field({"name": "child_ids", "eval": f"[(6,0, [{child_obj}])]"})
                     )
 
-            record_id = self._get_action_data_name(server_action, server=True, creating=True)
-            info = E.record({"model": "ir.actions.server", "id": record_id}, *lst_field)
+            record_id = self._get_id_view_model_data(
+                server_action, model="ir.actions.server", is_internal=True
+            )
+            if not record_id:
+                record_id = self._get_action_data_name(server_action, server=True, creating=True)
+            info = E.record({"id": record_id, "model": "ir.actions.server"}, *lst_field)
             lst_item_xml.append(ET.Comment("end line"))
             lst_item_xml.append(info)
 

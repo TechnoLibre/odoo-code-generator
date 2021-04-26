@@ -691,6 +691,57 @@ class CodeGeneratorWriter(models.Model):
         cw.emit(")")
         cw.emit("lst_view_id.append(view_code_generator.id)")
 
+    def _write_sync_template_action(self, cw, module, model_model):
+        cw.emit("# action_server view")
+        cw.emit("if True:")
+        with cw.indent():
+            # TODO support ir_cron here
+            # TODO pass model_id by params instead search it
+            model_id = self.env["ir.model"].search([("model", "=", model_model)])
+            act_server_ids = self.env["ir.actions.server"].search(
+                [
+                    ("model_name", "=", model_model),
+                    ("usage", "=", "ir_actions_server"),
+                    ("model_id", "=", model_id.id),
+                ]
+            )
+            if act_server_ids:
+                for act_server in act_server_ids:
+                    var_act_server_id = self.env["ir.model.data"].search(
+                        [
+                            ("module", "=", module.template_module_name),
+                            ("res_id", "=", act_server.id),
+                            ("model", "=", "ir.actions.server"),
+                        ]
+                    )
+                    var_model_id = f"model_{act_server.model_name.replace('.', '_')}"
+                    with cw.block(
+                        before=f'act_server_id = env["ir.actions.server"].create',
+                        delim=("(", ")"),
+                    ):
+                        with cw.block(delim=("{", "}")):
+                            cw.emit(f'"name": "{act_server.name}",')
+                            cw.emit(f'"model_id": {var_model_id}.id,')
+                            cw.emit(f'"binding_model_id": {var_model_id}.id,')
+                            cw.emit(f'"state": "{act_server.state}",')
+                            cw.emit(f'"code": "{act_server.code}",')
+                    cw.emit()
+                    if var_act_server_id:
+                        # TODO instead of creating id, maybe add this feature directly in ir.actions.server?
+                        with cw.block(
+                            before=f'env["ir.model.data"].create',
+                            delim=("(", ")"),
+                        ):
+                            with cw.block(delim=("{", "}")):
+                                cw.emit(f'"name": "{var_act_server_id.name}",')
+                                cw.emit(f'"model": "ir.actions.server",')
+                                cw.emit(f'"module": "{module.template_module_name}",')
+                                cw.emit(f'"res_id": act_server_id.id,')
+                                cw.emit(f'"noupdate": True,')
+            else:
+                cw.emit("pass")
+        cw.emit()
+
     def _write_sync_template_views(self, cw, view_item):
         if not view_item.code_generator_id:
             return
@@ -753,11 +804,6 @@ class CodeGeneratorWriter(models.Model):
                     cw.emit()
             else:
                 cw.emit("pass")
-        cw.emit()
-        cw.emit("# action_server view")
-        cw.emit("if True:")
-        with cw.indent():
-            cw.emit("pass")
         cw.emit()
         cw.emit("# menu view")
         cw.emit("if True:")
@@ -1121,13 +1167,16 @@ class CodeGeneratorWriter(models.Model):
                                 cw.emit("# Generate view")
 
                                 custom_view = module.enable_sync_template
-                                if module.enable_sync_template:
+                                if custom_view:
                                     for view_item in lst_view_item_code_generator:
                                         i += 1
                                         cw.emit("##### Begin Views")
                                         self._write_sync_template_views(cw, view_item)
                                         cw.emit("##### End Views")
                                         cw.emit()
+
+                                cw.emit("# Generate server action")
+                                self._write_sync_template_action(cw, module, model_model)
 
                                 cw.emit("# Action generate view")
                                 cw.emit(

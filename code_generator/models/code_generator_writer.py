@@ -429,7 +429,7 @@ class CodeGeneratorWriter(models.Model):
     def set_manifest_file_extra(self, cw, module):
         pass
 
-    def _get_id_view_model_data(self, record, is_internal=False):
+    def _get_id_view_model_data(self, record, model=None, is_internal=False):
         """
         Function to obtain the model data from a record
         :param record:
@@ -444,9 +444,14 @@ class CodeGeneratorWriter(models.Model):
                 return xml_id.split(".")[1]
             return xml_id
 
+        if model:
+            record_model = model
+        else:
+            record_model = record.model
+
         ir_model_data = self.env["ir.model.data"].search(
             [
-                ("model", "=", record.model),
+                ("model", "=", record_model),
                 ("res_id", "=", record.id),
             ]
         )
@@ -930,7 +935,9 @@ class CodeGeneratorWriter(models.Model):
                 or act_window.usage
             )
 
-            record_id = self._get_id_view_model_data(act_window, is_internal=True)
+            record_id = self._get_id_view_model_data(
+                act_window, model="ir.actions.act_window", is_internal=True
+            )
             if not record_id:
                 record_id = self._get_action_data_name(act_window, creating=True)
 

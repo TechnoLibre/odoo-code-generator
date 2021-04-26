@@ -60,14 +60,27 @@ class ExtractorView:
         lst_id_menu = [a.res_id for a in ir_model_data_ids]
         menu_ids = self._module.env["ir.ui.menu"].browse(lst_id_menu)
         for menu_id in menu_ids:
-            # TODO optimise this request, this is duplicated
+
+            # TODO optimise request ir.model.data, this is duplicated
+            menu_action = None
+            if menu_id.action:
+                # Create act_window
+                menu_data_id = self._module.env["ir.model.data"].search(
+                    [("model", "=", "ir.actions.act_window"), ("res_id", "=", menu_id.action.id)]
+                )
+                dct_act_value = {
+                    "id_name": menu_data_id.name,
+                    "name": menu_id.action.name,
+                    "code_generator_id": self.code_generator_id.id,
+                }
+                menu_action = self._module.env["code.generator.act_window"].create(dct_act_value)
+            # Create menu
             menu_data_id = self._module.env["ir.model.data"].search(
                 [("model", "=", "ir.ui.menu"), ("res_id", "=", menu_id.id)]
             )
             dct_menu_value = {
                 "code_generator_id": self.code_generator_id.id,
                 "id_name": menu_data_id.name,
-                "name": menu_id.name,
             }
             if menu_id.sequence != 10:
                 dct_menu_value["sequence"] = menu_id.sequence
@@ -76,6 +89,9 @@ class ExtractorView:
                     [("model", "=", "ir.ui.menu"), ("res_id", "=", menu_id.parent_id.id)]
                 )
                 dct_menu_value["parent_id_name"] = menu_data_parent_id.complete_name
+
+            if menu_action:
+                dct_menu_value["m2o_act_window"] = menu_action.id
 
             self._module.env["code.generator.menu"].create(dct_menu_value)
             # If need to associated
@@ -724,10 +740,19 @@ class CodeGeneratorWriter(models.Model):
         cw.emit("# act_window view")
         cw.emit("if True:")
         with cw.indent():
-            # act_window_ids = self.env["ir.actions.act_window"].search([("res_model", "=", view_item.var_model)])
-            # for act_window in act_window_ids:
-            #     print(act_window)
-            cw.emit("pass")
+            if view_item.code_generator_id.code_generator_act_window_id:
+                for act_win_id in view_item.code_generator_id.code_generator_act_window_id:
+                    with cw.block(
+                        before=f'{act_win_id.id_name} = env["code.generator.act_window"].create',
+                        delim=("(", ")"),
+                    ):
+                        with cw.block(delim=("{", "}")):
+                            cw.emit('"code_generator_id": code_generator_id.id,')
+                            cw.emit(f'"name": "{act_win_id.name}",')
+                            cw.emit(f'"id_name": "{act_win_id.id_name}",')
+                    cw.emit()
+            else:
+                cw.emit("pass")
         cw.emit()
         cw.emit("# action_server view")
         cw.emit("if True:")
@@ -752,12 +777,13 @@ class CodeGeneratorWriter(models.Model):
                     ):
                         with cw.block(delim=("{", "}")):
                             cw.emit('"code_generator_id": code_generator_id.id,')
-                            cw.emit(f'"name": "{menu_id.name}",')
                             cw.emit(f'"id_name": "{menu_id.id_name}",')
                             if menu_id.sequence != 10:
                                 cw.emit(f'"sequence": "{menu_id.sequence}",')
                             if menu_id.parent_id_name:
                                 cw.emit(f'"parent_id_name": "{menu_id.parent_id_name}",')
+                            if menu_id.m2o_act_window:
+                                cw.emit(f'"m2o_act_window": {menu_id.m2o_act_window.id_name}.id,')
             else:
                 cw.emit("pass")
 

@@ -90,6 +90,10 @@ class CodeGeneratorModule(models.Model):
         "code.generator.menu", inverse_name="code_generator_id"
     )
 
+    code_generator_act_window_id = fields.One2many(
+        "code.generator.act_window", inverse_name="code_generator_id"
+    )
+
     code_generator_views_id = fields.One2many(
         "code.generator.view", inverse_name="code_generator_id"
     )
@@ -273,6 +277,13 @@ class CodeGeneratorActWindow(models.Model):
 
     id_name = fields.Char(string="Action id", help="Specify id name of this action window.")
 
+    code_generator_id = fields.Many2one(
+        comodel_name="code.generator.module",
+        string="Code Generator",
+        required=True,
+        ondelete="cascade",
+    )
+
 
 class CodeGeneratorMenu(models.Model):
     _name = "code.generator.menu"
@@ -291,8 +302,6 @@ class CodeGeneratorMenu(models.Model):
     parent_id_name = fields.Char(
         string="Menu parent id", help="Specify id name of parent menu, optional."
     )
-
-    name = fields.Char(string="Menu name", help="Name of the menu.")
 
     sequence = fields.Integer(string="Sequence", default=10)
 

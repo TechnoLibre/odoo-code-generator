@@ -69,13 +69,13 @@ class CodeGeneratorModule(models.Model):
         ),
     )
 
-    template_model_name = fields.Char(
-        string="Functions models",
-        help="Add model from list, separate by ';' and generate template.",
-    )
-
     enable_template_wizard_view = fields.Boolean(
         string="Template wizard", help="Add template wizard."
+    )
+
+    force_generic_template_wizard_view = fields.Boolean(
+        string="Force template wizard",
+        help="Use default value to generate template wizard.",
     )
 
     enable_generate_portal = fields.Boolean(
@@ -99,14 +99,6 @@ class CodeGeneratorModule(models.Model):
         string="Ignored field",
         help=(
             "Ignore field when enable_sync_template, use ; to separate field."
-        ),
-    )
-
-    template_module_name = fields.Char(
-        string="Generated module name",
-        help=(
-            "Can be empty in case of code_generator_demo, else it's the module"
-            " name goal to generate."
         ),
     )
 

@@ -230,8 +230,14 @@ class CodeGeneratorWriter(models.Model):
             destination_directory, "scss", "leaflet.scss"
         )
         source_file = os.path.join(source_directory, "scss", "leaflet.scss")
+
+        search_and_replace = [("/website_leaflet", f"/{module.name}")]
+
         self.code_generator_data.copy_file(
-            source_file, destination_file, [("website_leaflet", module.name)]
+            source_file,
+            destination_file,
+            data_file=True,
+            search_and_replace=search_and_replace,
         )
 
     def _set_website_leaflet_static_javascript_file(self, module):

@@ -50,6 +50,8 @@ class IrActionsActWindow(models.Model):
 class IrActionsServer(models.Model):
     _inherit = "ir.actions.server"
 
+    comment = fields.Char(string="Comment", help="Hint about this record.")
+
     @api.onchange("model_id", "state")
     def _onchange_model_id_state(self):
         if self.model_id.m2o_module and (

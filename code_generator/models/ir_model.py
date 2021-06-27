@@ -212,6 +212,7 @@ class IrActionsReport(models.Model):
         string="Code generator Model",
         help="Model related with this report",
         compute="_compute_m2os",
+        store=True,
     )
 
     m2o_template = fields.Many2one(
@@ -263,11 +264,17 @@ class IrModel(models.Model):
 
     rec_name = fields.Char(default="name")
 
+    description = fields.Char()
+
     m2o_module = fields.Many2one(
         "code.generator.module",
         string="Module",
         help="Module",
         ondelete="cascade",
+    )
+
+    o2m_code_import = fields.One2many(
+        "code.generator.model.code.import", "m2o_model"
     )
 
     o2m_codes = fields.One2many("code.generator.model.code", "m2o_model")
@@ -421,47 +428,43 @@ class IrModel(models.Model):
     )
 
 
-class CodeGeneratorBase(models.AbstractModel):
-    _inherit = "base"
-
-    def _run_safe_eval(self, created=None):
-        """
-
-        :param created:
-        :return:
-        """
-
-        records = created or self
-        for r in records:
-            target_model = self.env["ir.model"].search(
-                [("model", "=", r._name)]
-            )
-            if (
-                target_model
-                and hasattr(self.env, target_model[0]._name)
-                and hasattr(target_model[0], "o2m_server_constrains")
-            ):
-                codes = target_model.mapped("o2m_server_constrains").mapped(
-                    "txt_code"
-                )
-                for code in codes:
-                    safe_eval(code, SAFE_EVAL_BASE, {"self": r}, mode="exec")
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        result = super(CodeGeneratorBase, self).create(vals_list)
-
-        self._run_safe_eval(result)
-
-        return result
-
-    @api.multi
-    def write(self, vals):
-        result = super(CodeGeneratorBase, self).write(vals)
-
-        self._run_safe_eval()
-
-        return result
+# class CodeGeneratorBase(models.AbstractModel):
+#     _inherit = "base"
+#
+#     def _run_safe_eval(self, created=None):
+#         """
+#
+#         :param created:
+#         :return:
+#         """
+#
+#         records = created or self
+#         for r in records:
+#             target_model = self.env["ir.model"].search([("model", "=", r._name)])
+#             if (
+#                 target_model
+#                 and hasattr(self.env, target_model[0]._name)
+#                 and hasattr(target_model[0], "o2m_server_constrains")
+#             ):
+#                 codes = target_model.mapped("o2m_server_constrains").mapped("txt_code")
+#                 for code in codes:
+#                     safe_eval(code, SAFE_EVAL_BASE, {"self": r}, mode="exec")
+#
+#     @api.model_create_multi
+#     def create(self, vals_list):
+#         result = super(CodeGeneratorBase, self).create(vals_list)
+#
+#         self._run_safe_eval(result)
+#
+#         return result
+#
+#     @api.multi
+#     def write(self, vals):
+#         result = super(CodeGeneratorBase, self).write(vals)
+#
+#         self._run_safe_eval()
+#
+#         return result
 
 
 class IrModelUpdatedFields(models.Model):
@@ -516,7 +519,7 @@ class IrModelFields(models.Model):
         help="Hide from view when field is blacklisted. View list only.",
     )
     is_show_whitelist_form_view = fields.Boolean(
-        string="Show in whitelist list view",
+        string="Show in whitelist form view",
         help=(
             "If a field in model is in whitelist, all is not will be hide. "
             "View form only."
@@ -526,10 +529,26 @@ class IrModelFields(models.Model):
         string="Hide in blacklist form view",
         help="Hide from view when field is blacklisted. View form only.",
     )
-
+    # This is used to choose order to show field in model
     code_generator_sequence = fields.Integer(
         string="Sequence Code Generator",
         help="Sequence to write this field from Code Generator.",
+    )
+
+    # TODO remove code_generator_tree_view_sequence and code_generator_search_sequence
+    # TODO wrong architecture, separate view order from model
+    # TODO This was a work around
+    # TODO or maybe it's useful in first iteration of code generator, remove this later when A USE C GENERATE B
+    code_generator_tree_view_sequence = fields.Integer(
+        string="Tree view sequence",
+        help="Sequence to write this field in tree view from Code Generator.",
+        default=-1,
+    )
+
+    code_generator_search_sequence = fields.Integer(
+        string="Search sequence",
+        help="Sequence to write this field in search from Code Generator.",
+        default=-1,
     )
 
     code_generator_compute = fields.Char(
@@ -627,6 +646,12 @@ class IrModelFields(models.Model):
 
 class IrModelConstraint(models.Model):
     _inherit = "ir.model.constraint"
+
+    code_generator_id = fields.Many2one(
+        comodel_name="code.generator.module",
+        string="Code Generator",
+        ondelete="cascade",
+    )
 
     module = fields.Many2one(
         default=lambda self: self.env["ir.module.module"]

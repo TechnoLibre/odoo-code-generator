@@ -2,6 +2,10 @@ from odoo import _, models, fields, api
 from odoo.models import MAGIC_COLUMNS
 from lxml.builder import E
 from lxml import etree as ET
+import uuid
+import logging
+
+_logger = logging.getLogger(__name__)
 
 MAGIC_FIELDS = MAGIC_COLUMNS + [
     "display_name",
@@ -37,6 +41,16 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         string="Enable all feature",
         default=True,
         help="Generate with all feature.",
+    )
+
+    disable_generate_access = fields.Boolean(
+        help="Disable security access generation.",
+    )
+
+    code_generator_view_ids = fields.Many2many(
+        comodel_name="code.generator.view",
+        string="Code Generator View",
+        ondelete="cascade",
     )
 
     date = fields.Date(
@@ -124,6 +138,25 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
         self.clear_all()
 
+        if not self.code_generator_view_ids:
+            return self.generic_generate_view()
+        else:
+            lst_view_generated = []
+            for code_generator_view_id in self.code_generator_view_ids:
+                view_id = self._generate_specific_form_views_models(
+                    code_generator_view_id
+                )
+                lst_view_generated.append(view_id.type)
+                # TODO bug attach view to model (o2m_model) when not generate access
+                for model_id in self.code_generator_id.o2m_models:
+                    self._generate_model_access(model_id)
+            self._generate_menu(
+                model_id, model_id.m2o_module, lst_view_generated
+            )
+        return True
+
+    @api.multi
+    def generic_generate_view(self):
         o2m_models_view_list = (
             self.code_generator_id.o2m_models
             if self.all_model
@@ -161,6 +194,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                     model_id, model_created_fields_list, model_id.m2o_module
                 )
                 lst_view_generated.append("list")
+
             if model_id in o2m_models_view_form:
                 is_whitelist = bool(
                     model_id.field_id.filtered(
@@ -181,18 +215,15 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 lst_view_generated.append("form")
 
             # Menu and action_windows
-            if lst_view_generated:
-                self._generate_menu(
-                    model_id, model_id.m2o_module, lst_view_generated
-                )
+            self._generate_menu(
+                model_id, model_id.m2o_module, lst_view_generated
+            )
 
         # for model_id in o2m_models_view_form:
         #     print(model_id)
         # model_created_fields = model_id.field_id.filtered(lambda field: field.name not in MAGIC_FIELDS).mapped(
         #     'name')
         #
-        # self._generate_list_views_models(model_id, model_created_fields, model_id.m2o_module)
-        # self._generate_menu(model_id, model_id.m2o_module)
 
         for model_id in self.code_generator_id.o2m_models:
             self._generate_model_access(model_id)
@@ -207,8 +238,51 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     ):
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
-        lst_field = [E.field({"name": a.name}) for a in model_created_fields]
+        # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
+        lst_field_sorted = model_created_fields.sorted(
+            lambda field: field.code_generator_tree_view_sequence
+        )
+        # TODO validate code_generator_tree_view_sequence is supported
+        lst_field = [
+            E.field({"name": a.name})
+            for a in lst_field_sorted
+            # if a.code_generator_tree_view_sequence >= 0
+        ]
         arch_xml = E.tree(
+            {
+                # TODO enable this when missing form
+                # "editable": "top",
+            },
+            *lst_field,
+        )
+        str_arch = ET.tostring(arch_xml, pretty_print=True)
+        view_value = self.env["ir.ui.view"].create(
+            {
+                "name": f"{model_name_str}_tree",
+                "type": "tree",
+                "model": model_name,
+                "arch": str_arch,
+                "m2o_model": model_created.id,
+            }
+        )
+
+        return view_value
+
+    def _generate_list_search_models(
+        self, model_created, model_created_fields, module
+    ):
+        model_name = model_created.model
+        model_name_str = model_name.replace(".", "_")
+        # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
+        lst_field_sorted = model_created_fields.sorted(
+            lambda field: field.code_generator_search_sequence
+        )
+        lst_field = [
+            E.field({"name": a.name})
+            for a in lst_field_sorted
+            if a.code_generator_search_sequence >= 0
+        ]
+        arch_xml = E.search(
             {
                 # TODO enable this when missing form
                 # "editable": "top",
@@ -265,15 +339,338 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
         return view_value
 
+    def _generate_xml_button(self, item, model_id):
+        button_attributes = {
+            "name": item.action_name,
+            "string": item.label,
+            "type": "object",
+        }
+        if item.button_type:
+            button_attributes["class"] = item.button_type
+        if item.icon:
+            button_attributes["icon"] = item.icon
+
+        # Create method
+        items = self.env["code.generator.model.code"].search(
+            [
+                ("name", "=", item.action_name),
+                ("m2o_model", "=", model_id),
+                ("m2o_module", "=", self.code_generator_id.id),
+            ]
+        )
+        if not items:
+            value = {
+                "code": '''"""TODO what to run"""
+pass''',
+                "name": item.action_name,
+                "decorator": "@api.multi",
+                "param": "self",
+                "m2o_module": self.code_generator_id.id,
+                "m2o_model": model_id,
+                "is_wip": True,
+            }
+            self.env["code.generator.model.code"].create(value)
+        return E.button(button_attributes)
+
+    @staticmethod
+    def _generate_xml_html_help(item, lst_child, dct_replace):
+        """
+
+        :param item:
+        :param lst_child: list of item to add more in some context
+        :param dct_replace: need it to replace html in xml without validation
+        :return:
+        """
+        dct_item = {"string": "Help"}
+        if item.colspan > 1:
+            dct_item["colspan"] = str(item.colspan)
+        item_xml = E.separator(dct_item)
+        lst_child.append(item_xml)
+
+        uid = str(uuid.uuid1())
+        dct_replace[uid] = item.label
+        item_xml = E.div({}, uid)
+        return item_xml
+
+    def _generate_xml_object(self, item, model_id, lst_child=[]):
+        if item.item_type == "field":
+            dct_item = {"name": item.action_name}
+            if item.placeholder:
+                dct_item["placeholder"] = item.placeholder
+            if item.password:
+                dct_item["password"] = "True"
+            item_xml = E.field(dct_item)
+            return item_xml
+        elif item.item_type == "button":
+            return self._generate_xml_button(item, model_id)
+        elif item.item_type == "html":
+            lst_html_child = []
+            dct_item = {}
+            if item.background_type:
+                dct_item["class"] = item.background_type
+                if item.background_type.startswith("bg-warning"):
+                    lst_html_child.append(E.h3({}, "Warning:"))
+                elif item.background_type.startswith("bg-success"):
+                    lst_html_child.append(E.h3({}, "Success:"))
+                elif item.background_type.startswith("bg-info"):
+                    lst_html_child.append(E.h3({}, "Info:"))
+                elif item.background_type.startswith("bg-danger"):
+                    lst_html_child.append(E.h3({}, "Danger:"))
+            lst_html_child.append(item.label)
+            item_xml = E.div(dct_item, *lst_html_child)
+            return item_xml
+        elif item.item_type == "group":
+            dct_item = {}
+            if item.label:
+                dct_item["string"] = item.label
+            if item.attrs:
+                dct_item["attrs"] = item.attrs
+            item_xml = E.group(dct_item, *lst_child)
+            return item_xml
+        elif item.item_type == "div":
+            dct_item = {}
+            if item.attrs:
+                dct_item["attrs"] = item.attrs
+            item_xml = E.div(dct_item, *lst_child)
+            return item_xml
+        else:
+            _logger.warning(f"View item '{item.item_type}' is not supported.")
+
+    def _generate_xml_group_div(self, item, lst_xml, dct_replace, model_id):
+        """
+
+        :param item:
+        :param lst_xml: list of item to add more in some context
+        :param dct_replace: need it to replace html in xml without validation
+        :return:
+        """
+        lst_child = sorted(item.child_id, key=lambda item: item.sequence)
+        lst_item_child = []
+        if lst_child:
+            for item_child_id in lst_child:
+                item_child = self._generate_xml_group_div(
+                    item_child_id, lst_xml, dct_replace, model_id
+                )
+                lst_item_child.append(item_child)
+            item_xml = self._generate_xml_object(
+                item, model_id, lst_child=lst_item_child
+            )
+        else:
+            item_xml = self._generate_xml_object(item, model_id)
+
+        return item_xml
+
+    @staticmethod
+    def _generate_xml_title_field(item, lst_child, level=0):
+        """
+
+        :param item: type odoo.api.code.generator.view.item
+        :param lst_child: list of item to add more in some context
+        :param level: 0 is bigger level (H1), >=4 is H5
+        :return:
+        """
+        if item.edit_only or item.has_label:
+            dct_item_label = {"for": item.action_name}
+            if item.edit_only:
+                dct_item_label["class"] = "oe_edit_only"
+            item_label = E.label(dct_item_label)
+            lst_child.append(item_label)
+        dct_item_field = {"name": item.action_name}
+
+        if item.is_required:
+            dct_item_field["required"] = "1"
+        if item.is_readonly:
+            dct_item_field["readonly"] = "1"
+        item_field = E.field(dct_item_field)
+        if level == 0:
+            result = E.h1({}, item_field)
+        elif level == 1:
+            result = E.h2({}, item_field)
+        elif level == 2:
+            result = E.h3({}, item_field)
+        elif level == 3:
+            result = E.h4({}, item_field)
+        else:
+            result = E.h5({}, item_field)
+        return result
+
+    def _generate_specific_form_views_models(self, code_generator_view_id):
+        view_type = code_generator_view_id.view_type
+        model_name = code_generator_view_id.m2o_model.model
+        model_id = code_generator_view_id.m2o_model.id
+        dct_replace = {}
+        lst_item_header = []
+        lst_item_body = []
+        lst_item_title = []
+        for view_item in code_generator_view_id.view_item_ids:
+            if view_item.section_type == "body":
+                lst_item_body.append(view_item)
+            elif view_item.section_type == "header":
+                lst_item_header.append(view_item)
+            elif view_item.section_type == "title":
+                lst_item_title.append(view_item)
+            else:
+                _logger.warning(
+                    f"View item '{view_item.section_type}' is not supported."
+                )
+
+        lst_item_form = []
+        lst_item_form_sheet = []
+
+        if lst_item_header:
+            lst_item_header = sorted(
+                lst_item_header, key=lambda item: item.sequence
+            )
+            lst_child = []
+            for item_header in lst_item_header:
+                if item_header.item_type == "field":
+                    item = E.field()
+                    # TODO field in header
+                elif item_header.item_type == "button":
+                    item = self._generate_xml_button(item_header, model_id)
+                else:
+                    _logger.warning(
+                        f"Item header type '{item_header.item_type}' is not"
+                        " supported."
+                    )
+                    continue
+                lst_child.append(item)
+            header_xml = E.header({}, *lst_child)
+            lst_item_form.append(header_xml)
+
+        if lst_item_title:
+            lst_item_title = sorted(
+                lst_item_title, key=lambda item: item.sequence
+            )
+            lst_child = []
+            i = 0
+            for item_header in lst_item_title:
+                if item_header.item_type == "field":
+                    item = self._generate_xml_title_field(
+                        item_header, lst_child, level=i
+                    )
+                elif item_header.item_type == "button":
+                    _logger.warning(
+                        f"Button is not supported in title section."
+                    )
+                    continue
+                else:
+                    _logger.warning(
+                        f"Item header type '{item_header.item_type}' is not"
+                        " supported."
+                    )
+                    continue
+                i += 1
+                lst_child.append(item)
+            header_xml = E.div({"class": "oe_title"}, *lst_child)
+            lst_item_form_sheet.append(header_xml)
+
+        if lst_item_body:
+            lst_item_root_body = [a for a in lst_item_body if not a.parent_id]
+            lst_item_root_body = sorted(
+                lst_item_root_body, key=lambda item: item.sequence
+            )
+            for item_header in lst_item_root_body:
+                if item_header.is_help:
+                    item_xml = self._generate_xml_html_help(
+                        item_header, lst_item_form_sheet, dct_replace
+                    )
+                    lst_item_form_sheet.append(item_xml)
+                elif item_header.item_type in ("div", "group"):
+                    if not item_header.child_id:
+                        _logger.warning(
+                            f"Item type div or group missing child."
+                        )
+                        continue
+                    item_xml = self._generate_xml_group_div(
+                        item_header, lst_item_form_sheet, dct_replace, model_id
+                    )
+                    lst_item_form_sheet.append(item_xml)
+                elif item_header.item_type in ("field",):
+                    item_xml = self._generate_xml_object(item_header, model_id)
+                    lst_item_form_sheet.append(item_xml)
+                else:
+                    _logger.warning(
+                        f"Unknown type xml {item_header.item_type}"
+                    )
+
+        if lst_item_form_sheet:
+            if code_generator_view_id.has_body_sheet:
+                sheet_xml = E.sheet({}, *lst_item_form_sheet)
+                lst_item_form.append(sheet_xml)
+            else:
+                lst_item_form += lst_item_form_sheet
+
+        if view_type == "form":
+            form_xml = E.form({}, *lst_item_form)
+        elif view_type == "search":
+            form_xml = E.search({}, *lst_item_form)
+        elif view_type == "tree":
+            form_xml = E.tree({}, *lst_item_form)
+        elif view_type == "kanban":
+            form_xml = E.kanban({}, *lst_item_form)
+        elif view_type == "graph":
+            form_xml = E.graph({}, *lst_item_form)
+        elif view_type == "pivot":
+            form_xml = E.pivot({}, *lst_item_form)
+        else:
+            _logger.warning(f"Unknown xml view_type {view_type}")
+            return
+
+        str_arch = ET.tostring(form_xml, pretty_print=True)
+        str_content = str_arch.decode()
+
+        for key, value in dct_replace.items():
+            str_content = str_content.replace(key, value)
+
+        view_value = self.env["ir.ui.view"].create(
+            {
+                "name": code_generator_view_id.view_name,
+                "type": view_type,
+                "model": model_name,
+                "arch": str_content,
+                "m2o_model": code_generator_view_id.m2o_model.id,
+            }
+        )
+
+        if code_generator_view_id.id_name:
+            self.env["ir.model.data"].create(
+                {
+                    "name": code_generator_view_id.id_name,
+                    "model": model_name,
+                    "module": code_generator_view_id.code_generator_id.name,
+                    "res_id": view_value.id,
+                    "noupdate": True,  # If it's False, target record (res_id) will be removed while module update
+                }
+            )
+
+        return view_value
+
     def _generate_model_access(self, model_created):
+        if self.disable_generate_access:
+            return
+        # Unique access
         # group_id = self.env['res.groups'].search([('name', '=', 'Code Generator / Manager')])
         # group_id = self.env['res.groups'].search([('name', '=', 'Internal User')])
+        # TODO search system lang
         lang = "en_US"
         group_id = self.env.ref("base.group_user").with_context(lang=lang)
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
+        name = "%s Access %s" % (model_name_str, group_id.full_name)
+        # TODO maybe search by permission and model, ignore the name
+        existing_access = self.env["ir.model.access"].search(
+            [
+                ("model_id", "=", model_created.id),
+                ("group_id", "=", group_id.id),
+                ("name", "=", name),
+            ]
+        )
+        if existing_access:
+            return
+
         v = {
-            "name": "%s Access %s" % (model_name_str, group_id.full_name),
+            "name": name,
             "model_id": model_created.id,
             "group_id": group_id.id,
             "perm_read": True,
@@ -287,67 +684,145 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     def _generate_menu(self, model_created, module, lst_view_generated):
         # group_id = self.env['res.groups'].search([('name', '=', 'Code Generator / Manager')])
         # group_id = self.env['res.groups'].search([('name', '=', 'Internal User')])
+        is_generic_menu = not model_created.m2o_module.code_generator_menus_id
         group_id = self.env.ref("base.group_user")
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
         module_name = module.name
-        # Create root if not exist
-        if not self.generated_root_menu:
-            v = {
-                "name": f"root_{module_name}",
-                "sequence": 20,
-                "web_icon": f"code_generator,static/description/icon_new_application.png",
-                # 'group_id': group_id.id,
-                "m2o_module": module.id,
-            }
-            self.generated_root_menu = self.env["ir.ui.menu"].create(v)
-        if not self.generated_parent_menu:
-            v = {
-                "name": _("Models"),
-                "sequence": 1,
-                "parent_id": self.generated_root_menu.id,
-                # 'group_id': group_id.id,
-                "m2o_module": module.id,
-            }
-            self.generated_parent_menu = self.env["ir.ui.menu"].create(v)
+        if module.application and is_generic_menu:
+            # Create root if not exist
+            if not self.generated_root_menu:
+                v = {
+                    "name": f"root_{module_name}",
+                    "sequence": 20,
+                    "web_icon": f"code_generator,static/description/icon_new_application.png",
+                    # 'group_id': group_id.id,
+                    "m2o_module": module.id,
+                }
+                self.generated_root_menu = self.env["ir.ui.menu"].create(v)
+            if not self.generated_parent_menu:
+                v = {
+                    "name": _("Models"),
+                    "sequence": 1,
+                    "parent_id": self.generated_root_menu.id,
+                    # 'group_id': group_id.id,
+                    "m2o_module": module.id,
+                }
+                self.generated_parent_menu = self.env["ir.ui.menu"].create(v)
 
         help_str = f"""<p class="o_view_nocontent_empty_folder">
         Add a new {model_name_str}
-      </p>
-      <p>
-        Databases whose tables could be imported to Odoo and then be exported into code
-      </p>"""
+          </p>
+          <p>
+            Databases whose tables could be imported to Odoo and then be exported into code
+          </p>
+        """
+
+        # Special case, cannot support search view type in action_view
+        try:
+            lst_view_generated.remove("search")
+        except:
+            pass
 
         view_mode = ",".join(sorted(set(lst_view_generated), reverse=True))
         view_type = (
             "form" if "form" in lst_view_generated else lst_view_generated[0]
         )
 
-        # Create action
-        v = {
-            "name": f"{model_name_str}_action_view",
-            "res_model": model_name,
-            "type": "ir.actions.act_window",
-            "view_mode": view_mode,
-            "view_type": view_type,
-            # 'help': help_str,
-            # 'search_view_id': self.search_view_id.id,
-            "context": {},
-            "m2o_res_model": model_created.id,
-        }
-        action_id = self.env["ir.actions.act_window"].create(v)
-
         # Create menu
+        if module.application and is_generic_menu:
+            # Create action
+            v = {
+                "name": f"{model_name_str}_action_view",
+                "res_model": model_name,
+                "type": "ir.actions.act_window",
+                "view_mode": view_mode,
+                "view_type": view_type,
+                # 'help': help_str,
+                # 'search_view_id': self.search_view_id.id,
+                "context": {},
+                "m2o_res_model": model_created.id,
+            }
+            action_id = self.env["ir.actions.act_window"].create(v)
 
-        self.nb_sub_menu += 1
+            self.nb_sub_menu += 1
 
-        v = {
-            "name": model_name_str,
-            "sequence": self.nb_sub_menu,
-            "parent_id": self.generated_parent_menu.id,
-            "action": "ir.actions.act_window,%s" % action_id.id,
-            # 'group_id': group_id.id,
-            "m2o_module": module.id,
-        }
+            v = {
+                "name": model_name_str,
+                "sequence": self.nb_sub_menu,
+                "action": "ir.actions.act_window,%s" % action_id.id,
+                # 'group_id': group_id.id,
+                "m2o_module": module.id,
+            }
 
-        access_value = self.env["ir.ui.menu"].create(v)
+            if self.generated_parent_menu:
+                v["parent_id"] = self.generated_parent_menu.id
+
+            access_value = self.env["ir.ui.menu"].create(v)
+        elif not is_generic_menu:
+            cg_menu_ids = model_created.m2o_module.code_generator_menus_id
+            # TODO check different case, with act_window, without, multiple menu, single menu
+            for menu_id in cg_menu_ids:
+                if menu_id.m2o_act_window:
+                    # Create action
+                    v = {
+                        "name": menu_id.m2o_act_window.name,
+                        "res_model": model_name,
+                        "type": "ir.actions.act_window",
+                        "view_mode": view_mode,
+                        "view_type": view_type,
+                        # 'help': help_str,
+                        # 'search_view_id': self.search_view_id.id,
+                        "context": {},
+                        "m2o_res_model": model_created.id,
+                    }
+                    action_id = self.env["ir.actions.act_window"].create(v)
+                    if menu_id.m2o_act_window.id_name:
+                        # Write id name
+                        self.env["ir.model.data"].create(
+                            {
+                                "name": menu_id.m2o_act_window.id_name,
+                                "model": "ir.actions.act_window",
+                                "module": module.name,
+                                "res_id": action_id.id,
+                                "noupdate": True,
+                                # If it's False, target record (res_id) will be removed while module update
+                            }
+                        )
+                else:
+                    # Create action
+                    v = {
+                        "name": f"{model_name_str}_action_view",
+                        "res_model": model_name,
+                        "type": "ir.actions.act_window",
+                        "view_mode": view_mode,
+                        "view_type": view_type,
+                        # 'help': help_str,
+                        # 'search_view_id': self.search_view_id.id,
+                        "context": {},
+                        "m2o_res_model": model_created.id,
+                    }
+                    action_id = self.env["ir.actions.act_window"].create(v)
+
+                v = {
+                    "name": menu_id.id_name,
+                    "action": "ir.actions.act_window,%s" % action_id.id,
+                    # 'group_id': group_id.id,
+                    "m2o_module": module.id,
+                }
+                if menu_id.sequence != 10:
+                    v["sequence"] = menu_id.sequence
+
+                if menu_id.parent_id_name:
+                    # TODO crash when create empty module and template to read this empty module
+                    try:
+                        v["parent_id"] = self.env.ref(
+                            menu_id.parent_id_name
+                        ).id
+                    except Exception:
+                        _logger.error(
+                            f"Cannot find ref {menu_id.parent_id_name} of menu"
+                            f" {menu_id.id_name} to associate parent_id."
+                        )
+
+                access_value = self.env["ir.ui.menu"].create(v)

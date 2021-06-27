@@ -30,8 +30,12 @@ class CodeGeneratorWriter(models.Model):
 
         if module.o2m_geoengine_vector_layer:
             for vector in module.o2m_geoengine_vector_layer:
-                str_view_id = self.code_generator_data.dct_view_id.get(vector.view_id.name)
-                str_geo_field_id = f"field_{vector.geo_field_id.model.replace('.', '_')}__{vector.geo_field_id.name}"
+                str_view_id = self.code_generator_data.dct_view_id.get(
+                    vector.view_id.name
+                )
+                str_geo_field_id = (
+                    f"field_{vector.geo_field_id.model.replace('.', '_')}__{vector.geo_field_id.name}"
+                )
                 lst_field = [
                     E.field({"name": "geo_field_id", "ref": str_geo_field_id}),
                     E.field({"name": "name"}, vector.name),
@@ -56,7 +60,9 @@ class CodeGeneratorWriter(models.Model):
                 lst_field = [
                     E.field({"name": "raster_type"}, raster.raster_type),
                     E.field({"name": "name"}, raster.name),
-                    E.field({"name": "overlay", "eval": str(int(raster.overlay))}),
+                    E.field(
+                        {"name": "overlay", "eval": str(int(raster.overlay))}
+                    ),
                     E.field({"name": "view_id", "ref": str_view_id}),
                 ]
 
@@ -73,6 +79,12 @@ class CodeGeneratorWriter(models.Model):
                 lst_template_xml.append(xml)
 
         module_file = E.odoo({}, *lst_template_xml)
-        data_file_path = os.path.join(self.code_generator_data.views_path, "geoengine.xml")
-        result = XML_VERSION_HEADER.encode("utf-8") + ET.tostring(module_file, pretty_print=True)
-        self.code_generator_data.write_file_binary(data_file_path, result, data_file=True)
+        data_file_path = os.path.join(
+            self.code_generator_data.views_path, "geoengine.xml"
+        )
+        result = XML_VERSION_HEADER.encode("utf-8") + ET.tostring(
+            module_file, pretty_print=True
+        )
+        self.code_generator_data.write_file_binary(
+            data_file_path, result, data_file=True
+        )

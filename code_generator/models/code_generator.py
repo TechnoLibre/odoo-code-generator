@@ -43,11 +43,15 @@ class CodeGeneratorModule(models.Model):
     )
 
     dependencies_template_id = fields.One2many(
-        "code.generator.module.template.dependency", "module_id", readonly=False
+        "code.generator.module.template.dependency",
+        "module_id",
+        readonly=False,
     )
 
     external_dependencies_id = fields.One2many(
-        "code.generator.module.external.dependency", "module_id", readonly=False
+        "code.generator.module.external.dependency",
+        "module_id",
+        readonly=False,
     )
 
     state = fields.Selection(readonly=False, default="uninstalled")
@@ -78,11 +82,15 @@ class CodeGeneratorModule(models.Model):
         domain=[("nomenclature_blacklist", "=", True)],
     )
 
-    o2m_model_access = fields.One2many("ir.model.access", compute="_get_models_info")
+    o2m_model_access = fields.One2many(
+        "ir.model.access", compute="_get_models_info"
+    )
 
     o2m_model_rules = fields.One2many("ir.rule", compute="_get_models_info")
 
-    o2m_model_constraints = fields.One2many("ir.model.constraint", compute="_get_models_info")
+    o2m_model_constraints = fields.One2many(
+        "ir.model.constraint", compute="_get_models_info"
+    )
 
     o2m_model_views = fields.One2many("ir.ui.view", compute="_get_models_info")
 
@@ -94,25 +102,37 @@ class CodeGeneratorModule(models.Model):
         comodel_name="ir.actions.todo", inverse_name="m2o_code_generator"
     )
 
-    o2m_model_act_window = fields.One2many("ir.actions.act_window", compute="_get_models_info")
+    o2m_model_act_window = fields.One2many(
+        "ir.actions.act_window", compute="_get_models_info"
+    )
 
-    o2m_model_act_server = fields.One2many("ir.actions.server", compute="_get_models_info")
+    o2m_model_act_server = fields.One2many(
+        "ir.actions.server", compute="_get_models_info"
+    )
 
     o2m_model_server_constrains = fields.One2many(
         "ir.model.server_constrain", compute="_get_models_info"
     )
 
-    o2m_model_reports = fields.One2many("ir.actions.report", compute="_get_models_info")
+    o2m_model_reports = fields.One2many(
+        "ir.actions.report", compute="_get_models_info"
+    )
 
-    o2m_menus = fields.One2many("ir.ui.menu", "m2o_module", context={"ir.ui.menu.full_list": True})
+    o2m_menus = fields.One2many(
+        "ir.ui.menu", "m2o_module", context={"ir.ui.menu.full_list": True}
+    )
 
     nomenclator_only = fields.Boolean(
-        string="Only export data", default=False, help="Useful to export data with existing model."
+        string="Only export data",
+        default=False,
+        help="Useful to export data with existing model.",
     )
 
     # Dev binding code
     enable_sync_code = fields.Boolean(
-        string="Enable Sync Code", default=False, help="Will sync with code on drive when generate."
+        string="Enable Sync Code",
+        default=False,
+        help="Will sync with code on drive when generate.",
     )
 
     enable_pylint_check = fields.Boolean(
@@ -136,12 +156,17 @@ class CodeGeneratorModule(models.Model):
         if os.path.isdir(sibling):
             return sibling
         # Cannot find sibling template, use this working repo directory instead
-        return os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        return os.path.normpath(
+            os.path.join(os.path.dirname(__file__), "..", "..")
+        )
 
     path_sync_code = fields.Char(
         string="Directory",
         default=_default_path_sync_code,
-        help="Path directory where sync the code, will erase directory and generate new code.",
+        help=(
+            "Path directory where sync the code, will erase directory and"
+            " generate new code."
+        ),
     )
 
     # clean_before_sync_code = fields.Boolean(string="Clean before sync", help="Clean before sync, all will be lost.")
@@ -151,18 +176,28 @@ class CodeGeneratorModule(models.Model):
         for module in self:
             module.o2m_model_access = module.o2m_models.mapped("access_ids")
             module.o2m_model_rules = module.o2m_models.mapped("rule_ids")
-            module.o2m_model_constraints = module.o2m_models.mapped("o2m_constraints")
+            module.o2m_model_constraints = module.o2m_models.mapped(
+                "o2m_constraints"
+            )
             module.o2m_model_views = module.o2m_models.mapped("view_ids")
-            module.o2m_model_act_window = module.o2m_models.mapped("o2m_act_window")
-            module.o2m_model_act_server = module.o2m_models.mapped("o2m_server_action")
-            module.o2m_model_server_constrains = module.o2m_models.mapped("o2m_server_constrains")
+            module.o2m_model_act_window = module.o2m_models.mapped(
+                "o2m_act_window"
+            )
+            module.o2m_model_act_server = module.o2m_models.mapped(
+                "o2m_server_action"
+            )
+            module.o2m_model_server_constrains = module.o2m_models.mapped(
+                "o2m_server_constrains"
+            )
             module.o2m_model_reports = module.o2m_models.mapped("o2m_reports")
 
     @api.depends("name", "description")
     def _get_desc(self):
         for module in self:
             if module.name and module.description:
-                path = modules.get_module_resource(module.name, "static/description/index.html")
+                path = modules.get_module_resource(
+                    module.name, "static/description/index.html"
+                )
                 if path:
                     with tools.file_open(path, "rb") as desc_file:
                         doc = desc_file.read()
@@ -175,9 +210,12 @@ class CodeGeneratorModule(models.Model):
                             ):
                                 element.set(
                                     "src",
-                                    "/%s/static/description/%s" % (module.name, element.get("src")),
+                                    "/%s/static/description/%s"
+                                    % (module.name, element.get("src")),
                                 )
-                        module.description_html = tools.html_sanitize(lxml.html.tostring(html))
+                        module.description_html = tools.html_sanitize(
+                            lxml.html.tostring(html)
+                        )
                 else:
                     overrides = {
                         "embed_stylesheet": False,
@@ -201,7 +239,9 @@ class CodeGeneratorModule(models.Model):
             module.icon_image = ""
             if module.icon:
                 path_parts = module.icon.split("/")
-                path = modules.get_module_resource(path_parts[1], *path_parts[2:])
+                path = modules.get_module_resource(
+                    path_parts[1], *path_parts[2:]
+                )
             else:
                 path = modules.module.get_module_icon(module.name)
                 path = path[1:]
@@ -226,7 +266,9 @@ class CodeGeneratorModuleExternalDependency(models.Model):
     _name = "code.generator.module.external.dependency"
     _description = "Code Generator Module External Dependency"
 
-    module_id = fields.Many2one("code.generator.module", "Module", ondelete="cascade")
+    module_id = fields.Many2one(
+        "code.generator.module", "Module", ondelete="cascade"
+    )
 
     depend = fields.Char(String="Dependency name")
 
@@ -242,7 +284,9 @@ class CodeGeneratorModuleDependency(models.Model):
     _name = "code.generator.module.dependency"
     _description = "Code Generator Module Dependency"
 
-    module_id = fields.Many2one("code.generator.module", "Module", ondelete="cascade")
+    module_id = fields.Many2one(
+        "code.generator.module", "Module", ondelete="cascade"
+    )
 
     depend_id = fields.Many2one("ir.module.module", "Dependency", compute=None)
 
@@ -250,9 +294,14 @@ class CodeGeneratorModuleDependency(models.Model):
 class CodeGeneratorModuleTemplateDependency(models.Model):
     _inherit = "ir.module.module.dependency"
     _name = "code.generator.module.template.dependency"
-    _description = "Code Generator Module Template Dependency, set by code_generator_template"
+    _description = (
+        "Code Generator Module Template Dependency, set by"
+        " code_generator_template"
+    )
 
-    module_id = fields.Many2one("code.generator.module", "Module", ondelete="cascade")
+    module_id = fields.Many2one(
+        "code.generator.module", "Module", ondelete="cascade"
+    )
 
     depend_id = fields.Many2one("ir.module.module", "Dependency", compute=None)
 
@@ -283,7 +332,12 @@ return""",
     param = fields.Char(string="Param", help="Like : name,color")
 
     m2o_module = fields.Many2one(
-        "code.generator.module", string="Module", help="Module", ondelete="cascade"
+        "code.generator.module",
+        string="Module",
+        help="Module",
+        ondelete="cascade",
     )
 
-    m2o_model = fields.Many2one("ir.model", string="Model", help="Model", ondelete="cascade")
+    m2o_model = fields.Many2one(
+        "ir.model", string="Model", help="Model", ondelete="cascade"
+    )

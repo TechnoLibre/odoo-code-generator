@@ -35,9 +35,15 @@ class CodeGeneratorWriter(models.Model):
         lst_model = []
         for a in module.o2m_models:
             active_id = a.field_id.filtered(lambda key: key.name == "active")
-            open_popup_id = a.field_id.filtered(lambda key: key.name == "open_popup")
-            html_text_id = a.field_id.filtered(lambda key: key.name == "html_text")
-            fields_id = a.field_id.filtered(lambda key: "geo_" in key.ttype).sorted(key="name")
+            open_popup_id = a.field_id.filtered(
+                lambda key: key.name == "open_popup"
+            )
+            html_text_id = a.field_id.filtered(
+                lambda key: key.name == "html_text"
+            )
+            fields_id = a.field_id.filtered(
+                lambda key: "geo_" in key.ttype
+            ).sorted(key="name")
             if fields_id:
                 lst_model.append(a)
                 lst_fields = [b for b in fields_id]
@@ -63,7 +69,8 @@ class CodeGeneratorWriter(models.Model):
         cw.emit("")
         with cw.indent():
             cw.emit(
-                f"@http.route(['/{module.name}/map/config'], type='json', auth=\"public\", website=True,"
+                f"@http.route(['/{module.name}/map/config'], type='json',"
+                ' auth="public", website=True,'
             )
         with cw.indent():
             with cw.indent():
@@ -92,14 +99,18 @@ class CodeGeneratorWriter(models.Model):
                 #     cw.emit("}")
             with cw.indent():
                 cw.emit("features = defaultdict(list)")
-                cw.emit('transformer = Transformer.from_crs("epsg:3857", "epsg:4326")')
+                cw.emit(
+                    'transformer = Transformer.from_crs("epsg:3857",'
+                    ' "epsg:4326")'
+                )
             cw.emit("")
             with cw.indent():
                 str_search = ""
                 if active_id:
                     str_search = '("active", "=", True)'
                 cw.emit(
-                    f'map_feature_ids = request.env["{model_id.model}"].sudo().search([{str_search}])'
+                    "map_feature_ids ="
+                    f' request.env["{model_id.model}"].sudo().search([{str_search}])'
                 )
                 cw.emit("for feature in map_feature_ids:")
                 with cw.indent():
@@ -115,14 +126,20 @@ class CodeGeneratorWriter(models.Model):
                             with cw.indent():
                                 cw.emit(f"continue")
                             if field_id.ttype == "geo_polygon":
-                                cw.emit(f"xy = feature.{field_id.name}.exterior.coords.xy")
+                                cw.emit(
+                                    "xy ="
+                                    f" feature.{field_id.name}.exterior.coords.xy"
+                                )
                             else:
                                 cw.emit(f"xy = feature.{field_id.name}.xy")
             cw.emit("")
             with cw.indent():
                 with cw.indent():
                     cw.emit("coord_UTM = numpy.column_stack(xy).tolist()")
-                    cw.emit("coord_lat_long = [transformer.transform(*i) for i in coord_UTM]")
+                    cw.emit(
+                        "coord_lat_long = [transformer.transform(*i) for i in"
+                        " coord_UTM]"
+                    )
             # cw.emit("")
             with cw.indent():
                 # with cw.indent():
@@ -151,10 +168,14 @@ class CodeGeneratorWriter(models.Model):
                         cw.emit(f'elif feature.type == "{field_id.name}":')
                         with cw.indent():
                             if field_id.ttype == "geo_point":
-                                cw.emit('value["coordinates"] = coord_lat_long[0]')
+                                cw.emit(
+                                    'value["coordinates"] = coord_lat_long[0]'
+                                )
                                 cw.emit('features["markers"].append(value)')
                             else:
-                                cw.emit('value["coordinates"] = coord_lat_long')
+                                cw.emit(
+                                    'value["coordinates"] = coord_lat_long'
+                                )
                                 if field_id.ttype == "geo_polygon":
                                     cw.emit('features["areas"].append(value)')
                                 elif field_id.ttype == "geo_line":
@@ -192,16 +213,22 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        module_path = os.path.normpath(os.path.join(os.path.dirname(__file__), ".."))
+        module_path = os.path.normpath(
+            os.path.join(os.path.dirname(__file__), "..")
+        )
         # file_path = os.path.join("static", "src", "js", "website.leaflet.animation.js")
         # source_file = os.path.join(module_path, file_path)
 
         # self.code_generator_data.copy_file(source_file, file_path)
         destination_directory = os.path.join("static", "src")
         source_directory = os.path.join(module_path, "static", "src")
-        self.code_generator_data.copy_directory(source_directory, destination_directory)
+        self.code_generator_data.copy_directory(
+            source_directory, destination_directory
+        )
 
-        destination_file = os.path.join(destination_directory, "scss", "leaflet.scss")
+        destination_file = os.path.join(
+            destination_directory, "scss", "leaflet.scss"
+        )
         source_file = os.path.join(source_directory, "scss", "leaflet.scss")
         self.code_generator_data.copy_file(
             source_file, destination_file, [("website_leaflet", module.name)]
@@ -374,7 +401,9 @@ class CodeGeneratorWriter(models.Model):
         """
         )
 
-        file_path = os.path.join("static", "src", "js", "website.leaflet.animation.js")
+        file_path = os.path.join(
+            "static", "src", "js", "website.leaflet.animation.js"
+        )
         self.code_generator_data.write_file_str(file_path, content)
 
     def set_xml_views_file(self, module):
@@ -399,7 +428,12 @@ class CodeGeneratorWriter(models.Model):
                     {"class": "container"},
                     E.div(
                         {"class": "row"},
-                        E.div({"class": "map", "style": "height:600px;width:800px;"}),
+                        E.div(
+                            {
+                                "class": "map",
+                                "style": "height:600px;width:800px;",
+                            }
+                        ),
                     ),
                 ),
             ),
@@ -411,7 +445,9 @@ class CodeGeneratorWriter(models.Model):
             E.t(
                 {
                     "t-snippet": f"{module.name}.s_{module.name}",
-                    "t-thumbnail": f"/{module.name}/static/description/icon.png",
+                    "t-thumbnail": (
+                        f"/{module.name}/static/description/icon.png"
+                    ),
                 }
             ),
         ]
@@ -419,7 +455,9 @@ class CodeGeneratorWriter(models.Model):
         lst_xpath = [
             E.xpath(
                 {
-                    "expr": "//div[@id='snippet_feature']//t[@t-snippet][last()]",
+                    "expr": (
+                        "//div[@id='snippet_feature']//t[@t-snippet][last()]"
+                    ),
                     "position": "after",
                 },
                 *lst_link,
@@ -447,7 +485,9 @@ class CodeGeneratorWriter(models.Model):
                 {
                     "rel": "stylesheet",
                     "type": "text/scss",
-                    "href": f"/{module.name}/static/src/scss/leaflet_custom.scss",
+                    "href": (
+                        f"/{module.name}/static/src/scss/leaflet_custom.scss"
+                    ),
                 }
             ),
         ]
@@ -459,7 +499,10 @@ class CodeGeneratorWriter(models.Model):
                 }
             ),
             E.script(
-                {"type": "text/javascript", "src": f"/{module.name}/static/src/js/lib/leaflet.js"}
+                {
+                    "type": "text/javascript",
+                    "src": f"/{module.name}/static/src/js/lib/leaflet.js",
+                }
             ),
             E.script(
                 {
@@ -470,8 +513,12 @@ class CodeGeneratorWriter(models.Model):
         ]
 
         lst_xpath = [
-            E.xpath({"expr": "//link[last()]", "position": "after"}, *lst_link),
-            E.xpath({"expr": "//script[last()]", "position": "after"}, *lst_script),
+            E.xpath(
+                {"expr": "//link[last()]", "position": "after"}, *lst_link
+            ),
+            E.xpath(
+                {"expr": "//script[last()]", "position": "after"}, *lst_script
+            ),
         ]
         template_xml = E.template(
             {
@@ -483,6 +530,12 @@ class CodeGeneratorWriter(models.Model):
         lst_template_xml.append(template_xml)
 
         module_file = E.odoo({}, *lst_template_xml)
-        data_file_path = os.path.join(self.code_generator_data.views_path, "snippets.xml")
-        result = XML_VERSION_HEADER.encode("utf-8") + ET.tostring(module_file, pretty_print=True)
-        self.code_generator_data.write_file_binary(data_file_path, result, data_file=True)
+        data_file_path = os.path.join(
+            self.code_generator_data.views_path, "snippets.xml"
+        )
+        result = XML_VERSION_HEADER.encode("utf-8") + ET.tostring(
+            module_file, pretty_print=True
+        )
+        self.code_generator_data.write_file_binary(
+            data_file_path, result, data_file=True
+        )

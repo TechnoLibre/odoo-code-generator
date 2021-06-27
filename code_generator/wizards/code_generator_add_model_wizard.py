@@ -29,8 +29,10 @@ class CodeGeneratorAddModelWizard(models.TransientModel):
         ],
         required=True,
         default="whitelist",
-        help="When whitelist, all selected fields will be added.\n"
-        "When blacklist, all selected fields will be ignored.",
+        help=(
+            "When whitelist, all selected fields will be added.\n"
+            "When blacklist, all selected fields will be ignored."
+        ),
     )
 
     user_id = fields.Many2one(
@@ -60,7 +62,11 @@ class CodeGeneratorAddModelWizard(models.TransientModel):
 
     @api.onchange("model_ids")
     def _onchange_model_ids(self):
-        field_ids = [field_id.id for model_id in self.model_ids for field_id in model_id.field_id]
+        field_ids = [
+            field_id.id
+            for model_id in self.model_ids
+            for field_id in model_id.field_id
+        ]
         self.field_ids = [(6, 0, field_ids)]
 
     @api.multi
@@ -82,7 +88,9 @@ class CodeGeneratorAddModelWizard(models.TransientModel):
                 module_name = model_id.modules
                 lst_module_name = []
                 if "," in module_name:
-                    lst_module_name = [a.strip() for a in module_name.split(",")]
+                    lst_module_name = [
+                        a.strip() for a in module_name.split(",")
+                    ]
                 else:
                     lst_module_name.append(module_name)
 
@@ -91,8 +99,12 @@ class CodeGeneratorAddModelWizard(models.TransientModel):
                         continue
                     # Add dependency
                     # check not exist before added
-                    module_id = self.env["ir.module.module"].search([("name", "=", module_name)])
-                    dependencies_len = self.env["code.generator.module.dependency"].search_count(
+                    module_id = self.env["ir.module.module"].search(
+                        [("name", "=", module_name)]
+                    )
+                    dependencies_len = self.env[
+                        "code.generator.module.dependency"
+                    ].search_count(
                         [
                             ("module_id", "=", self.code_generator_id.id),
                             ("depend_id", "=", module_id.id),
@@ -104,7 +116,9 @@ class CodeGeneratorAddModelWizard(models.TransientModel):
                             "depend_id": module_id.id,
                             "name": module_id.display_name,
                         }
-                        self.env["code.generator.module.dependency"].create(value_dependencies)
+                        self.env["code.generator.module.dependency"].create(
+                            value_dependencies
+                        )
 
             if is_nomenclator:
                 self.code_generator_id.nomenclator_only = True
@@ -117,7 +131,11 @@ class CodeGeneratorAddModelWizard(models.TransientModel):
                         value = {
                             "m2o_module": self.code_generator_id.id,
                             "m2o_fields": field_id.id,
-                            "nomenclature_blacklist": self.option_blacklist == "blacklist",
-                            "nomenclature_whitelist": self.option_blacklist == "whitelist",
+                            "nomenclature_blacklist": self.option_blacklist
+                            == "blacklist",
+                            "nomenclature_whitelist": self.option_blacklist
+                            == "whitelist",
                         }
-                        self.env["code.generator.ir.model.fields"].create(value)
+                        self.env["code.generator.ir.model.fields"].create(
+                            value
+                        )

@@ -36,20 +36,31 @@ def _get_field_by_user(model):
 class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     _inherit = "code.generator.generate.views.wizard"
 
-    selected_model_website_leaflet_ids = fields.Many2many(comodel_name="ir.model")
+    selected_model_website_leaflet_ids = fields.Many2many(
+        comodel_name="ir.model"
+    )
 
     enable_generate_website_leaflet = fields.Boolean(
         string="Enable website leaflet feature",
         default=False,
-        help="This variable need to be True to generate website leaflet if enable_generate_all is False",
+        help=(
+            "This variable need to be True to generate website leaflet if"
+            " enable_generate_all is False"
+        ),
     )
 
-    def _generate_form_views_models(self, model_created, model_created_fields, module):
-        result = super(CodeGeneratorGenerateViewsWizard, self)._generate_form_views_models(
+    def _generate_form_views_models(
+        self, model_created, model_created_fields, module
+    ):
+        result = super(
+            CodeGeneratorGenerateViewsWizard, self
+        )._generate_form_views_models(
             model_created, model_created_fields, module
         )
 
-        field_geo_id = model_created.field_id.filtered(lambda field: "geo_" in field.ttype)
+        field_geo_id = model_created.field_id.filtered(
+            lambda field: "geo_" in field.ttype
+        )
         if not field_geo_id:
             return result
 
@@ -113,9 +124,12 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
     @api.multi
     def button_generate_views(self):
-        status = super(CodeGeneratorGenerateViewsWizard, self).button_generate_views()
+        status = super(
+            CodeGeneratorGenerateViewsWizard, self
+        ).button_generate_views()
         if not status or (
-            not self.enable_generate_all and not self.enable_generate_website_leaflet
+            not self.enable_generate_all
+            and not self.enable_generate_website_leaflet
         ):
             self.code_generator_id.enable_generate_website_leaflet = False
             return status
@@ -148,12 +162,16 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
         for code_generator in self.code_generator_id:
             lst_dependency = ["website"]
-            lst_actual_dependency = [a.depend_id.name for a in code_generator.dependencies_id]
+            lst_actual_dependency = [
+                a.depend_id.name for a in code_generator.dependencies_id
+            ]
             for depend in lst_dependency:
                 # check duplicate
                 if depend in lst_actual_dependency:
                     continue
-                module = self.env["ir.module.module"].search([("name", "=", depend)])
+                module = self.env["ir.module.module"].search(
+                    [("name", "=", depend)]
+                )
                 if len(module) > 1:
                     raise Exception(f"Duplicated dependencies: {depend}")
                 elif not len(module):
@@ -167,7 +185,14 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 self.env["code.generator.module.dependency"].create(value)
 
     def _create_ui_view(
-        self, content, template_id, key, qweb_name, priority, inherit_id, model_created
+        self,
+        content,
+        template_id,
+        key,
+        qweb_name,
+        priority,
+        inherit_id,
+        model_created,
     ):
         content = content.strip()
         value = {

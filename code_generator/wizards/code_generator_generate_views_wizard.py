@@ -34,7 +34,9 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     )
 
     enable_generate_all = fields.Boolean(
-        string="Enable all feature", default=True, help="Generate with all feature."
+        string="Enable all feature",
+        default=True,
+        help="Generate with all feature.",
     )
 
     date = fields.Date(
@@ -55,15 +57,21 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     )
 
     clear_all_view = fields.Boolean(
-        string="Clear views", default=True, help="Clear all views before execute."
+        string="Clear views",
+        default=True,
+        help="Clear all views before execute.",
     )
 
     clear_all_access = fields.Boolean(
-        string="Clear access", default=True, help="Clear all access/permission before execute."
+        string="Clear access",
+        default=True,
+        help="Clear all access/permission before execute.",
     )
 
     clear_all_menu = fields.Boolean(
-        string="Clear menus", default=True, help="Clear all menus before execute."
+        string="Clear menus",
+        default=True,
+        help="Clear all menus before execute.",
     )
 
     clear_all_act_window = fields.Boolean(
@@ -79,11 +87,13 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     )
 
     selected_model_list_view_ids = fields.Many2many(
-        comodel_name="ir.model", relation="selected_model_list_view_ids_ir_model"
+        comodel_name="ir.model",
+        relation="selected_model_list_view_ids_ir_model",
     )
 
     selected_model_form_view_ids = fields.Many2many(
-        comodel_name="ir.model", relation="selected_model_form_view_ids_ir_model"
+        comodel_name="ir.model",
+        relation="selected_model_form_view_ids_ir_model",
     )
 
     generated_root_menu = None
@@ -125,7 +135,8 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             else self.selected_model_form_view_ids
         )
         lst_model = sorted(
-            set(o2m_models_view_list + o2m_models_view_form), key=lambda model: model.name
+            set(o2m_models_view_list + o2m_models_view_form),
+            key=lambda model: model.name,
         )
 
         for model_id in lst_model:
@@ -134,12 +145,17 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             # Different view
             if model_id in o2m_models_view_list:
                 is_whitelist = bool(
-                    model_id.field_id.filtered(lambda field: field.is_show_whitelist_list_view)
+                    model_id.field_id.filtered(
+                        lambda field: field.is_show_whitelist_list_view
+                    )
                 )
                 model_created_fields_list = model_id.field_id.filtered(
                     lambda field: field.name not in MAGIC_FIELDS
                     and not field.is_hide_blacklist_list_view
-                    and (not is_whitelist or (is_whitelist and field.is_show_whitelist_list_view))
+                    and (
+                        not is_whitelist
+                        or (is_whitelist and field.is_show_whitelist_list_view)
+                    )
                 )
                 self._generate_list_views_models(
                     model_id, model_created_fields_list, model_id.m2o_module
@@ -147,12 +163,17 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 lst_view_generated.append("list")
             if model_id in o2m_models_view_form:
                 is_whitelist = bool(
-                    model_id.field_id.filtered(lambda field: field.is_show_whitelist_form_view)
+                    model_id.field_id.filtered(
+                        lambda field: field.is_show_whitelist_form_view
+                    )
                 )
                 model_created_fields_form = model_id.field_id.filtered(
                     lambda field: field.name not in MAGIC_FIELDS
                     and not field.is_hide_blacklist_form_view
-                    and (not is_whitelist or (is_whitelist and field.is_show_whitelist_form_view))
+                    and (
+                        not is_whitelist
+                        or (is_whitelist and field.is_show_whitelist_form_view)
+                    )
                 )
                 self._generate_form_views_models(
                     model_id, model_created_fields_form, model_id.m2o_module
@@ -161,7 +182,9 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
             # Menu and action_windows
             if lst_view_generated:
-                self._generate_menu(model_id, model_id.m2o_module, lst_view_generated)
+                self._generate_menu(
+                    model_id, model_id.m2o_module, lst_view_generated
+                )
 
         # for model_id in o2m_models_view_form:
         #     print(model_id)
@@ -179,7 +202,9 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     def _add_dependencies(self):
         pass
 
-    def _generate_list_views_models(self, model_created, model_created_fields, module):
+    def _generate_list_views_models(
+        self, model_created, model_created_fields, module
+    ):
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
         lst_field = [E.field({"name": a.name}) for a in model_created_fields]
@@ -203,7 +228,9 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
         return view_value
 
-    def _generate_form_views_models(self, model_created, model_created_fields, module):
+    def _generate_form_views_models(
+        self, model_created, model_created_fields, module
+    ):
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
         lst_field = []
@@ -292,7 +319,9 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
       </p>"""
 
         view_mode = ",".join(sorted(set(lst_view_generated), reverse=True))
-        view_type = "form" if "form" in lst_view_generated else lst_view_generated[0]
+        view_type = (
+            "form" if "form" in lst_view_generated else lst_view_generated[0]
+        )
 
         # Create action
         v = {

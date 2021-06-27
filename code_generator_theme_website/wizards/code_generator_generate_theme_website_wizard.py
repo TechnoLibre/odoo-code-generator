@@ -39,23 +39,36 @@ class CodeGeneratorGenerateThemeWebsiteWizard(models.TransientModel):
     enable_generate_theme_website = fields.Boolean(
         string="Enable theme website feature",
         default=False,
-        help="This variable need to be True to generate theme_website if enable_generate_all is False",
+        help=(
+            "This variable need to be True to generate theme_website if"
+            " enable_generate_all is False"
+        ),
     )
 
     theme_website_primary_color = fields.Char(
-        string="Primary Color", default="#38B44A", help="Choose your primary color"
+        string="Primary Color",
+        default="#38B44A",
+        help="Choose your primary color",
     )
     theme_website_secondary_color = fields.Char(
-        string="Secondary Color", default="#AEA79F", help="Choose your secondary color"
+        string="Secondary Color",
+        default="#AEA79F",
+        help="Choose your secondary color",
     )
     theme_website_extra_1_color = fields.Char(
-        string="Extra 1 Color", default="#ffbd92", help="Choose your extra 1 color"
+        string="Extra 1 Color",
+        default="#ffbd92",
+        help="Choose your extra 1 color",
     )
     theme_website_extra_2_color = fields.Char(
-        string="Extra 2 Color", default="#ffbd92", help="Choose your extra 2 color"
+        string="Extra 2 Color",
+        default="#ffbd92",
+        help="Choose your extra 2 color",
     )
     theme_website_extra_3_color = fields.Char(
-        string="Extra 3 Color", default="#ffbd92", help="Choose your extra 3 color"
+        string="Extra 3 Color",
+        default="#ffbd92",
+        help="Choose your extra 3 color",
     )
 
     theme_website_body_color = fields.Char(
@@ -73,20 +86,40 @@ class CodeGeneratorGenerateThemeWebsiteWizard(models.TransientModel):
 
     @api.multi
     def button_generate_views(self):
-        status = super(CodeGeneratorGenerateThemeWebsiteWizard, self).button_generate_views()
+        status = super(
+            CodeGeneratorGenerateThemeWebsiteWizard, self
+        ).button_generate_views()
         if not status or not self.enable_generate_theme_website:
             self.code_generator_id.enable_generate_theme_website = False
             return status
 
-        self.code_generator_id.theme_website_primary_color = self.theme_website_primary_color
-        self.code_generator_id.theme_website_secondary_color = self.theme_website_secondary_color
-        self.code_generator_id.theme_website_extra_1_color = self.theme_website_extra_1_color
-        self.code_generator_id.theme_website_extra_2_color = self.theme_website_extra_2_color
-        self.code_generator_id.theme_website_extra_3_color = self.theme_website_extra_3_color
-        self.code_generator_id.theme_website_body_color = self.theme_website_body_color
-        self.code_generator_id.theme_website_menu_color = self.theme_website_menu_color
-        self.code_generator_id.theme_website_footer_color = self.theme_website_footer_color
-        self.code_generator_id.theme_website_text_color = self.theme_website_text_color
+        self.code_generator_id.theme_website_primary_color = (
+            self.theme_website_primary_color
+        )
+        self.code_generator_id.theme_website_secondary_color = (
+            self.theme_website_secondary_color
+        )
+        self.code_generator_id.theme_website_extra_1_color = (
+            self.theme_website_extra_1_color
+        )
+        self.code_generator_id.theme_website_extra_2_color = (
+            self.theme_website_extra_2_color
+        )
+        self.code_generator_id.theme_website_extra_3_color = (
+            self.theme_website_extra_3_color
+        )
+        self.code_generator_id.theme_website_body_color = (
+            self.theme_website_body_color
+        )
+        self.code_generator_id.theme_website_menu_color = (
+            self.theme_website_menu_color
+        )
+        self.code_generator_id.theme_website_footer_color = (
+            self.theme_website_footer_color
+        )
+        self.code_generator_id.theme_website_text_color = (
+            self.theme_website_text_color
+        )
 
         self.code_generator_id.enable_generate_theme_website = True
 
@@ -95,18 +128,24 @@ class CodeGeneratorGenerateThemeWebsiteWizard(models.TransientModel):
         return True
 
     def _add_dependencies(self):
-        super(CodeGeneratorGenerateThemeWebsiteWizard, self)._add_dependencies()
+        super(
+            CodeGeneratorGenerateThemeWebsiteWizard, self
+        )._add_dependencies()
         if not self.enable_generate_theme_website:
             return
 
         for code_generator in self.code_generator_id:
             lst_dependency = ["website", "website_theme_install"]
-            lst_actual_dependency = [a.depend_id.name for a in code_generator.dependencies_id]
+            lst_actual_dependency = [
+                a.depend_id.name for a in code_generator.dependencies_id
+            ]
             for depend in lst_dependency:
                 # check duplicate
                 if depend in lst_actual_dependency:
                     continue
-                module = self.env["ir.module.module"].search([("name", "=", depend)])
+                module = self.env["ir.module.module"].search(
+                    [("name", "=", depend)]
+                )
                 if len(module) > 1:
                     raise Exception(f"Duplicated dependencies: {depend}")
                 elif not len(module):

@@ -5,7 +5,9 @@ class CodeGeneratorModule(models.Model):
     _inherit = "code.generator.module"
 
     # TODO rename variable with hook_*
-    hook_constant_code = fields.Text(string="Code constant", help="Code in the begin of hook file.")
+    hook_constant_code = fields.Text(
+        string="Code constant", help="Code in the begin of hook file."
+    )
 
     # pre_init_hook
     pre_init_hook_show = fields.Boolean(string="Show pre_init_hook")
@@ -62,12 +64,14 @@ class CodeGeneratorModule(models.Model):
     # Functionality
     enable_template_code_generator_demo = fields.Boolean(
         string="Functions code generator demo",
-        help="Support help to use code generator " "with functionality variables.",
+        help=(
+            "Support help to use code generator with functionality variables."
+        ),
     )
 
     template_model_name = fields.Char(
         string="Functions models",
-        help="Add model from list, separate by ';' and " "generate template.",
+        help="Add model from list, separate by ';' and generate template.",
     )
 
     enable_template_wizard_view = fields.Boolean(
@@ -80,25 +84,33 @@ class CodeGeneratorModule(models.Model):
 
     enable_template_website_snippet_view = fields.Boolean(
         string="Template website snippet",
-        help="Add template website snippet, block drag and drop in " "website builder.",
+        help=(
+            "Add template website snippet, block drag and drop in "
+            "website builder."
+        ),
     )
 
     enable_sync_template = fields.Boolean(
-        string="Sync generated code", help="Read generated code to fill the generator with fields."
+        string="Sync generated code",
+        help="Read generated code to fill the generator with fields.",
     )
 
     ignore_fields = fields.Char(
         string="Ignored field",
-        help="Ignore field when enable_sync_template, use ; to separate field.",
+        help=(
+            "Ignore field when enable_sync_template, use ; to separate field."
+        ),
     )
 
     template_module_name = fields.Char(
         string="Generated module name",
-        help="Can be empty in case of code_generator_demo, else it's the module name "
-        "goal to generate.",
+        help=(
+            "Can be empty in case of code_generator_demo, else it's the module"
+            " name goal to generate."
+        ),
     )
 
     template_module_path_generated_extension = fields.Char(
         string="Path of os.path value to generated path module",
-        help="Add parameters of os.path directory where module is " "generated.",
+        help="Add parameters of os.path directory where module is generated.",
     )

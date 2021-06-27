@@ -55,7 +55,9 @@ class EnhancedCrudConfigSettings(models.TransientModel):
                 if self.s_window_disposition == "new"
                 else "window_disposition_current.png"
             )
-            image_path = get_module_resource("enhanced_crud", "static/description", image_name)
+            image_path = get_module_resource(
+                "enhanced_crud", "static/description", image_name
+            )
             self.img_window_disposition = tools.image_resize_image_big(
                 base64.b64encode(open(image_path, "rb").read())
             )
@@ -63,31 +65,42 @@ class EnhancedCrudConfigSettings(models.TransientModel):
     @api.model
     def _default_image(self):
         image_path = get_module_resource(
-            "enhanced_crud", "static/description", "enhanced_crud_screenshot.png"
+            "enhanced_crud",
+            "static/description",
+            "enhanced_crud_screenshot.png",
         )
-        return tools.image_resize_image_big(base64.b64encode(open(image_path, "rb").read()))
+        return tools.image_resize_image_big(
+            base64.b64encode(open(image_path, "rb").read())
+        )
 
     img_window_disposition = fields.Binary(
         "Enhanced CRUD window disposition photo",
         default=_default_image,
         attachment=True,
-        help="This field holds the image used as photo for the employee, limited to 1024x1024px.",
+        help=(
+            "This field holds the image used as photo for the employee,"
+            " limited to 1024x1024px."
+        ),
         readonly=True,
     )
     img_window_disposition_medium = fields.Binary(
         "Medium-sized Enhanced CRUD window disposition photo",
         attachment=True,
-        help="Medium-sized photo of the employee. "
-        "It is automatically resized as a 128x128px image, with aspect ratio preserved. "
-        "Use this field in form views or some kanban views.",
+        help=(
+            "Medium-sized photo of the employee. It is automatically resized"
+            " as a 128x128px image, with aspect ratio preserved. Use this"
+            " field in form views or some kanban views."
+        ),
     )
 
     img_window_disposition_small = fields.Binary(
         "Small-sized Enhanced CRUD window disposition photo",
         attachment=True,
-        help="Small-sized photo of the employee. "
-        "It is automatically resized as a 64x64px image, with aspect ratio preserved. "
-        "Use this field anywhere a small image is required.",
+        help=(
+            "Small-sized photo of the employee. It is automatically resized as"
+            " a 64x64px image, with aspect ratio preserved. Use this field"
+            " anywhere a small image is required."
+        ),
     )
 
     boo_can_edit_pager = fields.Boolean(
@@ -103,7 +116,9 @@ class EnhancedCrudConfigSettings(models.TransientModel):
     )
 
     boo_contextmenu = fields.Boolean(
-        string="Context Menu", help="Context Menu", config_parameter="enhanced_crud.boo_contextmenu"
+        string="Context Menu",
+        help="Context Menu",
+        config_parameter="enhanced_crud.boo_contextmenu",
     )
 
     @api.multi

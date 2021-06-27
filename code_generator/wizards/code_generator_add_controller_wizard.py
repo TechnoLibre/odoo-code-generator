@@ -47,7 +47,11 @@ class CodeGeneratorAddControllerWizard(models.TransientModel):
 
     @api.onchange("model_ids")
     def _onchange_model_ids(self):
-        field_ids = [field_id.id for model_id in self.model_ids for field_id in model_id.field_id]
+        field_ids = [
+            field_id.id
+            for model_id in self.model_ids
+            for field_id in model_id.field_id
+        ]
         self.field_ids = [(6, 0, field_ids)]
 
     @api.multi

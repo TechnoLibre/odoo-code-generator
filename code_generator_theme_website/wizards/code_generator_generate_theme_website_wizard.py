@@ -93,6 +93,16 @@ class CodeGeneratorGenerateThemeWebsiteWizard(models.TransientModel):
             self.code_generator_id.enable_generate_theme_website = False
             return status
 
+        name = self.code_generator_id.name
+        if not name.startswith("theme_"):
+            self.code_generator_id.name = f"theme_{name}"
+
+        self.code_generator_id.sequence = 900
+
+        self.code_generator_id.category_id = self.env.ref(
+            "base.module_category_theme"
+        ).id
+
         self.code_generator_id.theme_website_primary_color = (
             self.theme_website_primary_color
         )

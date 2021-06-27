@@ -2304,10 +2304,11 @@ class CodeGeneratorData:
         workspace_path = os.path.normpath(
             os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
         )
+        max_col = 79
         use_prettier = True
-        use_format_black = False  # Else, oca-autopep8
+        use_format_black = True  # Else, oca-autopep8
         use_html5print = False
-        enable_xml_formatter = False
+        enable_xml_formatter = False  # Else, prettier-xml
         # Manual format with def with programmer style
         for path_file in self.lst_path_file:
             relative_path = path_file[len(self.module_path) + 1 :]
@@ -2321,10 +2322,10 @@ class CodeGeneratorData:
                             if (
                                 line.lstrip().startswith("def ")
                                 or line.lstrip().startswith("return ")
-                            ) and len(line) > 99:
+                            ) and len(line) > max_col - 1:
                                 has_change = True
                                 next_tab_space = line.find("(") + 1
-                                first_cut = 100
+                                first_cut = max_col
                                 first_cut = line.rfind(", ", 0, first_cut) + 1
                                 first_part = line[:first_cut]
                                 last_part = line[first_cut:].lstrip()
@@ -2417,12 +2418,24 @@ class CodeGeneratorData:
                     if result:
                         _logger.warning(result)
 
+            elif path_file.endswith(".xml"):
+                if use_prettier and not enable_xml_formatter:
+                    cmd = (
+                        "prettier --xml-whitespace-sensitivity ignore"
+                        " --prose-wrap always --tab-width 4"
+                        " --no-bracket-spacing --print-width 120 --write"
+                        f" {path_file}"
+                    )
+                    result = subprocess_cmd(cmd)
+                    if result:
+                        _logger.info(result)
+
         # Automatic format
         # TODO check diff before and after format to auto improvement of generation
         if use_format_black:
             cmd = (
-                f"cd {workspace_path};. .venv/bin/activate;black -l 100 -t"
-                f" py37 {self.module_path}"
+                f"cd {workspace_path};. .venv/bin/activate;black -l {max_col}"
+                f" --experimental-string-processing -t py37 {self.module_path}"
             )
             result = subprocess_cmd(cmd)
 
@@ -2435,8 +2448,8 @@ class CodeGeneratorData:
             cpu_count = os.cpu_count()
             cmd = (
                 f"cd {maintainer_path};. env/bin/activate;cd"
-                f" {workspace_path};oca-autopep8"
-                f" -j{cpu_count} --max-line-length 100 -ari {self.module_path}"
+                f" {workspace_path};oca-autopep8 -j{cpu_count}"
+                f" --max-line-length {max_col} -ari {self.module_path}"
             )
             result = subprocess_cmd(cmd)
 

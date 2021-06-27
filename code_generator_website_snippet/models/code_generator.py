@@ -7,7 +7,10 @@ class CodeGenerator(models.Model):
     enable_generate_website_snippet = fields.Boolean(
         string="Enable website snippet feature",
         default=False,
-        help="This variable need to be True to generate website snippet if enable_generate_all is False",
+        help=(
+            "This variable need to be True to generate website snippet if"
+            " enable_generate_all is False"
+        ),
     )
 
     enable_generate_website_snippet_javascript = fields.Boolean(

@@ -5,17 +5,22 @@ class CodeGeneratorModule(models.Model):
     _inherit = "code.generator.module"
 
     o2m_geoengine_vector_layer = fields.One2many(
-        comodel_name="geoengine.vector.layer", inverse_name="m2o_code_generator"
+        comodel_name="geoengine.vector.layer",
+        inverse_name="m2o_code_generator",
     )
 
     o2m_geoengine_raster_layer = fields.One2many(
-        comodel_name="geoengine.raster.layer", inverse_name="m2o_code_generator"
+        comodel_name="geoengine.raster.layer",
+        inverse_name="m2o_code_generator",
     )
 
     enable_generate_geoengine = fields.Boolean(
         string="Enable geoengine feature",
         default=False,
-        help="This variable need to be True to generate geoengine if enable_generate_all is False",
+        help=(
+            "This variable need to be True to generate geoengine if"
+            " enable_generate_all is False"
+        ),
     )
 
     @api.multi

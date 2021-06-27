@@ -41,27 +41,46 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
     enable_generate_portal = fields.Boolean(
         string="Enable portal feature",
         default=False,
-        help="This variable need to be True to generate portal if enable_generate_all is False",
+        help=(
+            "This variable need to be True to generate portal if"
+            " enable_generate_all is False"
+        ),
     )
 
     @api.multi
     def button_generate_views(self):
-        status = super(CodeGeneratorGeneratePortalWizard, self).button_generate_views()
-        if not status or (not self.enable_generate_all and not self.enable_generate_portal):
+        status = super(
+            CodeGeneratorGeneratePortalWizard, self
+        ).button_generate_views()
+        if not status or (
+            not self.enable_generate_all and not self.enable_generate_portal
+        ):
             self.code_generator_id.enable_generate_portal = False
             return status
 
         self.code_generator_id.enable_generate_portal = True
 
-        model_portal_mixin = self.env["ir.model"].search([("model", "=", "portal.mixin")])
+        model_portal_mixin = self.env["ir.model"].search(
+            [("model", "=", "portal.mixin")]
+        )
 
         o2m_models = (
-            self.code_generator_id.o2m_models if self.all_model else self.selected_model_ids
+            self.code_generator_id.o2m_models
+            if self.all_model
+            else self.selected_model_ids
         )
-        self.generate_portal_menu_entry(o2m_models, self.code_generator_id.name)
-        self.generate_portal_home_entry(o2m_models, self.code_generator_id.name)
-        self.generate_portal_list_model(o2m_models, self.code_generator_id.name)
-        self.generate_portal_form_model(o2m_models, self.code_generator_id.name)
+        self.generate_portal_menu_entry(
+            o2m_models, self.code_generator_id.name
+        )
+        self.generate_portal_home_entry(
+            o2m_models, self.code_generator_id.name
+        )
+        self.generate_portal_list_model(
+            o2m_models, self.code_generator_id.name
+        )
+        self.generate_portal_form_model(
+            o2m_models, self.code_generator_id.name
+        )
 
         for model_id in o2m_models:
             model_created_fields = model_id.field_id.filtered(
@@ -81,12 +100,16 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
 
         for code_generator in self.code_generator_id:
             lst_dependency = ["portal"]
-            lst_actual_dependency = [a.depend_id.name for a in code_generator.dependencies_id]
+            lst_actual_dependency = [
+                a.depend_id.name for a in code_generator.dependencies_id
+            ]
             for depend in lst_dependency:
                 # check duplicate
                 if depend in lst_actual_dependency:
                     continue
-                module = self.env["ir.module.module"].search([("name", "=", depend)])
+                module = self.env["ir.module.module"].search(
+                    [("name", "=", depend)]
+                )
                 if len(module) > 1:
                     raise Exception(f"Duplicated dependencies: {depend}")
                 elif not len(module):
@@ -138,18 +161,24 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
             # #{'active ' if not project else ''}">
             menu_xml = E.li(
                 {
-                    "t-if": f"page_name == '{_fmt_underscores(model.model)}' or "
-                    f"{_fmt_underscores(model.model)}",
-                    "t-attf-class": "breadcrumb-item #{'active ' if not "
-                    f"{_fmt_underscores(model.model)}"
-                    " else ''}",
+                    "t-if": (
+                        f"page_name == '{_fmt_underscores(model.model)}' or "
+                        f"{_fmt_underscores(model.model)}"
+                    ),
+                    "t-attf-class": (
+                        "breadcrumb-item #{'active ' if not "
+                        f"{_fmt_underscores(model.model)}"
+                        " else ''}"
+                    ),
                 },
                 # <a t-if="project" t-attf-href="/my/projects?{{ keep_query() }}">Projects</a>
                 E.a(
                     {
                         "t-if": _fmt_underscores(model.model),
-                        "t-attf-href": f"/my/{_fmt_underscores(model.model)}s?"
-                        "{{ keep_query() }}",
+                        "t-attf-href": (
+                            f"/my/{_fmt_underscores(model.model)}s?"
+                            "{{ keep_query() }}"
+                        ),
                     },
                     f"{_fmt_title(model.model)}s",
                 ),
@@ -159,7 +188,10 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
             lst_menu_xml.append(menu_xml)
             # <li t-if="project" class="breadcrumb-item active">
             menu_xml = E.li(
-                {"t-if": _fmt_underscores(model.model), "class": "breadcrumb-item active"},
+                {
+                    "t-if": _fmt_underscores(model.model),
+                    "class": "breadcrumb-item active",
+                },
                 # <t t-esc="project.name"/>
                 E.t({"t-esc": f"{_fmt_underscores(model.model)}.name"}),
             )
@@ -172,7 +204,13 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
         )
 
         view_value = self._create_ui_view(
-            content, template_id, key, qweb_name, priority, inherit_id, model_created
+            content,
+            template_id,
+            key,
+            qweb_name,
+            priority,
+            inherit_id,
+            model_created,
         )
 
         return view_value
@@ -213,9 +251,19 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                 # <t t-set="title">Projects</t>
                 E.t({"t-set": "title"}, f"{_fmt_title(model.model)}s"),
                 # <t t-set="url" t-value=""/>
-                E.t({"t-set": "url", "t-value": f"'/my/{_fmt_underscores(model.model)}s'"}),
+                E.t(
+                    {
+                        "t-set": "url",
+                        "t-value": f"'/my/{_fmt_underscores(model.model)}s'",
+                    }
+                ),
                 # <t t-set="count" t-value="test_model_count"/>
-                E.t({"t-set": "count", "t-value": f"{_fmt_underscores(model.model)}_count"}),
+                E.t(
+                    {
+                        "t-set": "count",
+                        "t-value": f"{_fmt_underscores(model.model)}_count",
+                    }
+                ),
             )
             lst_menu_xml.append(menu_xml)
         expr = "//div[hasclass('o_portal_docs')]"
@@ -226,7 +274,13 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
         )
 
         view_value = self._create_ui_view(
-            content, template_id, key, qweb_name, priority, inherit_id, model_created
+            content,
+            template_id,
+            key,
+            qweb_name,
+            priority,
+            inherit_id,
+            model_created,
         )
 
         return view_value
@@ -295,14 +349,19 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                 ),
                 # <t t-call="portal.portal_table" t-if="projects">
                 E.t(
-                    {"t-if": f"{_fmt_underscores(model.model)}s", "t-call": "portal.portal_table"},
+                    {
+                        "t-if": f"{_fmt_underscores(model.model)}s",
+                        "t-call": "portal.portal_table",
+                    },
                     # <tbody>
                     E.tbody(
                         {},
                         # <tr t-as="project" t-foreach="projects">
                         E.tr(
                             {
-                                "t-foreach": f"{_fmt_underscores(model.model)}s",
+                                "t-foreach": (
+                                    f"{_fmt_underscores(model.model)}s"
+                                ),
                                 "t-as": _fmt_underscores(model.model),
                             },
                             # <td>
@@ -311,13 +370,17 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                                 # <a t-attf-href="/my/project/#{project.id}?{{ keep_query() }}">
                                 E.a(
                                     {
-                                        "t-attf-href": f"/my/{_fmt_underscores(model.model)}/#"
-                                        "{"
-                                        f"{_fmt_underscores(model.model)}"
-                                        ".id}?{{ keep_query() }}"
+                                        "t-attf-href": (
+                                            f"/my/{_fmt_underscores(model.model)}/#{{{_fmt_underscores(model.model)}.id}}?{{{{"
+                                            " keep_query() }}"
+                                        )
                                     },
                                     # <span t-field="project.name"/>
-                                    E.span({"t-field": f"{_fmt_underscores(model.model)}.name"}),
+                                    E.span(
+                                        {
+                                            "t-field": f"{_fmt_underscores(model.model)}.name"
+                                        }
+                                    ),
                                 ),
                             ),
                             # <td class="text-right">
@@ -417,7 +480,13 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                 card_body = E.div(
                     {"class": "col-12 col-md-6 mb-2 mb-md-0"},
                     f"{field.field_description}-",
-                    E.span({"t-field": f"{_fmt_underscores(model.model)}.{field.name}"}),
+                    E.span(
+                        {
+                            "t-field": (
+                                f"{_fmt_underscores(model.model)}.{field.name}"
+                            )
+                        }
+                    ),
                 )
                 lst_card_body.append(card_body)
 
@@ -436,8 +505,10 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                         E.t(
                             {
                                 "t-set": "backend_url",
-                                "t-value": f"'/web#return_label=Website&model={module_name}.{model.model}"
-                                f"&id=%s&view_type=form' % ({_fmt_underscores(model.model)}.id)",
+                                "t-value": (
+                                    f"'/web#return_label=Website&model={module_name}.{model.model}&id=%s&view_type=form'"
+                                    f" % ({_fmt_underscores(model.model)}.id)"
+                                ),
                             }
                         ),
                     ),
@@ -452,9 +523,18 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                         E.h5(
                             {"class": "mb-0"},
                             # <small class="text-muted">Project - </small>
-                            E.small({"class": "text-muted"}, f"{_fmt_title(model.model)} -"),
+                            E.small(
+                                {"class": "text-muted"},
+                                f"{_fmt_title(model.model)} -",
+                            ),
                             # <span t-field="project.name"/>
-                            E.span({"t-field": f"{_fmt_underscores(model.model)}.name"})
+                            E.span(
+                                {
+                                    "t-field": (
+                                        f"{_fmt_underscores(model.model)}.name"
+                                    )
+                                }
+                            )
                             # TODO need binding variable
                             # ,
                             # # <span class="float-right">
@@ -472,7 +552,10 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                         ),
                     ),
                     # TODO added mathben
-                    E.t({"t-set": "card_body"}, E.div({"class": "row"}, *lst_card_body))
+                    E.t(
+                        {"t-set": "card_body"},
+                        E.div({"class": "row"}, *lst_card_body),
+                    )
                     # TODO support card_body later
                     # # <t t-set="card_body">
                     # E.t({'t-set': 'card_body'},
@@ -537,7 +620,14 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
         return lst_views
 
     def _create_ui_view(
-        self, content, template_id, key, qweb_name, priority, inherit_id, model_created
+        self,
+        content,
+        template_id,
+        key,
+        qweb_name,
+        priority,
+        inherit_id,
+        model_created,
     ):
         content = content.strip()
         value = {
@@ -565,7 +655,9 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
             # group_id = self.env['res.groups'].search([('name', '=', 'Code Generator / Manager')])
             # group_id = self.env['res.groups'].search([('name', '=', 'Internal User')])
             lang = "en_US"
-            group_id = self.env.ref("base.group_portal").with_context(lang=lang)
+            group_id = self.env.ref("base.group_portal").with_context(
+                lang=lang
+            )
             model_name = model_created.model
             model_name_str = model_name.replace(".", "_")
             v = {
@@ -580,4 +672,6 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
 
             access_value = self.env["ir.model.access"].create(v)
 
-        super(CodeGeneratorGeneratePortalWizard, self)._generate_model_access(model_created)
+        super(CodeGeneratorGeneratePortalWizard, self)._generate_model_access(
+            model_created
+        )

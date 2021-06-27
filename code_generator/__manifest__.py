@@ -4,10 +4,14 @@
     "name": "Code Generator",
     "version": "12.0.0",
     "summary": "Code Generator Module",
-    "description": "A solution to export into code most of the things that we can do in Odoo, models, views, groups, "
-    "permissions, menus, etc",
-    "author": "Raisel Rodríguez Cabrera (rrcabrera@estudiantes.uci.cu), Bluisknot (bluisknot@gmail.com), "
-    "Mathben (mathben@technolibre.ca)",
+    "description": (
+        "A solution to export into code most of the things that we can do in"
+        " Odoo, models, views, groups, permissions, menus, etc"
+    ),
+    "author": (
+        "Raisel Rodríguez Cabrera (rrcabrera@estudiantes.uci.cu), Bluisknot"
+        " (bluisknot@gmail.com), Mathben (mathben@technolibre.ca)"
+    ),
     "category": "Extra Tools",
     "depends": ["base"],
     "installable": True,

@@ -5,13 +5,18 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     _inherit = "code.generator.generate.views.wizard"
 
     clear_all_geoengine = fields.Boolean(
-        string="Clear geoengine", default=True, help="Clear all geoengine data before execute."
+        string="Clear geoengine",
+        default=True,
+        help="Clear all geoengine data before execute.",
     )
 
     enable_generate_geoengine = fields.Boolean(
         string="Enable geoengine feature",
         default=False,
-        help="This variable need to be True to generate geoengine if enable_generate_all is False",
+        help=(
+            "This variable need to be True to generate geoengine if"
+            " enable_generate_all is False"
+        ),
     )
 
     def clear_all(self):
@@ -25,8 +30,12 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
     @api.multi
     def button_generate_views(self):
-        status = super(CodeGeneratorGenerateViewsWizard, self).button_generate_views()
-        if not status or (not self.enable_generate_all and not self.enable_generate_geoengine):
+        status = super(
+            CodeGeneratorGenerateViewsWizard, self
+        ).button_generate_views()
+        if not status or (
+            not self.enable_generate_all and not self.enable_generate_geoengine
+        ):
             self.code_generator_id.enable_generate_geoengine = False
             return status
 

@@ -53,7 +53,9 @@ class EnhancedCrudBase(models.AbstractModel):
         self._action_id = None
         self._set_js_class_4view = False
         if "action_id" in options:
-            act_window = self.env["ir.actions.act_window"].browse(options["action_id"])
+            act_window = self.env["ir.actions.act_window"].browse(
+                options["action_id"]
+            )
             if self.env["enhanced.crud.act_window"].search(
                 [("m2o_act_window", "=", act_window.id)]
             ) or (
@@ -71,7 +73,9 @@ class EnhancedCrudBase(models.AbstractModel):
         return super(EnhancedCrudBase, self).load_views(views, options)
 
     @api.model
-    def fields_view_get(self, view_id=None, view_type="form", toolbar=False, submenu=False):
+    def fields_view_get(
+        self, view_id=None, view_type="form", toolbar=False, submenu=False
+    ):
         """
         Redefining the fields_view_get method to be able to call the _set_js_class_4views method
         :param view_id:
@@ -87,7 +91,9 @@ class EnhancedCrudBase(models.AbstractModel):
             and self.user_has_groups("enhanced_crud.enhanced_crud_manager")
         ):
             return self._set_js_class_4views(
-                super(EnhancedCrudBase, self).fields_view_get(view_id, view_type, toolbar, submenu)
+                super(EnhancedCrudBase, self).fields_view_get(
+                    view_id, view_type, toolbar, submenu
+                )
             )
 
         else:
@@ -150,7 +156,10 @@ class EnhancedCrudBase(models.AbstractModel):
 
 class EnhancedCrudActWindow(models.Model):
     _name = "enhanced.crud.act_window"
-    _description = "Window actions whose views have their js_class attribute pointed to the Enhanced CRUD module"
+    _description = (
+        "Window actions whose views have their js_class attribute pointed to"
+        " the Enhanced CRUD module"
+    )
 
     m2o_act_window = ofields.Many2one(
         string="Window action",

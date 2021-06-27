@@ -21,7 +21,9 @@ PSYCOPGUNINSTALLED = "Verify that the psycopg package is installed."
 PYMYSQLUNINSTALLED = "Verify that the pymysql package is installed."
 PYMSSQLUNINSTALLED = "Verify that the pymssql package is installed."
 CONECTIONPROBLEM = "A conection problem occur."
-TABLEFIELDPROBLEM = "A conection problem occur trying to obtain a table fields."
+TABLEFIELDPROBLEM = (
+    "A conection problem occur trying to obtain a table fields."
+)
 TABLEDATAPROBLEM = "A conection problem occur trying to obtain a table data."
 CREATEDBPROBLEM = "An error occur creating the database."
 
@@ -69,7 +71,11 @@ def _get_db_cr(sgdb, database, host, port, user, password):
 
         try:
             conn = psycopg2.connect(
-                database=database, host=host, port=port, user=user, password=password
+                database=database,
+                host=host,
+                port=port,
+                user=user,
+                password=password,
             )
 
         except ImportError:
@@ -80,7 +86,9 @@ def _get_db_cr(sgdb, database, host, port, user, password):
         try:
             import pymysql
 
-            conn = pymysql.connect(db=database, host=host, port=port, user=user, password=password)
+            conn = pymysql.connect(
+                db=database, host=host, port=port, user=user, password=password
+            )
 
         except ImportError:
             raise ValidationError(PYMYSQLUNINSTALLED)
@@ -91,7 +99,11 @@ def _get_db_cr(sgdb, database, host, port, user, password):
             import pymssql
 
             conn = pymssql.connect(
-                database=database, server=host, port=port, user=user, password=password
+                database=database,
+                server=host,
+                port=port,
+                user=user,
+                password=password,
             )
 
         except ImportError:
@@ -113,10 +125,15 @@ def _get_db_query_4_tables(sgdb, schema, database):
     :return:
     """
 
-    query = f" SELECT table_name, table_type FROM {'information_schema.tables'} "
+    query = (
+        f" SELECT table_name, table_type FROM {'information_schema.tables'} "
+    )
 
     if sgdb != "SQLServer":
-        query += f" WHERE table_schema = '{schema if sgdb == 'PostgreSQL' else database}' "
+        query += (
+            " WHERE table_schema ="
+            f" '{schema if sgdb == 'PostgreSQL' else database}' "
+        )
 
     return query + """ ORDER BY table_name """
 
@@ -133,10 +150,15 @@ def _get_db_query_4_columns(m2o_db, table_name, schema, database):
 
     sgdb = m2o_db.m2o_dbtype.name
 
-    query = """ SELECT * FROM {t_from} WHERE """.format(t_from="information_schema.columns")
+    query = """ SELECT * FROM {t_from} WHERE """.format(
+        t_from="information_schema.columns"
+    )
 
     if sgdb != "SQLServer":
-        query += f" table_schema = '{schema if sgdb == 'PostgreSQL' else database}' AND "
+        query += (
+            f" table_schema = '{schema if sgdb == 'PostgreSQL' else database}'"
+            " AND "
+        )
 
     return query + f" table_name = '{table_name}' "
 
@@ -172,7 +194,9 @@ def _get_q_4constraints(table_name, column_name, fkey=False, sgdb=None):
         AND kcu.column_name = '{column_name}' """
 
 
-def _get_odoo_field_tuple_4insert(name, field_description, ttype, required=False):
+def _get_odoo_field_tuple_4insert(
+    name, field_description, ttype, required=False
+):
     """
     Function to obtain the tuple for a insert operation (0, 0, {...})
     :param name:
@@ -219,7 +243,11 @@ def _get_odoo_ttype(data_type):
     elif data_type == "character varying" or data_type == "varchar":
         odoo_ttype = "char"
 
-    elif data_type == "timestamp with time zone" or data_type == "timestamp" or data_type == "time":
+    elif (
+        data_type == "timestamp with time zone"
+        or data_type == "timestamp"
+        or data_type == "time"
+    ):
         odoo_ttype = "datetime"
 
     elif data_type == "date":
@@ -247,7 +275,11 @@ def _get_table_fields(table_name, m2o_db):
             user=m2o_db.user,
             password=m2o_db.password,
         )
-        cr.execute(_get_db_query_4_columns(m2o_db, table_name, m2o_db.schema, database))
+        cr.execute(
+            _get_db_query_4_columns(
+                m2o_db, table_name, m2o_db.schema, database
+            )
+        )
 
         l_fields = []
         having_column_name = False
@@ -262,9 +294,15 @@ def _get_table_fields(table_name, m2o_db):
                 column_name = column_name[:63]
 
             cr.execute(_get_q_4constraints(table_name, column_name))
-            if m2o_db.accept_primary_key or not cr.fetchone():  # if it is not a primary key
+            if (
+                m2o_db.accept_primary_key or not cr.fetchone()
+            ):  # if it is not a primary key
 
-                cr.execute(_get_q_4constraints(table_name, column_name, fkey=True, sgdb=sgdb))
+                cr.execute(
+                    _get_q_4constraints(
+                        table_name, column_name, fkey=True, sgdb=sgdb
+                    )
+                )
                 is_m2o = cr.fetchone()
 
                 t_odoo_field_4insert = _get_odoo_field_tuple_4insert(
@@ -275,12 +313,16 @@ def _get_table_fields(table_name, m2o_db):
                 )
 
                 if is_m2o:  # It is a foreing key?
-                    t_odoo_field_4insert[2]["relation"] = is_m2o[0].replace("_", ".")
+                    t_odoo_field_4insert[2]["relation"] = is_m2o[0].replace(
+                        "_", "."
+                    )
 
                 l_fields.append(t_odoo_field_4insert)
 
         if not having_column_name:
-            l_fields.append(_get_odoo_field_tuple_4insert("name", "Field Name", "char"))
+            l_fields.append(
+                _get_odoo_field_tuple_4insert("name", "Field Name", "char")
+            )
 
         return l_fields
 
@@ -322,7 +364,9 @@ class CodeGeneratorDbType(models.Model):
 
     name = fields.Char(string="Db Type Name", help="Db Type", required=True)
 
-    _sql_constraints = [("unique_name", "unique (name)", "The Db Type must be unique.")]
+    _sql_constraints = [
+        ("unique_name", "unique (name)", "The Db Type must be unique.")
+    ]
 
 
 class CodeGeneratorDb(models.Model):
@@ -344,7 +388,9 @@ class CodeGeneratorDb(models.Model):
 
     database = fields.Char(string="Db Name", help="Db Name", required=True)
 
-    schema = fields.Char(string="Schema", help="Schema", required=True, default="public")
+    schema = fields.Char(
+        string="Schema", help="Schema", required=True, default="public"
+    )
 
     host = fields.Char(string="Ip address", help="Ip address", required=True)
 
@@ -376,7 +422,11 @@ class CodeGeneratorDb(models.Model):
 
             try:
 
-                sgdb = self.env["code.generator.db.type"].browse(value["m2o_dbtype"]).name
+                sgdb = (
+                    self.env["code.generator.db.type"]
+                    .browse(value["m2o_dbtype"])
+                    .name
+                )
                 cr = _get_db_cr(
                     sgdb=sgdb,
                     database=value["database"],
@@ -388,13 +438,19 @@ class CodeGeneratorDb(models.Model):
 
                 result = super(CodeGeneratorDb, self).create(value)
 
-                cr.execute(_get_db_query_4_tables(sgdb, value["schema"], value["database"]))
+                cr.execute(
+                    _get_db_query_4_tables(
+                        sgdb, value["schema"], value["database"]
+                    )
+                )
                 for table_info in cr.fetchall():
                     self.env["code.generator.db.table"].sudo().create(
                         dict(
                             m2o_db=result.id,
                             name=table_info[0],
-                            table_type="view" if table_info[1] == "VIEW" else "table",
+                            table_type="view"
+                            if table_info[1] == "VIEW"
+                            else "table",
                         )
                     )
 
@@ -412,7 +468,9 @@ class CodeGeneratorDbTable(models.Model):
     _name = "code.generator.db.table"
     _description = "Code Generator Db Table"
 
-    m2o_db = fields.Many2one("code.generator.db", "Db", required=True, ondelete="cascade")
+    m2o_db = fields.Many2one(
+        "code.generator.db", "Db", required=True, ondelete="cascade"
+    )
 
     o2m_columns = fields.One2many(
         comodel_name="code.generator.db.column",
@@ -431,11 +489,16 @@ class CodeGeneratorDbTable(models.Model):
     )
 
     nomenclator = fields.Boolean(
-        string="Nomenclator?", help="Set if you want this table to be used as nomenclator"
+        string="Nomenclator?",
+        help="Set if you want this table to be used as nomenclator",
     )
 
     _sql_constraints = [
-        ("unique_db_table", "unique (m2o_db, name)", "The Db and name combination must be unique.")
+        (
+            "unique_db_table",
+            "unique (m2o_db, name)",
+            "The Db and name combination must be unique.",
+        )
     ]
 
     @api.multi
@@ -485,7 +548,9 @@ class CodeGeneratorDbTable(models.Model):
         :return:
         """
 
-        return "%s_%s" % (module_name, model) if module_name != "comun" else model
+        return (
+            "%s_%s" % (module_name, model) if module_name != "comun" else model
+        )
 
     @api.multi
     def generate_module(self):
@@ -540,9 +605,14 @@ class CodeGeneratorDbTable(models.Model):
                             lambda t_info: dict(
                                 name="Model %s belonging to Module %s"
                                 % (t_info[0].capitalize(), module_name_caps),
-                                model=_replace_in(t_info[0].lower().replace("_", ".")),
+                                model=_replace_in(
+                                    t_info[0].lower().replace("_", ".")
+                                ),
                                 field_id=_get_table_fields(
-                                    self._get_model_name(module_name, t_info[0]), t_info[1]
+                                    self._get_model_name(
+                                        module_name, t_info[0]
+                                    ),
+                                    t_info[1],
                                 ),
                                 m2o_module=module.id,
                                 nomenclator=t_info[2],
@@ -560,17 +630,23 @@ class CodeGeneratorDbTable(models.Model):
 
                     foreing_table = self.filtered(
                         lambda t: t.name
-                        == self._get_model_name(module_name, model_created.model.replace(".", "_"))
+                        == self._get_model_name(
+                            module_name, model_created.model.replace(".", "_")
+                        )
                     )
 
                     l_foreing_table_data = _get_table_data(
-                        foreing_table.name, foreing_table.m2o_db, model_created_fields
+                        foreing_table.name,
+                        foreing_table.m2o_db,
+                        model_created_fields,
                     )
 
                     self.env[model_created.model].sudo().create(
                         list(
                             map(
-                                self._conform_model_created_data(model_created_fields),
+                                self._conform_model_created_data(
+                                    model_created_fields
+                                ),
                                 l_foreing_table_data,
                             )
                         )

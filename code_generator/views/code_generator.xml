@@ -12,6 +12,12 @@
         <attribute name="edit">1</attribute>
       </form>
 
+      <xpath expr="//field[@name='icon_image']" position="after">
+        <!--        <field name="icon_child_image" widget="image" class="oe_avatar" attrs="{'invisible' : [('icon_child_image', '=', False)]}"/>-->
+        <field name="icon_child_image" widget="image" class="oe_avatar"/>
+        <field name="icon_real_image" widget="image" class="oe_avatar"/>
+      </xpath>
+
       <xpath expr="//field[@name='icon_image']" position="replace"/>
 
       <xpath expr="//div[hasclass('oe_title')]" position="replace">
@@ -222,9 +228,8 @@
     <field name="binding_model_id" ref="model_code_generator_module"/>
     <field name="state">code</field>
     <field name="code">
-      if records:
-      action = {"type": "ir.actions.act_url", "target": "self", "url": "/code_generator/%s" %
-      ','.join(records.mapped(lambda r: str(r.id)))}
+if records:
+    action = {"type": "ir.actions.act_url", "target": "self", "url": "/code_generator/%s" % ','.join(records.mapped(lambda r: str(r.id)))}
     </field>
   </record>
 

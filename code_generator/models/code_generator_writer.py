@@ -3175,7 +3175,7 @@ class CodeGeneratorWriter(models.Model):
             # TODO support digits, check dp.get_precision('Account')
 
             if f2export.help:
-                dct_field_attribute["help"] = f2export.help
+                dct_field_attribute["help"] = f2export.help.replace("\\'", '"')
 
             # Ignore it, by default it's copy=False
             # elif f2export.ttype != 'one2many' and not f2export.related and not compute and not f2export.copied:

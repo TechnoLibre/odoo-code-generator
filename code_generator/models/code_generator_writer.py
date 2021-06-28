@@ -3038,20 +3038,18 @@ class CodeGeneratorWriter(models.Model):
             if (
                 f2export.ttype == "reference" or f2export.ttype == "selection"
             ) and f2export.selection:
-                # Transform selection
-                # '[("point", "Point"), ("line", "Line"), ("area", "Polygon")]'
-                # [("point", "Point"), ("line", "Line")), ("area", "Polygon")]
                 if f2export.selection != "[]":
-                    lst_selection = [
-                        a.split(",")
-                        for a in f2export.selection.strip("[]")
-                        .strip("()")
-                        .split("), (")
-                    ]
-                    lst_selection = [
-                        f"({a[0]}, {a[1].strip()})" for a in lst_selection
-                    ]
-                    dct_field_attribute["selection"] = lst_selection
+                    try:
+                        # Transform string in list
+                        lst_selection = ast.literal_eval(f2export.selection)
+                        # lst_selection = [f"'{a}'" for a in lst_selection]
+                        dct_field_attribute["selection"] = lst_selection
+                    except Exception as e:
+                        dct_field_attribute["selection"] = []
+                        _logger.error(
+                            f"The selection of field {f2export.name} is not a"
+                            f" list: '{f2export.selection}'."
+                        )
                 else:
                     dct_field_attribute["selection"] = []
 
@@ -3195,9 +3193,8 @@ class CodeGeneratorWriter(models.Model):
                         lst_field_attribute.append(f"{key}='{value}'")
                 elif type(value) is list:
                     # TODO find another solution than removing \n, this cause error with cw.CodeWriter
-                    new_value = ", ".join(value)
-                    new_value = new_value.replace("\n", " ")
-                    lst_field_attribute.append(f"{key}=[{new_value}]")
+                    new_value = str(value).replace("\n", " ")
+                    lst_field_attribute.append(f"{key}={new_value}")
                 else:
                     lst_field_attribute.append(f"{key}={value}")
 

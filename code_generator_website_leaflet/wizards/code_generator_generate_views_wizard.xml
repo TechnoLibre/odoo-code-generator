@@ -10,6 +10,7 @@
         <page name="website" string="Website">
           <group>
             <field name="enable_generate_website_leaflet" attrs="{'invisible': [('enable_generate_all', '=', True)]}"/>
+            <field name="enable_generate_geoengine" attrs="{'invisible': [('enable_generate_all', '=', True)]}"/>
           </group>
           <!--              <group string="Model" attrs="{'invisible': [('all_model', '=', True)]}">-->
           <!--                <field name="selected_model_ids" nolabel="1"/>-->

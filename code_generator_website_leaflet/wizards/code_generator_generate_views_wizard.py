@@ -157,7 +157,10 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
     def _add_dependencies(self):
         super(CodeGeneratorGenerateViewsWizard, self)._add_dependencies()
-        if not self.enable_generate_website_leaflet:
+        if (
+            not self.enable_generate_all
+            and not self.enable_generate_website_leaflet
+        ):
             return
 
         for code_generator in self.code_generator_id:

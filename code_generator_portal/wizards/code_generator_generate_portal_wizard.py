@@ -95,7 +95,7 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
 
     def _add_dependencies(self):
         super(CodeGeneratorGeneratePortalWizard, self)._add_dependencies()
-        if not self.enable_generate_portal:
+        if not self.enable_generate_all and not self.enable_generate_portal:
             return
 
         for code_generator in self.code_generator_id:

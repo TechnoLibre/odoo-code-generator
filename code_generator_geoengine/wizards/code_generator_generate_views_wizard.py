@@ -19,6 +19,19 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         ),
     )
 
+    def _update_model_field_tree_view(self, model_created_fields_list):
+        model_created_fields_list = super(
+            CodeGeneratorGenerateViewsWizard, self
+        )._update_model_field_tree_view(model_created_fields_list)
+        if not self.enable_generate_all and not self.enable_generate_geoengine:
+            return model_created_fields_list
+
+        # TODO remove this patch when geo_* will be accepted in tree view
+        # Remove ttype geo_ in tree view
+        return model_created_fields_list.filtered(
+            lambda x: not x.ttype.startswith("geo_")
+        )
+
     def clear_all(self):
         if self.clear_all_geoengine:
             if self.code_generator_id.sudo().o2m_geoengine_vector_layer:

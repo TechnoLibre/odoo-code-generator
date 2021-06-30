@@ -852,6 +852,7 @@ class CodeGeneratorWriter(models.Model):
                                     cw.emit()
 
                             lst_view_item_code_generator = []
+                            model_id = None
                             if module.template_model_name:
                                 lst_model = module.template_model_name.split(
                                     ";"
@@ -1288,7 +1289,7 @@ class CodeGeneratorWriter(models.Model):
                                 cw.emit()
 
                             access_ids = None
-                            if module.enable_template_wizard_view:
+                            if module.enable_template_wizard_view and model_id:
                                 # Icon copy from sync
                                 if module.enable_sync_template:
                                     if (

@@ -115,13 +115,9 @@ class CodeGeneratorWriter(models.Model):
                 cw.emit("for feature in map_feature_ids:")
                 with cw.indent():
                     cw.emit("value = {}")
-                    cw.emit("# Help robot, ignore this")
-                    cw.emit("if False:")
-                    with cw.indent():
-                        cw.emit("pass")
-                    for field_id in lst_fields:
-                        cw.emit(f'elif feature.type == "{field_id.name}":')
-                        with cw.indent():
+
+                    if len(lst_fields) == 1:
+                        for field_id in lst_fields:
                             cw.emit(f"if not feature.{field_id.name}:")
                             with cw.indent():
                                 cw.emit(f"continue")
@@ -132,6 +128,24 @@ class CodeGeneratorWriter(models.Model):
                                 )
                             else:
                                 cw.emit(f"xy = feature.{field_id.name}.xy")
+                    else:
+                        cw.emit("# Help robot, ignore this")
+                        cw.emit("if False:")
+                        with cw.indent():
+                            cw.emit("pass")
+                        for field_id in lst_fields:
+                            cw.emit(f'elif feature.type == "{field_id.name}":')
+                            with cw.indent():
+                                cw.emit(f"if not feature.{field_id.name}:")
+                                with cw.indent():
+                                    cw.emit(f"continue")
+                                if field_id.ttype == "geo_polygon":
+                                    cw.emit(
+                                        "xy ="
+                                        f" feature.{field_id.name}.exterior.coords.xy"
+                                    )
+                                else:
+                                    cw.emit(f"xy = feature.{field_id.name}.xy")
             cw.emit("")
             with cw.indent():
                 with cw.indent():
@@ -159,14 +173,9 @@ class CodeGeneratorWriter(models.Model):
             cw.emit("")
             with cw.indent():
                 with cw.indent():
-                    cw.emit("# Help robot, ignore this")
-                    cw.emit("if False:")
-                    with cw.indent():
-                        cw.emit("pass")
-                for field_id in lst_fields:
-                    with cw.indent():
-                        cw.emit(f'elif feature.type == "{field_id.name}":')
-                        with cw.indent():
+
+                    if len(lst_fields) == 1:
+                        for field_id in lst_fields:
                             if field_id.ttype == "geo_point":
                                 cw.emit(
                                     'value["coordinates"] = coord_lat_long[0]'
@@ -180,6 +189,35 @@ class CodeGeneratorWriter(models.Model):
                                     cw.emit('features["areas"].append(value)')
                                 elif field_id.ttype == "geo_line":
                                     cw.emit('features["lines"].append(value)')
+                    else:
+                        cw.emit("# Help robot, ignore this")
+                        cw.emit("if False:")
+                        with cw.indent():
+                            cw.emit("pass")
+
+                        for field_id in lst_fields:
+                            cw.emit(f'elif feature.type == "{field_id.name}":')
+                            with cw.indent():
+                                if field_id.ttype == "geo_point":
+                                    cw.emit(
+                                        'value["coordinates"] ='
+                                        " coord_lat_long[0]"
+                                    )
+                                    cw.emit(
+                                        'features["markers"].append(value)'
+                                    )
+                                else:
+                                    cw.emit(
+                                        'value["coordinates"] = coord_lat_long'
+                                    )
+                                    if field_id.ttype == "geo_polygon":
+                                        cw.emit(
+                                            'features["areas"].append(value)'
+                                        )
+                                    elif field_id.ttype == "geo_line":
+                                        cw.emit(
+                                            'features["lines"].append(value)'
+                                        )
             cw.emit("")
         with cw.indent():
             with cw.indent():
@@ -236,7 +274,7 @@ class CodeGeneratorWriter(models.Model):
         self.code_generator_data.copy_file(
             source_file,
             destination_file,
-            data_file=True,
+            data_file=False,
             search_and_replace=search_and_replace,
         )
 

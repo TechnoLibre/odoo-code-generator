@@ -190,6 +190,9 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                         or (is_whitelist and field.is_show_whitelist_list_view)
                     )
                 )
+                model_created_fields_list = self._update_model_field_tree_view(
+                    model_created_fields_list
+                )
                 self._generate_list_views_models(
                     model_id, model_created_fields_list, model_id.m2o_module
                 )
@@ -232,6 +235,9 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
     def _add_dependencies(self):
         pass
+
+    def _update_model_field_tree_view(self, model_created_fields_list):
+        return model_created_fields_list
 
     def _generate_list_views_models(
         self, model_created, model_created_fields, module

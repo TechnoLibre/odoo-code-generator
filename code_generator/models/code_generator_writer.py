@@ -1877,7 +1877,7 @@ class CodeGeneratorWriter(models.Model):
         if not nomenclador_data:
             return
 
-        lst_menu_xml = []
+        lst_data_xml = []
         lst_id = []
         lst_depend = []
         lst_field_id_blacklist = [
@@ -1971,9 +1971,12 @@ class CodeGeneratorWriter(models.Model):
             record_xml = E.record(
                 {"id": id_record, "model": model.model}, *lst_field
             )
-            lst_menu_xml.append(record_xml)
+            lst_data_xml.append(record_xml)
 
-        module_file = E.odoo({}, *lst_menu_xml)
+        # TODO find when is noupdate and not noupdate
+        # <data noupdate="1">
+        xml_no_update = E.data({"noupdate": "1"}, *lst_data_xml)
+        module_file = E.odoo({}, xml_no_update)
         data_file_path = os.path.join(
             self.code_generator_data.data_path, f"{model_model}.xml"
         )

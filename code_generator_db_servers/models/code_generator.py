@@ -211,7 +211,7 @@ def _get_odoo_field_tuple_4insert(
         0,
         dict(
             name=name.lower().replace("ñ", "n"),
-            field_description=field_description,
+            field_description=field_description.replace("_", " "),
             ttype=ttype,
             required=required,
         ),
@@ -307,7 +307,7 @@ def _get_table_fields(table_name, m2o_db):
 
                 t_odoo_field_4insert = _get_odoo_field_tuple_4insert(
                     column_name,
-                    "Field %s" % column_name.capitalize(),
+                    column_name.capitalize(),
                     "many2one" if is_m2o else _get_odoo_ttype(column_info[7]),
                     column_info[6] == "NO",
                 )
@@ -321,7 +321,7 @@ def _get_table_fields(table_name, m2o_db):
 
         if not having_column_name:
             l_fields.append(
-                _get_odoo_field_tuple_4insert("name", "Field Name", "char")
+                _get_odoo_field_tuple_4insert("name", "Name", "char")
             )
 
         return l_fields

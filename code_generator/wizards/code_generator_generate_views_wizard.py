@@ -643,7 +643,7 @@ pass''',
             self.env["ir.model.data"].create(
                 {
                     "name": code_generator_view_id.id_name,
-                    "model": model_name,
+                    "model": "ir.ui.view",
                     "module": code_generator_view_id.code_generator_id.name,
                     "res_id": view_value.id,
                     "noupdate": True,  # If it's False, target record (res_id) will be removed while module update

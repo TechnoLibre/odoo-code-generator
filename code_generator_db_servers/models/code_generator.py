@@ -4,10 +4,14 @@ import re
 
 import psycopg2
 from odoo import _, models, fields, api
-from datetime import datetime
 from odoo.exceptions import ValidationError
-
+from collections import defaultdict
 from odoo.models import MAGIC_COLUMNS
+import uuid
+
+import logging
+
+_logger = logging.getLogger(__name__)
 
 MAGIC_FIELDS = MAGIC_COLUMNS + [
     "display_name",
@@ -275,15 +279,15 @@ def _get_table_fields(table_name, m2o_db):
             user=m2o_db.user,
             password=m2o_db.password,
         )
-        cr.execute(
-            _get_db_query_4_columns(
-                m2o_db, table_name, m2o_db.schema, database
-            )
+        str_query_4_columns = _get_db_query_4_columns(
+            m2o_db, table_name, m2o_db.schema, database
         )
+        cr.execute(str_query_4_columns)
 
         l_fields = []
         having_column_name = False
-        for column_info in cr.fetchall():
+        lst_column_info = cr.fetchall()
+        for column_info in lst_column_info:
 
             column_name = column_info[3]
 
@@ -291,18 +295,25 @@ def _get_table_fields(table_name, m2o_db):
                 having_column_name = True
 
             elif len(column_name) > 63:
-                column_name = column_name[:63]
+                slice_column_name = column_name[:63]
+                _logger.warning(
+                    f"Slice column {column_name} to"
+                    f" {slice_column_name} because length is upper than 63."
+                )
+                column_name = slice_column_name
 
-            cr.execute(_get_q_4constraints(table_name, column_name))
+            str_query_4_constraints = _get_q_4constraints(
+                table_name, column_name
+            )
+            cr.execute(str_query_4_constraints)
             if (
                 m2o_db.accept_primary_key or not cr.fetchone()
             ):  # if it is not a primary key
 
-                cr.execute(
-                    _get_q_4constraints(
-                        table_name, column_name, fkey=True, sgdb=sgdb
-                    )
+                str_query_4_constraints_fkey = _get_q_4constraints(
+                    table_name, column_name, fkey=True, sgdb=sgdb
                 )
+                cr.execute(str_query_4_constraints_fkey)
                 is_m2o = cr.fetchone()
 
                 t_odoo_field_4insert = _get_odoo_field_tuple_4insert(
@@ -312,10 +323,19 @@ def _get_table_fields(table_name, m2o_db):
                     column_info[6] == "NO",
                 )
 
-                if is_m2o:  # It is a foreing key?
-                    t_odoo_field_4insert[2]["relation"] = is_m2o[0].replace(
-                        "_", "."
-                    )
+                if is_m2o:  # It is a foreign key?
+                    model_name = is_m2o[0]
+                    name_splitted = model_name.split("_", maxsplit=1)
+
+                    if len(name_splitted) > 1:
+                        module_name, table_name = (
+                            name_splitted[0],
+                            name_splitted[1],
+                        )
+
+                    else:
+                        module_name, table_name = "comun", name_splitted[0]
+                    t_odoo_field_4insert[2]["relation"] = f"{table_name}"
 
                 l_fields.append(t_odoo_field_4insert)
 
@@ -438,25 +458,26 @@ class CodeGeneratorDb(models.Model):
 
                 result = super(CodeGeneratorDb, self).create(value)
 
-                cr.execute(
-                    _get_db_query_4_tables(
-                        sgdb, value["schema"], value["database"]
-                    )
+                str_query_4_tables = _get_db_query_4_tables(
+                    sgdb, value["schema"], value["database"]
                 )
+                cr.execute(str_query_4_tables)
                 for table_info in cr.fetchall():
+                    dct_all_table = dict(
+                        m2o_db=result.id,
+                        name=table_info[0],
+                        table_type="view"
+                        if table_info[1] == "VIEW"
+                        else "table",
+                    )
+
                     self.env["code.generator.db.table"].sudo().create(
-                        dict(
-                            m2o_db=result.id,
-                            name=table_info[0],
-                            table_type="view"
-                            if table_info[1] == "VIEW"
-                            else "table",
-                        )
+                        dct_all_table
                     )
 
             except Exception as e:
                 failure += 1
-                print(e)
+                _logger.error(e)
 
         if len(vals_list) == failure:
             raise ValidationError(CREATEDBPROBLEM)
@@ -553,11 +574,13 @@ class CodeGeneratorDbTable(models.Model):
         )
 
     @api.multi
-    def generate_module(self):
+    def generate_module(self, generated_module_name=False):
         """
         Function to generate a module
         :return:
         """
+
+        # TODO associate code.generator.db.table to code.generator.db.table to remote generated_module_name
 
         l_module_tables = dict(comun=[])
         for table in self:
@@ -579,78 +602,173 @@ class CodeGeneratorDbTable(models.Model):
 
         for module_name in l_module_tables.keys():
 
-            if l_module_tables[module_name]:
+            if not l_module_tables[module_name]:
+                continue
 
-                module_name_caps = module_name.capitalize()
-                final_module_name = "%s_module_%s" % (
-                    l_module_tables[module_name][0][1].database,
-                    module_name,
-                )
+            module_name_caps = module_name.capitalize()
+            final_module_name = "%s_module_%s" % (
+                l_module_tables[module_name][0][1].database,
+                module_name,
+            )
 
-                module = self.env["code.generator.module"].search(
-                    [("name", "=", final_module_name)]
-                )
-                if not module:
-                    module = self.env["code.generator.module"].create(
-                        dict(
-                            shortdesc="Module %s" % module_name_caps,
-                            name=final_module_name,
-                            application=True,
-                        )
-                    )
-
-                models_created = self.env["ir.model"].create(
-                    list(
-                        map(
-                            lambda t_info: dict(
-                                name="Model %s belonging to Module %s"
-                                % (t_info[0].capitalize(), module_name_caps),
-                                model=_replace_in(
-                                    t_info[0].lower().replace("_", ".")
-                                ),
-                                field_id=_get_table_fields(
-                                    self._get_model_name(
-                                        module_name, t_info[0]
-                                    ),
-                                    t_info[1],
-                                ),
-                                m2o_module=module.id,
-                                nomenclator=t_info[2],
-                            ),
-                            l_module_tables[module_name],
-                        )
+            module = self.env["code.generator.module"].search(
+                [("name", "=", final_module_name)]
+            )
+            if not module:
+                module = self.env["code.generator.module"].create(
+                    dict(
+                        shortdesc="Module %s" % module_name_caps,
+                        name=final_module_name,
+                        application=True,
                     )
                 )
 
-                models_created = models_created.filtered("nomenclator")
-                for model_created in models_created:
-                    model_created_fields = model_created.field_id.filtered(
-                        lambda field: field.name not in MAGIC_FIELDS + ["name"]
-                    ).mapped("name")
-
-                    foreing_table = self.filtered(
-                        lambda t: t.name
-                        == self._get_model_name(
-                            module_name, model_created.model.replace(".", "_")
+            lst_model = list(
+                map(
+                    lambda t_info: dict(
+                        name="Model %s belonging to Module %s"
+                        % (t_info[0].capitalize(), module_name_caps),
+                        model=_replace_in(t_info[0].lower().replace("_", ".")),
+                        field_id=_get_table_fields(
+                            self._get_model_name(module_name, t_info[0]),
+                            t_info[1],
+                        ),
+                        m2o_module=module.id,
+                        nomenclator=t_info[2],
+                    ),
+                    l_module_tables[module_name],
+                )
+            )
+            models_created = self.env["ir.model"].create(lst_model)
+            # TODO hack, the many2one is not created in this database, force to create it
+            # model.init() not working, create foreign key manually
+            # models_created._setup_complete()
+            # models_created._auto_init()
+            # models_created.init()
+            # models_created.recompute()
+            for dct_model in [lst_model[3]]:
+                for tpl_field in dct_model.get("field_id"):
+                    dct_field = tpl_field[2]
+                    if dct_field.get("ttype") == "many2one":
+                        model_db = dct_model.get("model").replace(".", "_")
+                        field_db = dct_field.get("name").replace(".", "_")
+                        field_relation_db = dct_field.get("relation").replace(
+                            ".", "_"
                         )
-                    )
+                        self.env.cr.execute(
+                            f"""
+                            alter table {model_db}
+                                add {field_db} int;
 
-                    l_foreing_table_data = _get_table_data(
-                        foreing_table.name,
-                        foreing_table.m2o_db,
-                        model_created_fields,
-                    )
+                            alter table {model_db}
+                                add constraint {model_db}_{field_relation_db}_id_fk
+                                    foreign key ({field_db}) references {field_relation_db};
+                            """
+                        )
 
-                    self.env[model_created.model].sudo().create(
-                        list(
-                            map(
-                                self._conform_model_created_data(
-                                    model_created_fields
-                                ),
-                                l_foreing_table_data,
+            models_nomenclator = models_created.filtered("nomenclator")
+            lst_models_created = self._reorder_dependence_nonmenclature_model(
+                models_nomenclator
+            )
+            for model_created in lst_models_created:
+                model_created_fields = model_created.field_id.filtered(
+                    lambda field: field.name not in MAGIC_FIELDS + ["name"]
+                )
+                mapped_model_created_fields = model_created_fields.mapped(
+                    "name"
+                )
+
+                foreign_table = self.filtered(
+                    lambda t: t.name
+                    == self._get_model_name(
+                        module_name, model_created.model.replace(".", "_")
+                    )
+                )
+
+                l_foreign_table_data = _get_table_data(
+                    foreign_table.name,
+                    foreign_table.m2o_db,
+                    mapped_model_created_fields,
+                )
+
+                lst_data = list(
+                    map(
+                        self._conform_model_created_data(
+                            mapped_model_created_fields
+                        ),
+                        l_foreign_table_data,
+                    )
+                )
+                for i, name in enumerate(mapped_model_created_fields):
+                    if model_created_fields[i].ttype == "many2one":
+                        relation_model = model_created_fields[i].relation
+                        relation_field = model_created_fields[i].name
+                        for data in lst_data:
+                            # Update many2one
+                            data[name] = (
+                                self.env[relation_model]
+                                .search([(relation_field, "=", data[name])])
+                                .id
                             )
+                results = self.env[model_created.model].sudo().create(lst_data)
+                if generated_module_name:
+                    # Generate xml_id for all nonmenclature
+                    for result in results:
+                        second = (
+                            result.name if result.name else uuid.uuid1().int
                         )
+                        new_id = (
+                            f"{model_created.model.replace('.', '_')}_{second}"
+                        )
+                        self.env["ir.model.data"].create(
+                            {
+                                "name": new_id,
+                                "model": model_created.model,
+                                "module": generated_module_name,
+                                "res_id": result.id,
+                                "noupdate": True,
+                            }
+                        )
+        return module
+
+    @staticmethod
+    def _reorder_dependence_nonmenclature_model(models_created):
+        # TODO cannot support looping dependency, this will break later, need to detect it
+        lst_model_ordered = []
+        dct_model = {a.model: a for a in models_created}
+        dct_model_depend = defaultdict(list)
+        for model_id in models_created:
+            for field_id in model_id.field_id:
+                if (
+                    field_id.ttype == "many2one"
+                    and field_id.relation in dct_model.keys()
+                ):
+                    dct_model_depend[model_id.model].append(
+                        dct_model[field_id.relation]
                     )
+        # Reorder
+        # add in begin if no dependency
+        # add at the end if dependency, but it is not found
+        # Add after the last dependency if added
+        for model_id in models_created:
+            if model_id.model in dct_model_depend.keys():
+                # search index
+                final_index = -1
+                for ele in dct_model_depend[model_id.model]:
+                    try:
+                        index = lst_model_ordered.index(ele)
+                        if index > final_index:
+                            final_index = index
+                    except ValueError:
+                        pass
+                if final_index >= 0:
+                    lst_model_ordered.insert(final_index + 1, model_id)
+                else:
+                    lst_model_ordered.append(model_id)
+            else:
+                lst_model_ordered.insert(0, model_id)
+
+        return lst_model_ordered
 
 
 class CodeGeneratorDbColumn(models.Model):
@@ -689,5 +807,10 @@ class CodeGeneratorDbColumn(models.Model):
             ("html", "Html"),
             ("binary", "Binary"),
             ("selection", "Selection"),
+            ("many2one", "Many2one"),
+            # TODO support many2many
+            # ("many2many", "Many2many"),
+            # Cannot detect one2many in database relation
+            # ("one2many", "One2many"),
         ],
     )

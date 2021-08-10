@@ -1208,11 +1208,15 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        return (
-            "%s..." % xmlid[: 61 - len(xmlid)]
-            if (64 - len(xmlid)) < 0
-            else xmlid
-        )
+        if 64 - len(xmlid) < 0:
+            new_xml_id = "%s..." % xmlid[: 61 - len(xmlid)]
+            _logger.warning(
+                f"Slice xml_id {xmlid} to {new_xml_id} because length is upper"
+                " than 63."
+            )
+        else:
+            new_xml_id = xmlid
+        return new_xml_id
 
     @staticmethod
     def _prepare_compute_constrained_fields(l_fields):
@@ -1722,11 +1726,12 @@ class CodeGeneratorWriter(models.Model):
             return ir_model_data[0].name
         return f"{ir_model_data[0].module}.{ir_model_data[0].name}"
 
-    def _get_ir_model_data(self, record, give_a_default=False):
+    def _get_ir_model_data(self, record, give_a_default=False, module_name=""):
         """
         Function to obtain the model data from a record
         :param record:
         :param give_a_default:
+        :param module_name:
         :return:
         """
 
@@ -1738,25 +1743,26 @@ class CodeGeneratorWriter(models.Model):
                 ("res_id", "=", record.id),
             ]
         )
-        return (
-            "%s.%s" % (ir_model_data[0].module, ir_model_data[0].name)
-            if ir_model_data
-            else (
-                self._set_limit_4xmlid(
-                    "%s_%s"
-                    % (
-                        self._get_model_model(record._name),
-                        self._lower_replace(
-                            getattr(record, record._rec_name)
-                            if record._rec_name
-                            else ""
-                        ),
-                    )
-                )
+        if ir_model_data:
+            if module_name and module_name == ir_model_data[0].module:
+                result = ir_model_data[0].name
+            else:
+                result = f"{ir_model_data[0].module}.{ir_model_data[0].name}"
+        elif give_a_default:
+            if record._rec_name:
+                rec_name_v = getattr(record, record._rec_name)
+                if not rec_name_v:
+                    rec_name_v = uuid.uuid1().int
+                second = self._lower_replace(rec_name_v)
+            else:
+                second = uuid.uuid1().int
+            result = self._set_limit_4xmlid(
+                f"{self._get_model_model(record._name)}_{second}"
             )
-            if give_a_default
-            else False
-        )
+        else:
+            result = False
+
+        return result
 
     def _get_group_data_name(self, group):
         """
@@ -1828,13 +1834,18 @@ class CodeGeneratorWriter(models.Model):
             model_model = self._get_model_model(model)
             action_type = "action_window" if not server else "server_action"
 
-            action_name = self._set_limit_4xmlid(
+            new_action_name = self._set_limit_4xmlid(
                 "%s" % action.name[: 64 - len(model_model) - len(action_type)]
             )
+            if new_action_name != action.name:
+                _logger.warning(
+                    f"Slice action name {action.name} to"
+                    f" {new_action_name} because length is upper than 63."
+                )
 
             return "%s_%s_%s" % (
                 model_model,
-                self._lower_replace(action_name),
+                self._lower_replace(new_action_name),
                 action_type,
             )
 
@@ -1859,9 +1870,10 @@ class CodeGeneratorWriter(models.Model):
             else self._lower_replace(menu.name)
         )
 
-    def _set_model_xmldata_file(self, model, model_model):
+    def _set_model_xmldata_file(self, module, model, model_model):
         """
         Function to set the module data file
+        :param module:
         :param model:
         :param model_model:
         :return:
@@ -1909,8 +1921,17 @@ class CodeGeneratorWriter(models.Model):
 
                     if rfield.ttype == "many2one":
                         ref = self._get_ir_model_data(
-                            record_value, give_a_default=True
+                            record_value,
+                            give_a_default=True,
+                            module_name=module.name,
                         )
+                        if not ref:
+                            # This will cause an error at installation
+                            _logger.error(
+                                "Cannot find reference for field"
+                                f" {rfield.name} model {model_model}"
+                            )
+                            continue
                         child = E.field({"name": rfield.name, "ref": ref})
 
                         if "." not in ref:
@@ -1961,11 +1982,15 @@ class CodeGeneratorWriter(models.Model):
 
                     lst_field.append(child)
 
-            id_record = self._set_limit_4xmlid("%s_%s") % (
-                model_model,
-                self._lower_replace(self._get_from_rec_name(record, model))
-                if self._get_from_rec_name(record, model)
-                else uuid.uuid1().int,
+            # TODO delete this comment, check why no need anymore rec_name
+            # rec_name_v = self._get_from_rec_name(record, model)
+            # if rec_name_v:
+            #     rec_name_v = self._lower_replace(rec_name_v)
+            #     id_record = self._set_limit_4xmlid(f"{model_model}_{rec_name_v}")
+            # else:
+            #     rec_name_v = uuid.uuid1().int
+            id_record = self._get_ir_model_data(
+                record, give_a_default=True, module_name=module.name
             )
             lst_id.append(id_record)
             record_xml = E.record(
@@ -2197,7 +2222,7 @@ class CodeGeneratorWriter(models.Model):
             if view_type in lst_view_type:
 
                 str_id_system = self._get_id_view_model_data(
-                    view, is_internal=True
+                    view, model="ir.ui.view", is_internal=True
                 )
                 if not str_id_system:
                     str_id = f"{model_model}_view_{view_type}"
@@ -3280,7 +3305,7 @@ class CodeGeneratorWriter(models.Model):
             if s_data2export != "nomenclator" or (
                 s_data2export == "nomenclator" and model.nomenclator
             ):
-                self._set_model_xmldata_file(model, model_model)
+                self._set_model_xmldata_file(module, model, model_model)
 
             if not module.nomenclator_only:
                 l_model_csv_access += self._get_model_access(module, model)
@@ -3558,39 +3583,36 @@ class CodeGeneratorData:
 
     def reorder_manifest_data_files(self):
         lst_manifest = []
-        dct_depend = self.dct_data_depend
         dct_hold_file = {}
         for manifest_data in self._lst_manifest_data_files:
-            if manifest_data in dct_depend.keys():
+            if manifest_data in self.dct_data_depend.keys():
                 # find depend and report until order is right
-                lst_meta = dct_depend.get(manifest_data)
+                lst_meta = self.dct_data_depend.get(manifest_data)
                 lst_files_depends = self._get_lst_files_data_depends(lst_meta)
                 dct_hold_file[manifest_data] = lst_files_depends
             else:
                 lst_manifest.append(manifest_data)
 
-            # Check holding file and add it if resolve
-            lst_delete_dct_hold_file = []
-            for file_name, lst_files_depends in dct_hold_file.items():
-                # Make a copy before delete item for correct iteration
-                for files_depends in lst_files_depends[:]:
-                    # check if file exist in queue list or dependencies is internal
-                    if (
-                        files_depends in lst_manifest
-                        or files_depends == manifest_data
-                    ):
-                        lst_files_depends.remove(files_depends)
-                if not lst_files_depends:
-                    lst_manifest.append(file_name)
-                    lst_delete_dct_hold_file.append(file_name)
-
-            for delete_file in lst_delete_dct_hold_file:
-                del dct_hold_file[delete_file]
-
-        if dct_hold_file:
-            _logger.error(
-                f"Cannot order manifest files dependencies: {dct_hold_file}"
-            )
+        i = 0
+        max_i = len(dct_hold_file) + 1
+        while dct_hold_file and i < max_i:
+            i += 1
+            for new_ele, lst_depend in dct_hold_file.items():
+                final_index = -1
+                for depend in lst_depend:
+                    try:
+                        index = lst_manifest.index(depend)
+                    except ValueError:
+                        # element not in list, continue
+                        final_index = -1
+                        break
+                    if index > final_index:
+                        final_index = index
+                if final_index >= 0:
+                    lst_manifest.insert(final_index + 1, new_ele)
+                    del dct_hold_file[new_ele]
+                    # Need to break or crash on loop because dict has change
+                    break
         self._lst_manifest_data_files = lst_manifest
 
     def copy_directory(self, source_directory_path, directory_path):

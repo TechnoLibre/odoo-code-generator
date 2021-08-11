@@ -260,7 +260,7 @@ def _get_odoo_ttype(data_type):
     return odoo_ttype
 
 
-def _get_table_fields(table_name, m2o_db):
+def _get_table_fields(origin_table_name, m2o_db):
     """
     Function to obtain a table fields
     :param table_name:
@@ -280,7 +280,7 @@ def _get_table_fields(table_name, m2o_db):
             password=m2o_db.password,
         )
         str_query_4_columns = _get_db_query_4_columns(
-            m2o_db, table_name, m2o_db.schema, database
+            m2o_db, origin_table_name, m2o_db.schema, database
         )
         cr.execute(str_query_4_columns)
 
@@ -303,7 +303,7 @@ def _get_table_fields(table_name, m2o_db):
                 column_name = slice_column_name
 
             str_query_4_constraints = _get_q_4constraints(
-                table_name, column_name
+                origin_table_name, column_name
             )
             cr.execute(str_query_4_constraints)
             if (
@@ -311,7 +311,7 @@ def _get_table_fields(table_name, m2o_db):
             ):  # if it is not a primary key
 
                 str_query_4_constraints_fkey = _get_q_4constraints(
-                    table_name, column_name, fkey=True, sgdb=sgdb
+                    origin_table_name, column_name, fkey=True, sgdb=sgdb
                 )
                 cr.execute(str_query_4_constraints_fkey)
                 is_m2o = cr.fetchone()
@@ -623,7 +623,7 @@ class CodeGeneratorDbTable(models.Model):
                     )
                 )
 
-            lst_model = list(
+            lst_model_dct = list(
                 map(
                     lambda t_info: dict(
                         name="Model %s belonging to Module %s"
@@ -639,38 +639,11 @@ class CodeGeneratorDbTable(models.Model):
                     l_module_tables[module_name],
                 )
             )
-            models_created = self.env["ir.model"].create(lst_model)
-            # TODO hack, the many2one is not created in this database, force to create it
-            # model.init() not working, create foreign key manually
-            # models_created._setup_complete()
-            # models_created._auto_init()
-            # models_created.init()
-            # models_created.recompute()
-            for dct_model in [lst_model[3]]:
-                for tpl_field in dct_model.get("field_id"):
-                    dct_field = tpl_field[2]
-                    if dct_field.get("ttype") == "many2one":
-                        model_db = dct_model.get("model").replace(".", "_")
-                        field_db = dct_field.get("name").replace(".", "_")
-                        field_relation_db = dct_field.get("relation").replace(
-                            ".", "_"
-                        )
-                        self.env.cr.execute(
-                            f"""
-                            alter table {model_db}
-                                add {field_db} int;
-
-                            alter table {model_db}
-                                add constraint {model_db}_{field_relation_db}_id_fk
-                                    foreign key ({field_db}) references {field_relation_db};
-                            """
-                        )
-
+            lst_model_dct = self._reorder_dependence_model(lst_model_dct)
+            models_created = self.env["ir.model"].create(lst_model_dct)
             models_nomenclator = models_created.filtered("nomenclator")
-            lst_models_created = self._reorder_dependence_nonmenclature_model(
-                models_nomenclator
-            )
-            for model_created in lst_models_created:
+
+            for model_created in models_nomenclator:
                 model_created_fields = model_created.field_id.filtered(
                     lambda field: field.name not in MAGIC_FIELDS + ["name"]
                 )
@@ -732,42 +705,56 @@ class CodeGeneratorDbTable(models.Model):
         return module
 
     @staticmethod
-    def _reorder_dependence_nonmenclature_model(models_created):
+    def _reorder_dependence_model(models_created):
         # TODO cannot support looping dependency, this will break later, need to detect it
         lst_model_ordered = []
-        dct_model = {a.model: a for a in models_created}
+        dct_model_hold = {}
+        dct_model = {a.get("model"): a for a in models_created}
         dct_model_depend = defaultdict(list)
         for model_id in models_created:
-            for field_id in model_id.field_id:
+            contain_m2o = False
+            for tpl_field_id in model_id.get("field_id"):
+                field_id = tpl_field_id[2]
                 if (
-                    field_id.ttype == "many2one"
-                    and field_id.relation in dct_model.keys()
+                    field_id.get("ttype") == "many2one"
+                    and field_id.get("relation") in dct_model.keys()
                 ):
-                    dct_model_depend[model_id.model].append(
-                        dct_model[field_id.relation]
+                    contain_m2o = True
+                    dct_model_depend[model_id.get("model")].append(
+                        dct_model[field_id.get("relation")]
                     )
-        # Reorder
-        # add in begin if no dependency
-        # add at the end if dependency, but it is not found
-        # Add after the last dependency if added
-        for model_id in models_created:
-            if model_id.model in dct_model_depend.keys():
-                # search index
-                final_index = -1
-                for ele in dct_model_depend[model_id.model]:
-                    try:
-                        index = lst_model_ordered.index(ele)
-                        if index > final_index:
-                            final_index = index
-                    except ValueError:
-                        pass
-                if final_index >= 0:
-                    lst_model_ordered.insert(final_index + 1, model_id)
-                else:
-                    lst_model_ordered.append(model_id)
+            if not contain_m2o:
+                lst_model_ordered.append(model_id)
             else:
-                lst_model_ordered.insert(0, model_id)
+                dct_model_hold[model_id.get("model")] = model_id
 
+        i = 0
+        max_i = len(dct_model_hold) + 1
+        while dct_model_hold and i < max_i:
+            i += 1
+            for model_name, model_id in dct_model_hold.items():
+                lst_depend = dct_model_depend.get(model_name)
+                if not lst_depend:
+                    lst_model_ordered.append(model_id)
+                    del dct_model_depend[model_name]
+                    del dct_model_hold[model_name]
+                    break
+                # check if all depend is already in list
+                is_all_in = True
+                for depend_id in lst_depend:
+                    if depend_id not in lst_model_ordered:
+                        is_all_in = False
+                        break
+
+                if is_all_in:
+                    lst_model_ordered.append(model_id)
+                    del dct_model_hold[model_name]
+                    break
+
+        if dct_model_hold:
+            _logger.error(
+                f"Cannot reorder all table dependency: {dct_model_hold}"
+            )
         return lst_model_ordered
 
 

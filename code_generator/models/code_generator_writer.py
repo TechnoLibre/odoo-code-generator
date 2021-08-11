@@ -3613,6 +3613,8 @@ class CodeGeneratorData:
                     del dct_hold_file[new_ele]
                     # Need to break or crash on loop because dict has change
                     break
+        if dct_hold_file:
+            _logger.error(f"Cannot reorder all manifest file: {dct_hold_file}")
         self._lst_manifest_data_files = lst_manifest
 
     def copy_directory(self, source_directory_path, directory_path):

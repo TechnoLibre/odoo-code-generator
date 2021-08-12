@@ -335,7 +335,9 @@ def _get_table_fields(origin_table_name, m2o_db):
 
                     else:
                         module_name, table_name = "comun", name_splitted[0]
-                    t_odoo_field_4insert[2]["relation"] = f"{table_name}"
+                    t_odoo_field_4insert[2][
+                        "relation"
+                    ] = f"{table_name.replace('_', '.')}"
 
                 l_fields.append(t_odoo_field_4insert)
 
@@ -639,7 +641,9 @@ class CodeGeneratorDbTable(models.Model):
                     l_module_tables[module_name],
                 )
             )
-            lst_model_dct = self._reorder_dependence_model(lst_model_dct)
+            lst_model_dct, dct_looping_model = self._reorder_dependence_model(
+                lst_model_dct
+            )
             models_created = self.env["ir.model"].create(lst_model_dct)
             models_nomenclator = models_created.filtered("nomenclator")
 
@@ -702,13 +706,30 @@ class CodeGeneratorDbTable(models.Model):
                                 "noupdate": True,
                             }
                         )
+
+            # TODO support removing dependence in nomenclator about dct_looping_model
+            # Add missing field in database
+            # self.env.cr.execute(
+            # """
+            # alter table arrondissement
+            #        add noville int;
+            #
+            # alter table arrondissement
+            #        add constraint arrondissement_ville_id_fk
+            #                foreign key (noville) references ville;
+            # """
+            # )
+            #
+            # update all record with missing field
+            # Set required after if needed
+
         return module
 
     @staticmethod
     def _reorder_dependence_model(models_created):
-        # TODO cannot support looping dependency, this will break later, need to detect it
         lst_model_ordered = []
         dct_model_hold = {}
+        dct_looping_model = defaultdict(list)
         dct_model = {a.get("model"): a for a in models_created}
         dct_model_depend = defaultdict(list)
         for model_id in models_created:
@@ -727,6 +748,29 @@ class CodeGeneratorDbTable(models.Model):
                 lst_model_ordered.append(model_id)
             else:
                 dct_model_hold[model_id.get("model")] = model_id
+
+        # Detect looping dependencies
+        for model_name, lst_model_id in dct_model_depend.copy().items():
+            for model_id in lst_model_id:
+                lst_depend_child = dct_model_depend[model_id.get("model")]
+                for child_depend in lst_depend_child:
+                    if child_depend.get("model") == model_name:
+                        already_add_depend = dct_looping_model.get(
+                            model_id.get("model")
+                        )
+                        if already_add_depend:
+                            try:
+                                index = already_add_depend.index(child_depend)
+                                # the brother is already in list, ignore it
+                                continue
+                            except:
+                                pass
+                        dct_looping_model[model_name].append(model_id)
+
+        # # Remove
+        for model_name, lst_model_id in dct_looping_model.items():
+            for model_id in lst_model_id:
+                dct_model_depend[model_name].remove(model_id)
 
         i = 0
         max_i = len(dct_model_hold) + 1
@@ -755,7 +799,7 @@ class CodeGeneratorDbTable(models.Model):
             _logger.error(
                 f"Cannot reorder all table dependency: {dct_model_hold}"
             )
-        return lst_model_ordered
+        return lst_model_ordered, dct_looping_model
 
 
 class CodeGeneratorDbColumn(models.Model):

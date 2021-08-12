@@ -1837,17 +1837,17 @@ class CodeGeneratorWriter(models.Model):
             new_action_name = self._set_limit_4xmlid(
                 "%s" % action.name[: 64 - len(model_model) - len(action_type)]
             )
+
+            result_name = f"{model_model}_{self._lower_replace(new_action_name)}_{action_type}"
+
             if new_action_name != action.name:
                 _logger.warning(
                     f"Slice action name {action.name} to"
                     f" {new_action_name} because length is upper than 63."
+                    f" Result: {result_name}."
                 )
 
-            return "%s_%s_%s" % (
-                model_model,
-                self._lower_replace(new_action_name),
-                action_type,
-            )
+            return result_name
 
     def _get_action_act_url_name(self, action):
         """

@@ -179,14 +179,14 @@ def _get_q_4constraints(table_name, column_name, fkey=False, sgdb=None):
 
     if fkey:
         if sgdb != "MySQL":
-            return f""" SELECT ccu.table_name FROM {'information_schema.table_constraints'} AS tc
+            return f""" SELECT ccu.table_name, ccu.COLUMN_NAME FROM {'information_schema.table_constraints'} AS tc
             JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
             JOIN {'information_schema.constraint_column_usage'} AS ccu ON ccu.constraint_name = tc.constraint_name
             WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table_name}'
             AND kcu.column_name = '{column_name}' """
 
         else:
-            return f""" SELECT kcu.referenced_table_name FROM {'information_schema.table_constraints'} AS tc
+            return f""" SELECT kcu.referenced_table_name, kcu.REFERENCED_COLUMN_NAME FROM {'information_schema.table_constraints'} AS tc
             JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
             WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table_name}'
             AND kcu.column_name = '{column_name}' """
@@ -325,6 +325,7 @@ def _get_table_fields(origin_table_name, m2o_db):
 
                 if is_m2o:  # It is a foreign key?
                     model_name = is_m2o[0]
+                    column_name = is_m2o[1]
                     name_splitted = model_name.split("_", maxsplit=1)
 
                     if len(name_splitted) > 1:
@@ -338,6 +339,9 @@ def _get_table_fields(origin_table_name, m2o_db):
                     t_odoo_field_4insert[2][
                         "relation"
                     ] = f"{table_name.replace('_', '.')}"
+                    t_odoo_field_4insert[2][
+                        "foreign_key_field_name"
+                    ] = column_name.lower()
 
                 l_fields.append(t_odoo_field_4insert)
 
@@ -677,16 +681,38 @@ class CodeGeneratorDbTable(models.Model):
                     )
                 )
                 for i, name in enumerate(mapped_model_created_fields):
-                    if model_created_fields[i].ttype == "many2one":
-                        relation_model = model_created_fields[i].relation
-                        relation_field = model_created_fields[i].name
+                    field_id = model_created_fields[i]
+                    if field_id.ttype == "many2one":
+                        relation_model = field_id.relation
+                        relation_field = field_id.foreign_key_field_name
                         for data in lst_data:
                             # Update many2one
-                            data[name] = (
-                                self.env[relation_model]
-                                .search([(relation_field, "=", data[name])])
-                                .id
-                            )
+                            value = data[name]
+                            if value is not None:
+                                result_new_id = self.env[
+                                    relation_model
+                                ].search([(relation_field, "=", value)])
+                                if len(result_new_id) > 1:
+                                    raise ValueError(
+                                        f"Model `{field_id.model}` with"
+                                        f" field `{field_id.name}` is"
+                                        " required, but cannot find"
+                                        f" relation `{relation_field}` of"
+                                        f" id `{value}`. Cannot associate"
+                                        " multiple result, is your"
+                                        " foreign configured correctly?"
+                                    )
+                                new_id = result_new_id.id
+                                if new_id is False and field_id.required:
+                                    raise ValueError(
+                                        f"Model `{field_id.model}` with"
+                                        f" field `{field_id.name}` is"
+                                        " required, but cannot find"
+                                        f" relation `{relation_field}` of"
+                                        f" id `{value}`. Is it missing"
+                                        " data?"
+                                    )
+                                data[name] = new_id
                 results = self.env[model_created.model].sudo().create(lst_data)
                 if generated_module_name:
                     # Generate xml_id for all nonmenclature

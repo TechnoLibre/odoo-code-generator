@@ -356,12 +356,13 @@ def _get_table_fields(origin_table_name, m2o_db):
         raise ValidationError(TABLEFIELDPROBLEM)
 
 
-def _get_table_data(table_name, m2o_db, model_created_fields):
+def _get_table_data(table_name, m2o_db, model_created_fields, limit=None):
     """
     Function to obtain a table data
     :param table_name:
     :param m2o_db:
     :param model_created_fields:
+    :param limit: int max to get data
     :return:
     """
 
@@ -376,6 +377,8 @@ def _get_table_data(table_name, m2o_db, model_created_fields):
             password=m2o_db.password,
         )
         query = f" SELECT {','.join(model_created_fields)} FROM {table_name} "
+        if limit:
+            query += f"LIMIT {limit} "
         cr.execute(query)
 
         return cr.fetchall()
@@ -586,6 +589,8 @@ class CodeGeneratorDbTable(models.Model):
         :return:
         """
 
+        dct_model_id = {}
+        dct_model_result_data = {}
         # TODO associate code.generator.db.table to code.generator.db.table to remote generated_module_name
 
         l_module_tables = dict(comun=[])
@@ -645,15 +650,35 @@ class CodeGeneratorDbTable(models.Model):
                     l_module_tables[module_name],
                 )
             )
-            lst_model_dct, dct_looping_model = self._reorder_dependence_model(
-                lst_model_dct
-            )
+            (
+                lst_model_dct,
+                dct_complete_looping_model,
+            ) = self._reorder_dependence_model(lst_model_dct)
             models_created = self.env["ir.model"].create(lst_model_dct)
+            for model_id in models_created:
+                dct_model_id[model_id.model] = model_id
             models_nomenclator = models_created.filtered("nomenclator")
 
-            for model_created in models_nomenclator:
+            for seq, model_created in enumerate(models_nomenclator):
+                _logger.info(f"Parse #{seq} - {model_created.name}")
+
+                lst_struct_field_to_ignore = dct_complete_looping_model.get(
+                    model_created.model
+                )
+                if lst_struct_field_to_ignore:
+                    lst_field_to_ignore = [
+                        a.get("field_1") for a in lst_struct_field_to_ignore
+                    ]
+                    lst_ignored_field = lst_field_to_ignore
+                else:
+                    lst_ignored_field = []
+
+                if model_created.model == "membre":
+                    lst_ignored_field.append("motdepasse")
+
                 model_created_fields = model_created.field_id.filtered(
-                    lambda field: field.name not in MAGIC_FIELDS + ["name"]
+                    lambda field: field.name
+                    not in MAGIC_FIELDS + ["name"] + lst_ignored_field
                 )
                 mapped_model_created_fields = model_created_fields.mapped(
                     "name"
@@ -714,6 +739,7 @@ class CodeGeneratorDbTable(models.Model):
                                     )
                                 data[name] = new_id
                 results = self.env[model_created.model].sudo().create(lst_data)
+                dct_model_result_data[model_created.model] = results
                 if generated_module_name:
                     # Generate xml_id for all nonmenclature
                     for result in results:
@@ -733,31 +759,150 @@ class CodeGeneratorDbTable(models.Model):
                             }
                         )
 
-            # TODO support removing dependence in nomenclator about dct_looping_model
-            # Add missing field in database
-            # self.env.cr.execute(
-            # """
-            # alter table arrondissement
-            #        add noville int;
-            #
-            # alter table arrondissement
-            #        add constraint arrondissement_ville_id_fk
-            #                foreign key (noville) references ville;
-            # """
-            # )
-            #
-            # update all record with missing field
-            # Set required after if needed
+            # Create missing field to fix looping dependencies
+            i = -1
+            for (
+                model_name,
+                lst_dct_looping_value,
+            ) in dct_complete_looping_model.items():
+                i += 1
+                _logger.info(
+                    f"{i} - Adding missing field for model {model_name}."
+                )
+                # Adding field
+                lst_added_field_name = []
+                for dct_looping_value in lst_dct_looping_value:
+                    value_field = dct_looping_value.get("field_info_1").copy()
+                    lst_added_field_name.append(value_field.get("name"))
+                    value_field["model_id"] = dct_model_id.get(
+                        dct_looping_value.get("model_1")
+                    ).id
+                    self.env["ir.model.fields"].create(value_field)
 
+                ir_model_info = self.env["ir.model"].search(
+                    [("model", "=", model_name)]
+                )
+                if not ir_model_info.nomenclator:
+                    continue
+
+                # Reupdate after new fields
+                lst_data_id = [
+                    a.id for a in dct_model_result_data.get(model_name, [])
+                ]
+                new_list_model_result_data = self.env[model_name].browse(
+                    lst_data_id
+                )
+                # Search missing data from databases
+                foreign_table = self.filtered(
+                    lambda t: t.name
+                    == self._get_model_name(
+                        module_name,
+                        model_name,
+                    )
+                )
+
+                l_foreign_table_data = _get_table_data(
+                    foreign_table.name,
+                    foreign_table.m2o_db,
+                    lst_added_field_name,
+                )
+
+                lst_data = list(
+                    map(
+                        self._conform_model_created_data(lst_added_field_name),
+                        l_foreign_table_data,
+                    )
+                )
+                if len(lst_data) != len(new_list_model_result_data):
+                    _logger.error(
+                        f"Cannot update data for model `{model_name}` and new"
+                        f" fields {lst_added_field_name}, length is not the"
+                        f" same. Expect size {len(lst_data)}, actual size"
+                        f" {len(new_list_model_result_data)}"
+                    )
+                else:
+                    dct_cache_id = {}
+
+                    # Update data for missing field
+                    for seq_data, result in enumerate(
+                        new_list_model_result_data
+                    ):
+                        data_value = lst_data[seq_data]
+
+                        # Transform data
+                        cache_value = dct_cache_id.get(str(data_value))
+                        if cache_value is None:
+                            # Search field_id
+                            for (
+                                data_value_key,
+                                data_value_value,
+                            ) in data_value.items():
+                                for field_id in ir_model_info.field_id:
+                                    if not (
+                                        field_id.name == data_value_key
+                                        and field_id.ttype == "many2one"
+                                    ):
+                                        continue
+                                    # TODO duplicated code
+                                    relation_model = field_id.relation
+                                    relation_field = (
+                                        field_id.foreign_key_field_name
+                                    )
+                                    result_new_id = self.env[
+                                        relation_model
+                                    ].search(
+                                        [
+                                            (
+                                                relation_field,
+                                                "=",
+                                                data_value_value,
+                                            )
+                                        ]
+                                    )
+                                    if len(result_new_id) > 1:
+                                        raise ValueError(
+                                            f"Model `{field_id.model}` with"
+                                            f" field `{field_id.name}` is"
+                                            " required, but cannot find"
+                                            f" relation `{relation_field}` of"
+                                            f" id `{value}`. Cannot associate"
+                                            " multiple result, is your"
+                                            " foreign configured correctly?"
+                                        )
+                                    new_id = result_new_id.id
+                                    if new_id is False and field_id.required:
+                                        raise ValueError(
+                                            f"Model `{field_id.model}` with"
+                                            f" field `{field_id.name}` is"
+                                            " required, but cannot find"
+                                            f" relation `{relation_field}` of"
+                                            f" id `{value}`. Is it missing"
+                                            " data?"
+                                        )
+                                    data_value[data_value_key] = new_id
+
+                            dct_cache_id[str(data_value)] = data_value
+                            new_data_value = data_value
+                        else:
+                            new_data_value = cache_value
+
+                        status = result.write(new_data_value)
+                        if not status:
+                            _logger.error(
+                                f"Error write value for model {model_name} and"
+                                f" new fields {lst_added_field_name}."
+                            )
         return module
 
     @staticmethod
     def _reorder_dependence_model(models_created):
         lst_model_ordered = []
         dct_model_hold = {}
-        dct_looping_model = defaultdict(list)
+        dct_looping_model_unique = defaultdict(dict)
+        dct_looping_model = defaultdict(dict)
+        dct_complete_looping_model = defaultdict(list)
         dct_model = {a.get("model"): a for a in models_created}
-        dct_model_depend = defaultdict(list)
+        dct_model_depend = defaultdict(dict)  # key field name, value is model
         for model_id in models_created:
             contain_m2o = False
             for tpl_field_id in model_id.get("field_id"):
@@ -767,36 +912,95 @@ class CodeGeneratorDbTable(models.Model):
                     and field_id.get("relation") in dct_model.keys()
                 ):
                     contain_m2o = True
-                    dct_model_depend[model_id.get("model")].append(
-                        dct_model[field_id.get("relation")]
-                    )
+                    dct_model_depend[model_id.get("model")][
+                        field_id.get("name")
+                    ] = dct_model[field_id.get("relation")]
+
             if not contain_m2o:
                 lst_model_ordered.append(model_id)
             else:
                 dct_model_hold[model_id.get("model")] = model_id
 
         # Detect looping dependencies
-        for model_name, lst_model_id in dct_model_depend.copy().items():
-            for model_id in lst_model_id:
-                lst_depend_child = dct_model_depend[model_id.get("model")]
-                for child_depend in lst_depend_child:
-                    if child_depend.get("model") == model_name:
-                        already_add_depend = dct_looping_model.get(
-                            model_id.get("model")
-                        )
-                        if already_add_depend:
-                            try:
-                                index = already_add_depend.index(child_depend)
-                                # the brother is already in list, ignore it
-                                continue
-                            except:
-                                pass
-                        dct_looping_model[model_name].append(model_id)
+        # Need a copy, the execution change dct_model_depend (for no reason...)
+        # Loop on model
+        for model_name, dct_model_id in dct_model_depend.copy().items():
+            # Loop on fields
+            for model_id in dct_model_id.values():
+                model_id_name = model_id.get("model")
+                lst_depend_child = dct_model_depend[model_id_name].items()
+                for field_name, child_depend in lst_depend_child:
+                    if child_depend.get("model") != model_name:
+                        continue
+                    already_add_depend = dct_looping_model.get(model_id_name)
+                    # TODO problem with double iteration, second iteration override it
+                    dct_looping_model[model_name][field_name] = model_id
+                    if not already_add_depend:
+                        dct_looping_model_unique[model_name][
+                            field_name
+                        ] = model_id
+                        continue
+                    # Find information about model 1
+                    for (
+                        already_field_name,
+                        already_model,
+                    ) in already_add_depend.items():
+                        if already_model == child_depend:
+                            break
 
-        # # Remove
-        for model_name, lst_model_id in dct_looping_model.items():
-            for model_id in lst_model_id:
-                dct_model_depend[model_name].remove(model_id)
+                    for _, _, field_info in dct_model_hold.get(
+                        model_id_name
+                    ).get("field_id"):
+                        if field_info.get("name") == field_name:
+                            field_info_1 = field_info
+                            break
+                    else:
+                        raise ValueError(
+                            "Cannot find field"
+                            f" {field_name} in model {model_id_name}"
+                        )
+
+                    for field_info in already_model.get("field_id"):
+                        if field_info[2].get("name") == already_field_name:
+                            field_info_2 = field_info[2]
+                            break
+                    else:
+                        raise ValueError(
+                            "Cannot find field"
+                            f" {already_field_name} in model"
+                            f" {model_name}"
+                        )
+                    dct_value = {
+                        "model_1": model_id_name,
+                        "field_1": field_name,
+                        "field_info_1": field_info_1,
+                        "dct_model_1": model_id,
+                        "model_2": model_name,
+                        "field_2": already_field_name,
+                        "field_info_2": field_info_2,
+                        "dct_model_2": child_depend,
+                    }
+
+                    if (
+                        dct_value
+                        not in dct_complete_looping_model[model_id_name]
+                    ):
+                        dct_complete_looping_model[model_id_name].append(
+                            dct_value
+                        )
+
+        # Remove dependency to remove looping
+        for model_name, dct_model_id in dct_looping_model.items():
+            for model_id in dct_model_id.values():
+                for (
+                    field_name,
+                    dct_model_id,
+                ) in dct_model_depend[model_name].items():
+                    if dct_model_id == model_id:
+                        del dct_model_depend[model_name][field_name]
+                        if not dct_model_depend[model_name]:
+                            del dct_model_depend[model_name]
+                        break
 
         i = 0
         max_i = len(dct_model_hold) + 1
@@ -811,7 +1015,7 @@ class CodeGeneratorDbTable(models.Model):
                     break
                 # check if all depend is already in list
                 is_all_in = True
-                for depend_id in lst_depend:
+                for depend_id in lst_depend.values():
                     if depend_id not in lst_model_ordered:
                         is_all_in = False
                         break
@@ -825,7 +1029,25 @@ class CodeGeneratorDbTable(models.Model):
             _logger.error(
                 f"Cannot reorder all table dependency: {dct_model_hold}"
             )
-        return lst_model_ordered, dct_looping_model
+        # Remove field from model
+        for (
+            model_name,
+            lst_field_looping,
+        ) in dct_complete_looping_model.items():
+            for dct_field_looping in lst_field_looping:
+                str_field_name = dct_field_looping.get("field_1")
+                for model_ordered in lst_model_ordered:
+                    is_find = False
+                    no_field = -1
+                    for tpl_field in model_ordered.get("field_id"):
+                        no_field += 1
+                        if tpl_field[2].get("name") == str_field_name:
+                            model_ordered.get("field_id").pop(no_field)
+                            is_find = True
+                            break
+                    if is_find:
+                        break
+        return lst_model_ordered, dct_complete_looping_model
 
 
 class CodeGeneratorDbColumn(models.Model):

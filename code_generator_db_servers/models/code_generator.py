@@ -398,6 +398,47 @@ class CodeGeneratorDbType(models.Model):
     ]
 
 
+class CodeGeneratorDbUpdateMigration(models.Model):
+    _name = "code.generator.db.update.migration.field"
+    _description = "Code Generator Db update field before migration"
+
+    model_name = fields.Char(
+        string="Model name", help="Name of field to update.", required=True
+    )
+
+    field_name = fields.Char(
+        string="Field name", help="Name of field to update.", required=True
+    )
+
+    new_field_name = fields.Char(string="New name")
+
+    new_string = fields.Char(string="New string")
+
+    new_type = fields.Char(string="New type")
+
+    new_help = fields.Char(string="New help")
+
+    new_required = fields.Boolean(string="New required")
+
+    new_change_required = fields.Boolean(
+        string="New required update",
+        help="Set at True if need to update required value.",
+    )
+
+
+class CodeGeneratorDbUpdateMigration(models.Model):
+    _name = "code.generator.db.update.migration.model"
+    _description = "Code Generator Db update model before migration"
+
+    model_name = fields.Char(
+        string="Model name", help="Name of field to update.", required=True
+    )
+
+    new_rec_name = fields.Char(string="New rec name")
+
+    new_model_name = fields.Char(string="New model name")
+
+
 class CodeGeneratorDb(models.Model):
     _name = "code.generator.db"
     _description = "Code Generator Db"
@@ -650,6 +691,89 @@ class CodeGeneratorDbTable(models.Model):
                     l_module_tables[module_name],
                 )
             )
+
+            # Update model
+            for dct_model in lst_model_dct:
+                modif_model_id = self.env[
+                    "code.generator.db.update.migration.model"
+                ].search([("model_name", "=", dct_model.get("model"))])
+                if len(modif_model_id):
+                    if len(modif_model_id) > 1:
+                        _logger.warning(
+                            "Cannot support multiple update for model"
+                            f" {dct_model.get('model')}"
+                        )
+                    else:
+                        if modif_model_id.new_rec_name is not False:
+                            dct_model["rec_name"] = modif_model_id.new_rec_name
+
+                modif_field_ids = self.env[
+                    "code.generator.db.update.migration.field"
+                ].search([("model_name", "=", dct_model.get("model"))])
+                dct_field = {}
+                for modif_id in modif_field_ids:
+                    if modif_id.field_name:
+                        if modif_id.field_name in dct_field.keys():
+                            _logger.warning(
+                                "Cannot support multiple update for model"
+                                f" field {dct_model.get('model')} and field"
+                                f" {modif_id.field_name}"
+                            )
+                            continue
+                        dct_field[modif_id.field_name] = modif_id
+
+                i = -1
+                for dct_model_field in dct_model.get("field_id"):
+                    i += 1
+                    origin_field_data = dct_model_field[2]
+                    # Force origin_name to simplify code
+                    origin_field_data["origin_name"] = origin_field_data[
+                        "name"
+                    ]
+                    update_info = dct_field.get(origin_field_data.get("name"))
+                    if not update_info:
+                        continue
+
+                    if update_info.new_field_name is not False:
+                        origin_field_data["name"] = update_info.new_field_name
+
+                    if update_info.new_help is not False:
+                        if "help" in origin_field_data:
+                            origin_field_data[
+                                "origin_help"
+                            ] = origin_field_data["help"]
+                        origin_field_data["help"] = update_info.new_help
+
+                    if update_info.new_change_required:
+                        if "required" in origin_field_data:
+                            origin_field_data[
+                                "origin_required"
+                            ] = origin_field_data["required"]
+                        origin_field_data[
+                            "required"
+                        ] = update_info.new_required
+
+                    if update_info.new_type is not False:
+                        origin_field_data["origin_type"] = origin_field_data[
+                            "ttype"
+                        ]
+                        origin_field_data["ttype"] = update_info.new_type
+
+                    if update_info.new_string is not False:
+                        if "field_description" in origin_field_data:
+                            origin_field_data[
+                                "origin_string"
+                            ] = origin_field_data["field_description"]
+                        origin_field_data[
+                            "field_description"
+                        ] = update_info.new_string
+
+                    dct_model.get("field_id")[i] = (
+                        dct_model_field[0],
+                        dct_model_field[1],
+                        origin_field_data,
+                    )
+
             (
                 lst_model_dct,
                 dct_complete_looping_model,
@@ -658,7 +782,7 @@ class CodeGeneratorDbTable(models.Model):
             for model_id in models_created:
                 dct_model_id[model_id.model] = model_id
             models_nomenclator = models_created.filtered("nomenclator")
-
+            # Create data for nomenclator field
             for seq, model_created in enumerate(models_nomenclator):
                 _logger.info(f"Parse #{seq} - {model_created.name}")
 
@@ -680,6 +804,9 @@ class CodeGeneratorDbTable(models.Model):
                     lambda field: field.name
                     not in MAGIC_FIELDS + ["name"] + lst_ignored_field
                 )
+                origin_mapped_model_created_fields = (
+                    model_created_fields.mapped("origin_name")
+                )
                 mapped_model_created_fields = model_created_fields.mapped(
                     "name"
                 )
@@ -694,7 +821,7 @@ class CodeGeneratorDbTable(models.Model):
                 l_foreign_table_data = _get_table_data(
                     foreign_table.name,
                     foreign_table.m2o_db,
-                    mapped_model_created_fields,
+                    origin_mapped_model_created_fields,
                 )
 
                 lst_data = list(
@@ -771,9 +898,14 @@ class CodeGeneratorDbTable(models.Model):
                 )
                 # Adding field
                 lst_added_field_name = []
+                lst_added_field_origin_name = []
                 for dct_looping_value in lst_dct_looping_value:
                     value_field = dct_looping_value.get("field_info_1").copy()
+                    # TODO implement here modification
                     lst_added_field_name.append(value_field.get("name"))
+                    lst_added_field_origin_name.append(
+                        value_field.get("origin_name")
+                    )
                     value_field["model_id"] = dct_model_id.get(
                         dct_looping_value.get("model_1")
                     ).id
@@ -804,7 +936,7 @@ class CodeGeneratorDbTable(models.Model):
                 l_foreign_table_data = _get_table_data(
                     foreign_table.name,
                     foreign_table.m2o_db,
-                    lst_added_field_name,
+                    lst_added_field_origin_name,
                 )
 
                 lst_data = list(

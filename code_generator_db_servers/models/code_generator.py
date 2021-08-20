@@ -8,6 +8,7 @@ from odoo.exceptions import ValidationError
 from collections import defaultdict
 from odoo.models import MAGIC_COLUMNS
 import uuid
+import unidecode
 
 import logging
 
@@ -260,11 +261,12 @@ def _get_odoo_ttype(data_type):
     return odoo_ttype
 
 
-def _get_table_fields(origin_table_name, m2o_db):
+def _get_table_fields(origin_table_name, m2o_db, rec_name="name"):
     """
     Function to obtain a table fields
-    :param table_name:
+    :param origin_table_name:
     :param m2o_db:
+    :param rec_name:
     :return:
     """
 
@@ -345,7 +347,10 @@ def _get_table_fields(origin_table_name, m2o_db):
 
                 l_fields.append(t_odoo_field_4insert)
 
-        if not having_column_name:
+        if not having_column_name and (
+            rec_name == "name" or rec_name is False
+        ):
+            # Force create field name if rec_name is "name" and missing name field
             l_fields.append(
                 _get_odoo_field_tuple_4insert("name", "Name", "char")
             )
@@ -684,6 +689,11 @@ class CodeGeneratorDbTable(models.Model):
                         field_id=_get_table_fields(
                             self._get_model_name(module_name, t_info[0]),
                             t_info[1],
+                            rec_name=self.env[
+                                "code.generator.db.update.migration.model"
+                            ]
+                            .search([("model_name", "=", t_info[0])])
+                            .new_rec_name,
                         ),
                         m2o_module=module.id,
                         nomenclator=t_info[2],
@@ -837,19 +847,27 @@ class CodeGeneratorDbTable(models.Model):
                     if field_id.ttype == "many2one":
                         relation_model = field_id.relation
                         relation_field = field_id.foreign_key_field_name
+                        new_relation_field = self.search_new_field_name(
+                            relation_model, relation_field
+                        )
                         for data in lst_data:
                             # Update many2one
                             value = data[name]
                             if value is not None:
-                                result_new_id = self.env[
-                                    relation_model
-                                ].search([(relation_field, "=", value)])
+                                try:
+                                    result_new_id = self.env[
+                                        relation_model
+                                    ].search(
+                                        [(new_relation_field, "=", value)]
+                                    )
+                                except Exception as e:
+                                    print(e)
                                 if len(result_new_id) > 1:
                                     raise ValueError(
                                         f"Model `{field_id.model}` with"
                                         f" field `{field_id.name}` is"
                                         " required, but cannot find"
-                                        f" relation `{relation_field}` of"
+                                        f" relation `{new_relation_field}` of"
                                         f" id `{value}`. Cannot associate"
                                         " multiple result, is your"
                                         " foreign configured correctly?"
@@ -860,7 +878,7 @@ class CodeGeneratorDbTable(models.Model):
                                         f"Model `{field_id.model}` with"
                                         f" field `{field_id.name}` is"
                                         " required, but cannot find"
-                                        f" relation `{relation_field}` of"
+                                        f" relation `{new_relation_field}` of"
                                         f" id `{value}`. Is it missing"
                                         " data?"
                                     )
@@ -870,15 +888,43 @@ class CodeGeneratorDbTable(models.Model):
                 if generated_module_name:
                     # Generate xml_id for all nonmenclature
                     for result in results:
-                        second = (
-                            result.name if result.name else uuid.uuid1().int
-                        )
-                        new_id = (
+                        second = False
+                        if result._rec_name:
+                            second = getattr(result, result._rec_name)
+                        if second is False:
+                            second = uuid.uuid1().int
+                        # unidecode remove all accent
+                        new_id = unidecode.unidecode(
                             f"{model_created.model.replace('.', '_')}_{second}"
+                            .replace("-", "_")
+                            .replace(" ", "_")
+                            .replace(".", "_")
+                            .replace("'", "_")
+                            .replace("`", "_")
+                            .replace("^", "_")
+                            .lower()
                         )
+                        new_id = new_id.strip("_")
+
+                        while new_id.count("__"):
+                            new_id = new_id.replace("__", "_")
+
+                        # validate duplicate
+                        origin_new_id = new_id
+                        ir_model_data_id = self.env["ir.model.data"].search(
+                            [("name", "=", new_id)]
+                        )
+                        i = 0
+                        while ir_model_data_id:
+                            i += 1
+                            origin_new_id = f"{new_id}{i}"
+                            ir_model_data_id = self.env[
+                                "ir.model.data"
+                            ].search([("name", "=", origin_new_id)])
+
                         self.env["ir.model.data"].create(
                             {
-                                "name": new_id,
+                                "name": origin_new_id,
                                 "model": model_created.model,
                                 "module": generated_module_name,
                                 "res_id": result.id,
@@ -980,12 +1026,17 @@ class CodeGeneratorDbTable(models.Model):
                                     relation_field = (
                                         field_id.foreign_key_field_name
                                     )
+                                    new_relation_field = (
+                                        self.search_new_field_name(
+                                            relation_model, relation_field
+                                        )
+                                    )
                                     result_new_id = self.env[
                                         relation_model
                                     ].search(
                                         [
                                             (
-                                                relation_field,
+                                                new_relation_field,
                                                 "=",
                                                 data_value_value,
                                             )
@@ -996,10 +1047,11 @@ class CodeGeneratorDbTable(models.Model):
                                             f"Model `{field_id.model}` with"
                                             f" field `{field_id.name}` is"
                                             " required, but cannot find"
-                                            f" relation `{relation_field}` of"
-                                            f" id `{value}`. Cannot associate"
-                                            " multiple result, is your"
-                                            " foreign configured correctly?"
+                                            f" relation `{new_relation_field}`"
+                                            f" of id `{value}`. Cannot"
+                                            " associate multiple result, is"
+                                            " your foreign configured"
+                                            " correctly?"
                                         )
                                     new_id = result_new_id.id
                                     if new_id is False and field_id.required:
@@ -1007,8 +1059,8 @@ class CodeGeneratorDbTable(models.Model):
                                             f"Model `{field_id.model}` with"
                                             f" field `{field_id.name}` is"
                                             " required, but cannot find"
-                                            f" relation `{relation_field}` of"
-                                            f" id `{value}`. Is it missing"
+                                            f" relation `{new_relation_field}`"
+                                            f" of id `{value}`. Is it missing"
                                             " data?"
                                         )
                                     data_value[data_value_key] = new_id
@@ -1025,6 +1077,28 @@ class CodeGeneratorDbTable(models.Model):
                                 f" new fields {lst_added_field_name}."
                             )
         return module
+
+    def search_new_field_name(self, model_name, old_field_name):
+        update_ids = self.env[
+            "code.generator.db.update.migration.field"
+        ].search(
+            [
+                ("model_name", "=", model_name),
+                ("field_name", "=", old_field_name),
+            ]
+        )
+        if not update_ids:
+            return old_field_name
+        if len(update_ids) > 1:
+            _logger.warning(
+                "Multiple update database information for model"
+                f" `{model_name}` field `{old_field_name}`"
+            )
+            update_ids = update_ids[0]
+        result = update_ids.new_field_name
+        if result is False:
+            return old_field_name
+        return result
 
     @staticmethod
     def _reorder_dependence_model(models_created):

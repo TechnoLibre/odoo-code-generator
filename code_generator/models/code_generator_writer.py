@@ -2774,6 +2774,16 @@ class CodeGeneratorWriter(models.Model):
         )
 
         with cw.indent():
+            """
+            _name
+            _table =
+            _description
+            _auto = False
+            _log_access = False
+            _order = ""
+            _rec_name = ""
+            _foreign_keys = []
+            """
             cw.emit(f"_name = '{model.model}'")
             if model.m2o_inherit_model.model:
                 cw.emit(f"_inherit = '{model.m2o_inherit_model.model}'")
@@ -2781,7 +2791,10 @@ class CodeGeneratorWriter(models.Model):
                 cw.emit(f"_description = '{model.description}'")
             else:
                 cw.emit(f"_description = '{model.name}'")
-            # TODO _order, _local_fields, _rec_name, _period_number, _inherits, _log_access, _auto, _parent_store
+            if model.rec_name and model.rec_name != "name":
+                cw.emit(f"_rec_name = '{model.rec_name}'")
+
+            # TODO _order, _local_fields, _period_number, _inherits, _log_access, _auto, _parent_store
             # TODO _parent_name
 
             self._get_model_constrains(cw, model, module)

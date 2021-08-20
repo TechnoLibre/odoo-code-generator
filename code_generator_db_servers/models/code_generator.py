@@ -294,13 +294,13 @@ def _get_table_fields(origin_table_name, m2o_db):
             if column_name == "name":
                 having_column_name = True
 
-            elif len(column_name) > 63:
-                slice_column_name = column_name[:63]
-                _logger.warning(
-                    f"Slice column {column_name} to"
-                    f" {slice_column_name} because length is upper than 63."
-                )
-                column_name = slice_column_name
+            # elif len(column_name) > 63:
+            #     slice_column_name = column_name[:63]
+            #     _logger.warning(
+            #         f"Slice column {column_name} to"
+            #         f" {slice_column_name} because length is upper than 63."
+            #     )
+            #     column_name = slice_column_name
 
             str_query_4_constraints = _get_q_4constraints(
                 origin_table_name, column_name

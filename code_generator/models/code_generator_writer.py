@@ -1208,15 +1208,16 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        if 64 - len(xmlid) < 0:
-            new_xml_id = "%s..." % xmlid[: 61 - len(xmlid)]
-            _logger.warning(
-                f"Slice xml_id {xmlid} to {new_xml_id} because length is upper"
-                " than 63."
-            )
-        else:
-            new_xml_id = xmlid
-        return new_xml_id
+        # if 64 - len(xmlid) < 0:
+        #     new_xml_id = "%s..." % xmlid[: 61 - len(xmlid)]
+        #     _logger.warning(
+        #         f"Slice xml_id {xmlid} to {new_xml_id} because length is upper"
+        #         " than 63."
+        #     )
+        # else:
+        #     new_xml_id = xmlid
+        # return new_xml_id
+        return xmlid
 
     @staticmethod
     def _prepare_compute_constrained_fields(l_fields):
@@ -1834,18 +1835,20 @@ class CodeGeneratorWriter(models.Model):
             model_model = self._get_model_model(model)
             action_type = "action_window" if not server else "server_action"
 
-            new_action_name = self._set_limit_4xmlid(
-                "%s" % action.name[: 64 - len(model_model) - len(action_type)]
-            )
+            new_action_name = action.name
+            # TODO No need to support limit of 64, why this code?
+            # new_action_name = self._set_limit_4xmlid(
+            #     "%s" % action.name[: 64 - len(model_model) - len(action_type)]
+            # )
 
             result_name = f"{model_model}_{self._lower_replace(new_action_name)}_{action_type}"
 
-            if new_action_name != action.name:
-                _logger.warning(
-                    f"Slice action name {action.name} to"
-                    f" {new_action_name} because length is upper than 63."
-                    f" Result: {result_name}."
-                )
+            # if new_action_name != action.name:
+            #     _logger.warning(
+            #         f"Slice action name {action.name} to"
+            #         f" {new_action_name} because length is upper than 63."
+            #         f" Result: {result_name}."
+            #     )
 
             return result_name
 

@@ -1970,6 +1970,13 @@ class CodeGeneratorWriter(models.Model):
                             }
                         )
 
+                    elif rfield.ttype == "binary":
+                        # Transform binary in string and remove b''
+                        child = E.field(
+                            {"name": rfield.name},
+                            str(record_value)[2:-1],
+                        )
+
                     elif rfield.related == "view_id.arch" or (
                         rfield.name == "arch" and rfield.model == "ir.ui.view"
                     ):

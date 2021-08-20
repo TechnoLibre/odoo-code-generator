@@ -248,12 +248,14 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         lst_field_sorted = model_created_fields.sorted(
             lambda field: field.code_generator_tree_view_sequence
         )
-        # TODO validate code_generator_tree_view_sequence is supported
-        lst_field = [
-            E.field({"name": a.name})
-            for a in lst_field_sorted
+        lst_field = []
+        for field_id in lst_field_sorted:
+            # TODO validate code_generator_tree_view_sequence is supported
             # if a.code_generator_tree_view_sequence >= 0
-        ]
+            dct_value = {"name": field_id.name}
+            if field_id.force_widget:
+                dct_value["widget"] = field_id.force_widget
+            lst_field.append(E.field(dct_value))
         arch_xml = E.tree(
             {
                 # TODO enable this when missing form
@@ -315,24 +317,26 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         model_name_str = model_name.replace(".", "_")
         lst_field = []
         lst_group = []
-        for model in model_created_fields:
+        key = "geo_"
+        for field_id in model_created_fields:
             lst_value = []
-            value = {"name": model.name}
+            value = {"name": field_id.name}
             lst_value.append(value)
 
-            key = "geo_"
-            if key in model.ttype:
+            if field_id.force_widget:
+                value["widget"] = field_id.force_widget
+            elif key in field_id.ttype:
                 value["widget"] = "geo_edit_map"
                 # value["attrs"] = "{'invisible': [('type', '!=', '"f"{model[len(key):]}')]""}"
             # lst_field.append(value)
             lst_group.append(E.group({}, E.field(value)))
-        form_xml = E.form(
+        arch_xml = E.form(
             {
                 "string": "Titre",
             },
             E.sheet({}, *lst_group),
         )
-        str_arch = ET.tostring(form_xml, pretty_print=True)
+        str_arch = ET.tostring(arch_xml, pretty_print=True)
         view_value = self.env["ir.ui.view"].create(
             {
                 "name": f"{model_name_str}_form",

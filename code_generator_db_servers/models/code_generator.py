@@ -8,6 +8,8 @@ from odoo.exceptions import ValidationError
 from collections import defaultdict
 from odoo.models import MAGIC_COLUMNS
 import uuid
+import base64
+import os
 import unidecode
 
 import logging
@@ -421,6 +423,19 @@ class CodeGeneratorDbUpdateMigration(models.Model):
 
     new_type = fields.Char(string="New type")
 
+    force_widget = fields.Char(
+        string="Force widget",
+        help="Use this widget for this field when create views.",
+    )
+
+    path_binary = fields.Char(
+        string="Path binary type",
+        help=(
+            "Attribut path to use with value of char to binary, import binary"
+            " in database."
+        ),
+    )
+
     new_help = fields.Char(string="New help")
 
     new_required = fields.Boolean(string="New required")
@@ -745,9 +760,10 @@ class CodeGeneratorDbTable(models.Model):
                     if not update_info:
                         continue
 
-                    if update_info.new_field_name is not False:
+                    if update_info.new_field_name:
                         origin_field_data["name"] = update_info.new_field_name
 
+                    # Keep empty value
                     if update_info.new_help is not False:
                         if "help" in origin_field_data:
                             origin_field_data[
@@ -764,12 +780,23 @@ class CodeGeneratorDbTable(models.Model):
                             "required"
                         ] = update_info.new_required
 
-                    if update_info.new_type is not False:
+                    if update_info.new_type:
                         origin_field_data["origin_type"] = origin_field_data[
                             "ttype"
                         ]
                         origin_field_data["ttype"] = update_info.new_type
 
+                    if update_info.path_binary:
+                        origin_field_data[
+                            "path_binary"
+                        ] = update_info.path_binary
+
+                    if update_info.force_widget:
+                        origin_field_data[
+                            "force_widget"
+                        ] = update_info.force_widget
+
+                    # Keep empty value
                     if update_info.new_string is not False:
                         if "field_description" in origin_field_data:
                             origin_field_data[
@@ -843,8 +870,36 @@ class CodeGeneratorDbTable(models.Model):
                         l_foreign_table_data,
                     )
                 )
+                # Update
                 for i, name in enumerate(mapped_model_created_fields):
                     field_id = model_created_fields[i]
+                    if (
+                        field_id.path_binary
+                        and field_id.ttype == "binary"
+                        and field_id.origin_type == "char"
+                    ):
+                        for data in lst_data:
+                            if data and data.get(field_id.name):
+                                # import path in binary
+                                path_file = os.path.join(
+                                    field_id.path_binary,
+                                    data.get(field_id.name),
+                                )
+                                if os.path.isfile(path_file):
+                                    new_data_binary = open(
+                                        path_file,
+                                        "rb",
+                                    ).read()
+                                    data[field_id.name] = base64.b64encode(
+                                        new_data_binary
+                                    )
+                                else:
+                                    _logger.error(
+                                        f"Cannot add file path `{path_file}`"
+                                        f" for model `{name}` and field"
+                                        f" `{field_id.name}`"
+                                    )
+
                     if field_id.ttype == "many2one":
                         relation_model = field_id.relation
                         relation_field = field_id.foreign_key_field_name
@@ -855,14 +910,9 @@ class CodeGeneratorDbTable(models.Model):
                             # Update many2one
                             value = data[name]
                             if value is not None:
-                                try:
-                                    result_new_id = self.env[
-                                        relation_model
-                                    ].search(
-                                        [(new_relation_field, "=", value)]
-                                    )
-                                except Exception as e:
-                                    print(e)
+                                result_new_id = self.env[
+                                    relation_model
+                                ].search([(new_relation_field, "=", value)])
                                 if len(result_new_id) > 1:
                                     raise ValueError(
                                         f"Model `{field_id.model}` with"

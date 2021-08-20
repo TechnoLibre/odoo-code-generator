@@ -425,6 +425,10 @@ class CodeGeneratorDbUpdateMigration(models.Model):
 
     new_required = fields.Boolean(string="New required")
 
+    delete = fields.Boolean(
+        string="Delete", help="When enable, remove the field in generation."
+    )
+
     new_change_required = fields.Boolean(
         string="New required update",
         help="Set at True if need to update required value.",
@@ -639,7 +643,8 @@ class CodeGeneratorDbTable(models.Model):
         dct_model_result_data = {}
         # TODO associate code.generator.db.table to code.generator.db.table to remote generated_module_name
 
-        l_module_tables = dict(comun=[])
+        l_module_tables = defaultdict(list)
+
         for table in self:
 
             name_splitted = table.name.split("_", maxsplit=1)
@@ -651,11 +656,7 @@ class CodeGeneratorDbTable(models.Model):
                 module_name, table_name = "comun", name_splitted[0]
 
             t_tname_m2o_db_nom = (table_name, table.m2o_db, table.nomenclator)
-            if module_name not in l_module_tables:
-                l_module_tables[module_name] = [t_tname_m2o_db_nom]
-
-            else:
-                l_module_tables[module_name].append(t_tname_m2o_db_nom)
+            l_module_tables[module_name].append(t_tname_m2o_db_nom)
 
         for module_name in l_module_tables.keys():
 
@@ -1076,6 +1077,29 @@ class CodeGeneratorDbTable(models.Model):
                                 f"Error write value for model {model_name} and"
                                 f" new fields {lst_added_field_name}."
                             )
+            # Remove field at the end, because some field is needed by other field to do relation
+            ignored_field_ids = self.env[
+                "code.generator.db.update.migration.field"
+            ].search(
+                [
+                    ("delete", "=", True),
+                ]
+            )
+            for ignored_field_id in ignored_field_ids:
+                field_to_remove_id = self.env["ir.model.fields"].search(
+                    [
+                        ("model", "=", ignored_field_id.model_name),
+                        ("name", "=", ignored_field_id.field_name),
+                    ]
+                )
+                if field_to_remove_id:
+                    if len(field_to_remove_id) > 1:
+                        _logger.warning(
+                            "Field multiple field when delete it in model"
+                            f" `{ignored_field_id.model_name}` and field"
+                            f" `{ignored_field_id.field_name}`"
+                        )
+                    field_to_remove_id.unlink()
         return module
 
     def search_new_field_name(self, model_name, old_field_name):

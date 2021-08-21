@@ -614,17 +614,19 @@ class IrModelFields(models.Model):
                 )
 
             if vals.get("ttype") == "one2many":
-                if not self.search(
-                    [
-                        ("model_id", "=", vals["relation"]),
-                        ("name", "=", vals["relation_field"]),
-                        ("ttype", "=", "many2one"),
-                    ]
-                ):
-                    raise UserError(
-                        _("Many2one %s on model %s does not exist!")
-                        % (vals["relation_field"], vals["relation"])
-                    )
+                # TODO check relation exist, but some times, it's created later to respect many2one order
+                # if not self.env[""].search(
+                #     [
+                #         ("model_id", "=", vals["relation"]),
+                #         ("name", "=", vals["relation_field"]),
+                #         ("ttype", "=", "many2one"),
+                #     ]
+                # ):
+                #     raise UserError(
+                #         _("Many2one %s on model %s does not exist!")
+                #         % (vals["relation_field"], vals["relation"])
+                #     )
+                pass
 
             self.clear_caches()  # for _existing_field_data()
 

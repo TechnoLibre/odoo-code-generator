@@ -373,6 +373,9 @@ def _get_table_data(table_name, m2o_db, model_created_fields, limit=None):
     :return:
     """
 
+    if not table_name:
+        raise ValueError(f"table name is empty.")
+
     port = _get_port(m2o_db.port)
     try:
         cr = _get_db_cr(
@@ -383,6 +386,10 @@ def _get_table_data(table_name, m2o_db, model_created_fields, limit=None):
             user=m2o_db.user,
             password=m2o_db.password,
         )
+        if False in model_created_fields:
+            raise ValueError(
+                f"One element is False in list of field {model_created_fields}"
+            )
         query = f" SELECT {','.join(model_created_fields)} FROM {table_name} "
         if limit:
             query += f"LIMIT {limit} "
@@ -426,6 +433,11 @@ class CodeGeneratorDbUpdateMigration(models.Model):
     force_widget = fields.Char(
         string="Force widget",
         help="Use this widget for this field when create views.",
+    )
+
+    add_one2many = fields.Boolean(
+        string="Add one2many",
+        help="Add field one2many to related model on this field.",
     )
 
     path_binary = fields.Char(
@@ -718,11 +730,13 @@ class CodeGeneratorDbTable(models.Model):
                 )
             )
 
+            dct_model_dct = {a.get("model"): a for a in lst_model_dct}
+
             # Update model
-            for dct_model in lst_model_dct:
+            for model_name, dct_model in dct_model_dct.items():
                 modif_model_id = self.env[
                     "code.generator.db.update.migration.model"
-                ].search([("model_name", "=", dct_model.get("model"))])
+                ].search([("model_name", "=", model_name)])
                 if len(modif_model_id):
                     if len(modif_model_id) > 1:
                         _logger.warning(
@@ -735,7 +749,7 @@ class CodeGeneratorDbTable(models.Model):
 
                 modif_field_ids = self.env[
                     "code.generator.db.update.migration.field"
-                ].search([("model_name", "=", dct_model.get("model"))])
+                ].search([("model_name", "=", model_name)])
                 dct_field = {}
                 for modif_id in modif_field_ids:
                     if modif_id.field_name:
@@ -796,6 +810,50 @@ class CodeGeneratorDbTable(models.Model):
                             "force_widget"
                         ] = update_info.force_widget
 
+                    if update_info.add_one2many:
+                        model_related_id = dct_model_dct[
+                            origin_field_data.get("relation")
+                        ]
+
+                        new_name_one2many = f"{update_info.model_name}_ids"
+                        # update_field_one2many = dct_field.get(
+                        #     new_name_one2many
+                        # )
+
+                        # Create new field
+                        # TODO Validate no duplicate in model_related_id, loop on field_id, check name if not already exist
+                        # TODO move this after, in a new loop, to have new result of modification
+                        lst_field_name = [
+                            a[2].get("name")
+                            for a in model_related_id.get("field_id")
+                        ]
+                        j = 0
+                        original_new_name_one2many = new_name_one2many
+                        while new_name_one2many in lst_field_name:
+                            j += 1
+                            new_name_one2many = (
+                                f"{original_new_name_one2many}_{j}"
+                            )
+
+                        dct_one2many = {
+                            "name": new_name_one2many,
+                            # don't add origin_name to detect it's added
+                            # "origin_name": new_name_one2many,
+                            "field_description": (
+                                f"{new_name_one2many.title()} relation"
+                            ),
+                            "ttype": "one2many",
+                            "relation": update_info.model_name,
+                            "relation_field": update_info.new_field_name,
+                            # "comodel_name": update_info.model_name,
+                            # "inverse_name": update_info.new_field_name,
+                        }
+                        tpl_field_one2many = (0, 0, dct_one2many)
+
+                        model_related_id.get("field_id").append(
+                            tpl_field_one2many
+                        )
+
                     # Keep empty value
                     if update_info.new_string is not False:
                         if "field_description" in origin_field_data:
@@ -806,16 +864,18 @@ class CodeGeneratorDbTable(models.Model):
                             "field_description"
                         ] = update_info.new_string
 
-                    dct_model.get("field_id")[i] = (
-                        dct_model_field[0],
-                        dct_model_field[1],
-                        origin_field_data,
-                    )
+                    # Already replaced
+                    # dct_model.get("field_id")[i] = (
+                    #     dct_model_field[0],
+                    #     dct_model_field[1],
+                    #     origin_field_data,
+                    # )
 
             (
                 lst_model_dct,
                 dct_complete_looping_model,
-            ) = self._reorder_dependence_model(lst_model_dct)
+            ) = self._reorder_dependence_model(dct_model_dct)
+            _logger.info(f"Create models.")
             models_created = self.env["ir.model"].create(lst_model_dct)
             for model_id in models_created:
                 dct_model_id[model_id.model] = model_id
@@ -841,6 +901,7 @@ class CodeGeneratorDbTable(models.Model):
                 model_created_fields = model_created.field_id.filtered(
                     lambda field: field.name
                     not in MAGIC_FIELDS + ["name"] + lst_ignored_field
+                    and field.ttype != "one2many"
                 )
                 origin_mapped_model_created_fields = (
                     model_created_fields.mapped("origin_name")
@@ -997,6 +1058,24 @@ class CodeGeneratorDbTable(models.Model):
                 lst_added_field_name = []
                 lst_added_field_origin_name = []
                 for dct_looping_value in lst_dct_looping_value:
+                    # TODO mettre la variable de la DB dans dct_looping_value au lieu de field_name
+                    # modif_model_id = self.env[
+                    #     "code.generator.db.update.migration.field"
+                    # ].search(
+                    #     [
+                    #         (
+                    #             "model_name",
+                    #             "=",
+                    #             dct_looping_value.get("model_1"),
+                    #         ),
+                    #         (
+                    #             "new_field_name",
+                    #             "=",
+                    #             dct_looping_value.get("field_1"),
+                    #         ),
+                    #     ]
+                    # )
+
                     value_field = dct_looping_value.get("field_info_1").copy()
                     # TODO implement here modification
                     lst_added_field_name.append(value_field.get("name"))
@@ -1007,6 +1086,32 @@ class CodeGeneratorDbTable(models.Model):
                         dct_looping_value.get("model_1")
                     ).id
                     self.env["ir.model.fields"].create(value_field)
+
+                    # if modif_model_id and modif_model_id.add_one2many:
+                    #     # TODO update this field
+                    #     # TODO add one2many
+                    #
+                    #     # Find model
+                    #     model_related_id = self.env["ir.model"].search([("model", "=", dct_looping_value.get("model_2"))])
+                    #
+                    #     # TODO validate name not exist
+                    #     dct_one2many = {
+                    #         "name": dct_looping_value.get("field_2")
+                    #         + "_reverse",
+                    #         "model_id": model_related_id.id,
+                    #         # don't add origin_name to detect it's added
+                    #         # "origin_name": new_name_one2many,
+                    #         "field_description": (
+                    #             f"{dct_looping_value.get('field_2').title()} relation"
+                    #         ),
+                    #         "ttype": "one2many",
+                    #         "relation": dct_looping_value.get("model_1"),
+                    #         "relation_field": dct_looping_value.get("field_1"),
+                    #         # "comodel_name": update_info.model_name,
+                    #         # "inverse_name": update_info.new_field_name,
+                    #         # TODO add model
+                    #     }
+                    #     self.env["ir.model.fields"].create(dct_one2many)
 
                 ir_model_info = self.env["ir.model"].search(
                     [("model", "=", model_name)]
@@ -1175,15 +1280,14 @@ class CodeGeneratorDbTable(models.Model):
         return result
 
     @staticmethod
-    def _reorder_dependence_model(models_created):
+    def _reorder_dependence_model(dct_model):
         lst_model_ordered = []
         dct_model_hold = {}
         dct_looping_model_unique = defaultdict(dict)
         dct_looping_model = defaultdict(dict)
         dct_complete_looping_model = defaultdict(list)
-        dct_model = {a.get("model"): a for a in models_created}
         dct_model_depend = defaultdict(dict)  # key field name, value is model
-        for model_id in models_created:
+        for model_name, model_id in dct_model.items():
             contain_m2o = False
             for tpl_field_id in model_id.get("field_id"):
                 field_id = tpl_field_id[2]

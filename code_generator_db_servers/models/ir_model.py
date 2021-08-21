@@ -31,6 +31,11 @@ class IrModelFields(models.Model):
         string="Origin required", help="Required before migration."
     )
 
+    add_one2many = fields.Boolean(
+        string="Add one2many",
+        help="Add field one2many to related model on this field.",
+    )
+
     origin_type = fields.Char(
         string="Origin type", help="Type before migration."
     )

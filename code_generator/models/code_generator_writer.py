@@ -1941,6 +1941,9 @@ class CodeGeneratorWriter(models.Model):
                             lst_depend.append(ref)
 
                     elif rfield.ttype == "one2many":
+                        # TODO do we need to export one2many relation data, it's better to export many2one
+                        # TODO maybe check if many2one is exported or export this one
+                        continue
                         field_eval = ", ".join(
                             record_value.mapped(
                                 lambda rvalue: "(4, ref('%s'))"

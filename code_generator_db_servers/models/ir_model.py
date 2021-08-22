@@ -14,11 +14,6 @@ class IrModelFields(models.Model):
         string="Origin name", help="Name before migration."
     )
 
-    force_widget = fields.Char(
-        string="Force widget",
-        help="Use this widget for this field when create views.",
-    )
-
     origin_string = fields.Char(
         string="Origin string", help="String before migration."
     )

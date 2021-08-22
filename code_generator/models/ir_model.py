@@ -506,6 +506,11 @@ class IrModelUpdatedFields(models.Model):
 class IrModelFields(models.Model):
     _inherit = "ir.model.fields"
 
+    force_widget = fields.Char(
+        string="Force widget",
+        help="Use this widget for this field when create views.",
+    )
+
     default = fields.Char(string="Default value")
     is_show_whitelist_list_view = fields.Boolean(
         string="Show in whitelist list view",

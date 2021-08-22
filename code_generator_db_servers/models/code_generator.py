@@ -472,6 +472,8 @@ class CodeGeneratorDbUpdateMigration(models.Model):
 
     new_rec_name = fields.Char(string="New rec name")
 
+    new_description = fields.Char(string="New description")
+
     new_model_name = fields.Char(string="New model name")
 
 
@@ -744,8 +746,13 @@ class CodeGeneratorDbTable(models.Model):
                             f" {dct_model.get('model')}"
                         )
                     else:
-                        if modif_model_id.new_rec_name is not False:
+                        if modif_model_id.new_rec_name:
                             dct_model["rec_name"] = modif_model_id.new_rec_name
+                        if modif_model_id.new_description:
+                            dct_model[
+                                "description"
+                            ] = modif_model_id.new_description
+                            dct_model["name"] = modif_model_id.new_description
 
                 modif_field_ids = self.env[
                     "code.generator.db.update.migration.field"

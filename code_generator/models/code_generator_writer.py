@@ -2798,7 +2798,8 @@ class CodeGeneratorWriter(models.Model):
             if model.m2o_inherit_model.model:
                 cw.emit(f"_inherit = '{model.m2o_inherit_model.model}'")
             if model.description:
-                cw.emit(f"_description = '{model.description}'")
+                new_description = model.description.replace("'", "\\'")
+                cw.emit(f"_description = '{new_description}'")
             else:
                 cw.emit(f"_description = '{model.name}'")
             if model.rec_name and model.rec_name != "name":

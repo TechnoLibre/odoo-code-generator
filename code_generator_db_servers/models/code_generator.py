@@ -412,9 +412,16 @@ class CodeGeneratorDbType(models.Model):
     ]
 
 
-class CodeGeneratorDbUpdateMigration(models.Model):
+class CodeGeneratorDbUpdateMigrationField(models.Model):
     _name = "code.generator.db.update.migration.field"
     _description = "Code Generator Db update field before migration"
+
+    code_generator_id = fields.Many2one(
+        comodel_name="code.generator.module",
+        string="Code Generator",
+        required=True,
+        ondelete="cascade",
+    )
 
     model_name = fields.Char(
         string="Model name", help="Name of field to update.", required=True
@@ -462,9 +469,16 @@ class CodeGeneratorDbUpdateMigration(models.Model):
     )
 
 
-class CodeGeneratorDbUpdateMigration(models.Model):
+class CodeGeneratorDbUpdateMigrationModel(models.Model):
     _name = "code.generator.db.update.migration.model"
     _description = "Code Generator Db update model before migration"
+
+    code_generator_id = fields.Many2one(
+        comodel_name="code.generator.module",
+        string="Code Generator",
+        required=True,
+        ondelete="cascade",
+    )
 
     model_name = fields.Char(
         string="Model name", help="Name of field to update.", required=True
@@ -662,7 +676,7 @@ class CodeGeneratorDbTable(models.Model):
         )
 
     @api.multi
-    def generate_module(self, generated_module_name=False):
+    def generate_module(self, code_generator_id=None):
         """
         Function to generate a module
         :return:
@@ -670,7 +684,6 @@ class CodeGeneratorDbTable(models.Model):
 
         dct_model_id = {}
         dct_model_result_data = {}
-        # TODO associate code.generator.db.table to code.generator.db.table to remote generated_module_name
 
         l_module_tables = defaultdict(list)
 
@@ -693,22 +706,25 @@ class CodeGeneratorDbTable(models.Model):
                 continue
 
             module_name_caps = module_name.capitalize()
-            final_module_name = "%s_module_%s" % (
-                l_module_tables[module_name][0][1].database,
-                module_name,
-            )
-
-            module = self.env["code.generator.module"].search(
-                [("name", "=", final_module_name)]
-            )
-            if not module:
-                module = self.env["code.generator.module"].create(
-                    dict(
-                        shortdesc="Module %s" % module_name_caps,
-                        name=final_module_name,
-                        application=True,
-                    )
+            if not code_generator_id:
+                final_module_name = "%s_module_%s" % (
+                    l_module_tables[module_name][0][1].database,
+                    module_name,
                 )
+
+                module = self.env["code.generator.module"].search(
+                    [("name", "=", final_module_name)]
+                )
+                if not module:
+                    module = self.env["code.generator.module"].create(
+                        dict(
+                            shortdesc="Module %s" % module_name_caps,
+                            name=final_module_name,
+                            application=True,
+                        )
+                    )
+            else:
+                module = code_generator_id
 
             lst_model_dct = list(
                 map(
@@ -722,7 +738,12 @@ class CodeGeneratorDbTable(models.Model):
                             rec_name=self.env[
                                 "code.generator.db.update.migration.model"
                             ]
-                            .search([("model_name", "=", t_info[0])])
+                            .search(
+                                [
+                                    ("model_name", "=", t_info[0]),
+                                    ("code_generator_id", "=", module.id),
+                                ]
+                            )
                             .new_rec_name,
                         ),
                         m2o_module=module.id,
@@ -738,7 +759,12 @@ class CodeGeneratorDbTable(models.Model):
             for model_name, dct_model in dct_model_dct.items():
                 modif_model_id = self.env[
                     "code.generator.db.update.migration.model"
-                ].search([("model_name", "=", model_name)])
+                ].search(
+                    [
+                        ("model_name", "=", model_name),
+                        ("code_generator_id", "=", module.id),
+                    ]
+                )
                 if len(modif_model_id):
                     if len(modif_model_id) > 1:
                         _logger.warning(
@@ -756,7 +782,12 @@ class CodeGeneratorDbTable(models.Model):
 
                 modif_field_ids = self.env[
                     "code.generator.db.update.migration.field"
-                ].search([("model_name", "=", model_name)])
+                ].search(
+                    [
+                        ("model_name", "=", model_name),
+                        ("code_generator_id", "=", module.id),
+                    ]
+                )
                 dct_field = {}
                 for modif_id in modif_field_ids:
                     if modif_id.field_name:
@@ -972,7 +1003,7 @@ class CodeGeneratorDbTable(models.Model):
                         relation_model = field_id.relation
                         relation_field = field_id.foreign_key_field_name
                         new_relation_field = self.search_new_field_name(
-                            relation_model, relation_field
+                            module, relation_model, relation_field
                         )
                         for data in lst_data:
                             # Update many2one
@@ -1004,52 +1035,52 @@ class CodeGeneratorDbTable(models.Model):
                                 data[name] = new_id
                 results = self.env[model_created.model].sudo().create(lst_data)
                 dct_model_result_data[model_created.model] = results
-                if generated_module_name:
-                    # Generate xml_id for all nonmenclature
-                    for result in results:
-                        second = False
-                        if result._rec_name:
-                            second = getattr(result, result._rec_name)
-                        if second is False:
-                            second = uuid.uuid1().int
-                        # unidecode remove all accent
-                        new_id = unidecode.unidecode(
-                            f"{model_created.model.replace('.', '_')}_{second}"
-                            .replace("-", "_")
-                            .replace(" ", "_")
-                            .replace(".", "_")
-                            .replace("'", "_")
-                            .replace("`", "_")
-                            .replace("^", "_")
-                            .lower()
-                        )
-                        new_id = new_id.strip("_")
 
-                        while new_id.count("__"):
-                            new_id = new_id.replace("__", "_")
+                # Generate xml_id for all nonmenclature
+                for result in results:
+                    second = False
+                    if result._rec_name:
+                        second = getattr(result, result._rec_name)
+                    if second is False:
+                        second = uuid.uuid1().int
+                    # unidecode remove all accent
+                    new_id = unidecode.unidecode(
+                        f"{model_created.model.replace('.', '_')}_{second}"
+                        .replace("-", "_")
+                        .replace(" ", "_")
+                        .replace(".", "_")
+                        .replace("'", "_")
+                        .replace("`", "_")
+                        .replace("^", "_")
+                        .lower()
+                    )
+                    new_id = new_id.strip("_")
 
-                        # validate duplicate
-                        origin_new_id = new_id
+                    while new_id.count("__"):
+                        new_id = new_id.replace("__", "_")
+
+                    # validate duplicate
+                    origin_new_id = new_id
+                    ir_model_data_id = self.env["ir.model.data"].search(
+                        [("name", "=", new_id)]
+                    )
+                    i = 0
+                    while ir_model_data_id:
+                        i += 1
+                        origin_new_id = f"{new_id}{i}"
                         ir_model_data_id = self.env["ir.model.data"].search(
-                            [("name", "=", new_id)]
+                            [("name", "=", origin_new_id)]
                         )
-                        i = 0
-                        while ir_model_data_id:
-                            i += 1
-                            origin_new_id = f"{new_id}{i}"
-                            ir_model_data_id = self.env[
-                                "ir.model.data"
-                            ].search([("name", "=", origin_new_id)])
 
-                        self.env["ir.model.data"].create(
-                            {
-                                "name": origin_new_id,
-                                "model": model_created.model,
-                                "module": generated_module_name,
-                                "res_id": result.id,
-                                "noupdate": True,
-                            }
-                        )
+                    self.env["ir.model.data"].create(
+                        {
+                            "name": origin_new_id,
+                            "model": model_created.model,
+                            "module": module.name,
+                            "res_id": result.id,
+                            "noupdate": True,
+                        }
+                    )
 
             # Create missing field to fix looping dependencies
             i = -1
@@ -1080,6 +1111,7 @@ class CodeGeneratorDbTable(models.Model):
                     #             "=",
                     #             dct_looping_value.get("field_1"),
                     #         ),
+                    #         ("code_generator_id", "=", module.id),
                     #     ]
                     # )
 
@@ -1191,7 +1223,9 @@ class CodeGeneratorDbTable(models.Model):
                                     )
                                     new_relation_field = (
                                         self.search_new_field_name(
-                                            relation_model, relation_field
+                                            module,
+                                            relation_model,
+                                            relation_field,
                                         )
                                     )
                                     result_new_id = self.env[
@@ -1243,9 +1277,7 @@ class CodeGeneratorDbTable(models.Model):
             ignored_field_ids = self.env[
                 "code.generator.db.update.migration.field"
             ].search(
-                [
-                    ("delete", "=", True),
-                ]
+                [("delete", "=", True), ("code_generator_id", "=", module.id)]
             )
             for ignored_field_id in ignored_field_ids:
                 field_to_remove_id = self.env["ir.model.fields"].search(
@@ -1264,13 +1296,14 @@ class CodeGeneratorDbTable(models.Model):
                     field_to_remove_id.unlink()
         return module
 
-    def search_new_field_name(self, model_name, old_field_name):
+    def search_new_field_name(self, module_id, model_name, old_field_name):
         update_ids = self.env[
             "code.generator.db.update.migration.field"
         ].search(
             [
                 ("model_name", "=", model_name),
                 ("field_name", "=", old_field_name),
+                ("code_generator_id", "=", module_id.id),
             ]
         )
         if not update_ids:

@@ -703,7 +703,7 @@ pass''',
             # Create root if not exist
             if not self.generated_root_menu:
                 v = {
-                    "name": f"root_{module_name}",
+                    "name": module_name.replace("_", " ").title(),
                     "sequence": 20,
                     "web_icon": f"code_generator,static/description/icon_new_application.png",
                     # 'group_id': group_id.id,
@@ -743,7 +743,7 @@ pass''',
         if module.application and is_generic_menu:
             # Create action
             v = {
-                "name": f"{model_name_str}_action_view",
+                "name": model_name_str.replace("_", " ").title(),
                 "res_model": model_name,
                 "type": "ir.actions.act_window",
                 "view_mode": view_mode,

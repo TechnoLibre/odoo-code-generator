@@ -853,7 +853,7 @@ class CodeGeneratorDbTable(models.Model):
                             origin_field_data.get("relation")
                         ]
 
-                        new_name_one2many = f"{update_info.model_name}_ids"
+                        new_name_one2many = update_info.model_name
                         # update_field_one2many = dct_field.get(
                         #     new_name_one2many
                         # )
@@ -869,17 +869,23 @@ class CodeGeneratorDbTable(models.Model):
                         original_new_name_one2many = new_name_one2many
                         while new_name_one2many in lst_field_name:
                             j += 1
-                            new_name_one2many = (
-                                f"{original_new_name_one2many}_{j}"
-                            )
+                            if j == 1:
+                                new_name_one2many = (
+                                    f"{original_new_name_one2many}_ids"
+                                )
+                            else:
+                                new_name_one2many = (
+                                    f"{original_new_name_one2many}_ids_{j}"
+                                )
 
                         dct_one2many = {
                             "name": new_name_one2many,
                             # don't add origin_name to detect it's added
                             # "origin_name": new_name_one2many,
                             "field_description": (
-                                f"{new_name_one2many.title()} relation"
+                                new_name_one2many.replace("_", " ").title()
                             ),
+                            "help": f"{new_name_one2many.title()} relation",
                             "ttype": "one2many",
                             "relation": update_info.model_name,
                             "relation_field": update_info.new_field_name,

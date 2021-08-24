@@ -463,6 +463,11 @@ class CodeGeneratorDbUpdateMigrationField(models.Model):
         string="Delete", help="When enable, remove the field in generation."
     )
 
+    ignore_field = fields.Boolean(
+        string="Ignore field",
+        help="When enable, ignore import field and never compute it.",
+    )
+
     new_change_required = fields.Boolean(
         string="New required update",
         help="Set at True if need to update required value.",
@@ -755,6 +760,40 @@ class CodeGeneratorDbTable(models.Model):
 
             dct_model_dct = {a.get("model"): a for a in lst_model_dct}
 
+            # Delete ignored field before computation
+            ignored_field_ids = self.env[
+                "code.generator.db.update.migration.field"
+            ].search(
+                [
+                    ("ignore_field", "=", True),
+                    ("code_generator_id", "=", module.id),
+                ]
+            )
+
+            for ignored_field_id in ignored_field_ids:
+                dct_model_to_ignore = dct_model_dct.get(
+                    ignored_field_id.model_name
+                )
+                if not dct_model_to_ignore:
+                    _logger.warning(
+                        f"Ignore the field {ignored_field_id.field_name} from"
+                        f" model {ignored_field_id.model_name} into ignored"
+                        " list."
+                    )
+                    continue
+                # Search field
+                i = -1
+                for _, _, dct_field in dct_model_to_ignore.get("field_id"):
+                    i += 1
+                    if ignored_field_id.field_name == dct_field.get("name"):
+                        dct_model_to_ignore.get("field_id").pop(i)
+                        break
+                else:
+                    _logger.warning(
+                        f"Cannot find field {ignored_field_id.field_name} from"
+                        f" model {ignored_field_id.model_name}"
+                    )
+
             # Update model
             for model_name, dct_model in dct_model_dct.items():
                 modif_model_id = self.env[
@@ -939,8 +978,19 @@ class CodeGeneratorDbTable(models.Model):
                 else:
                     lst_ignored_field = []
 
-                if model_created.model == "membre":
-                    lst_ignored_field.append("motdepasse")
+                ignored_field_ids = self.env[
+                    "code.generator.db.update.migration.field"
+                ].search(
+                    [
+                        ("ignore_field", "=", True),
+                        ("model_name", "=", model_created.model),
+                        ("code_generator_id", "=", module.id),
+                    ]
+                )
+
+                if ignored_field_ids:
+                    for ignored_field_id in ignored_field_ids:
+                        lst_ignored_field.append(ignored_field_id.field_name)
 
                 model_created_fields = model_created.field_id.filtered(
                     lambda field: field.name
@@ -1280,12 +1330,12 @@ class CodeGeneratorDbTable(models.Model):
                                 f" new fields {lst_added_field_name}."
                             )
             # Remove field at the end, because some field is needed by other field to do relation
-            ignored_field_ids = self.env[
+            deleted_field_ids = self.env[
                 "code.generator.db.update.migration.field"
             ].search(
                 [("delete", "=", True), ("code_generator_id", "=", module.id)]
             )
-            for ignored_field_id in ignored_field_ids:
+            for ignored_field_id in deleted_field_ids:
                 field_to_remove_id = self.env["ir.model.fields"].search(
                     [
                         ("model", "=", ignored_field_id.model_name),

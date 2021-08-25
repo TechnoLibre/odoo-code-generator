@@ -459,6 +459,15 @@ class CodeGeneratorDbUpdateMigrationField(models.Model):
         help="Change field name with this query",
     )
 
+    compute_data_function = fields.Char(
+        string="Function compute data",
+        help=(
+            "Will be execute when extract data, first argument is the origin"
+            " data and return data to be overwrite. In string, will be execute"
+            " with eval. Use variable name from field in the model."
+        ),
+    )
+
     path_binary = fields.Char(
         string="Path binary type",
         help=(
@@ -1056,6 +1065,38 @@ class CodeGeneratorDbTable(models.Model):
                 # Update
                 for i, name in enumerate(mapped_model_created_fields):
                     field_id = model_created_fields[i]
+
+                    # compute_data_function
+                    compute_data_function_ids = self.env[
+                        "code.generator.db.update.migration.field"
+                    ].search(
+                        [
+                            ("compute_data_function", "!=", False),
+                            ("model_name", "=", model_created.model),
+                            ("code_generator_id", "=", module.id),
+                        ]
+                    )
+                    if compute_data_function_ids:
+                        for (
+                            compute_data_function_id
+                        ) in compute_data_function_ids:
+                            field_name = (
+                                compute_data_function_id.new_field_name
+                                if compute_data_function_id.new_field_name
+                                else compute_data_function_id.field_name
+                            )
+                            try:
+                                for data in lst_data:
+                                    value = data.get(field_name)
+                                    new_value = eval(
+                                        compute_data_function_id.compute_data_function,
+                                        data.copy(),
+                                    )
+                                    if new_value != value:
+                                        data[field_name] = new_value
+                            except Exception as e:
+                                _logger.error(e)
+
                     if (
                         field_id.path_binary
                         and field_id.ttype == "binary"

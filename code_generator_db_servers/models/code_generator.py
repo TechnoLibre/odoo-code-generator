@@ -363,13 +363,16 @@ def _get_table_fields(origin_table_name, m2o_db, rec_name="name"):
         raise ValidationError(TABLEFIELDPROBLEM)
 
 
-def _get_table_data(table_name, m2o_db, model_created_fields, limit=None):
+def _get_table_data(
+    table_name, m2o_db, model_created_fields, limit=None, lst_query_replace=[]
+):
     """
     Function to obtain a table data
     :param table_name:
     :param m2o_db:
     :param model_created_fields:
     :param limit: int max to get data
+    :param lst_query_replace: list of query to replace, tuple [0] string to replace, [1] new string
     :return:
     """
 
@@ -393,6 +396,10 @@ def _get_table_data(table_name, m2o_db, model_created_fields, limit=None):
         query = f" SELECT {','.join(model_created_fields)} FROM {table_name} "
         if limit:
             query += f"LIMIT {limit} "
+
+        for str_search, str_replace in lst_query_replace:
+            query = query.replace(str_search, str_replace)
+
         cr.execute(query)
 
         return cr.fetchall()
@@ -445,6 +452,11 @@ class CodeGeneratorDbUpdateMigrationField(models.Model):
     add_one2many = fields.Boolean(
         string="Add one2many",
         help="Add field one2many to related model on this field.",
+    )
+
+    sql_select_modify = fields.Char(
+        string="SQL selection modify",
+        help="Change field name with this query",
     )
 
     path_binary = fields.Char(
@@ -1011,10 +1023,26 @@ class CodeGeneratorDbTable(models.Model):
                     )
                 )
 
+                # sql_select_modify
+                sql_select_modify_id = self.env[
+                    "code.generator.db.update.migration.field"
+                ].search(
+                    [
+                        ("sql_select_modify", "!=", False),
+                        ("model_name", "=", model_created.model),
+                        ("code_generator_id", "=", module.id),
+                    ]
+                )
+                lst_query_replace = [
+                    (a.field_name, a.sql_select_modify)
+                    for a in sql_select_modify_id
+                ]
+
                 l_foreign_table_data = _get_table_data(
                     foreign_table.name,
                     foreign_table.m2o_db,
                     origin_mapped_model_created_fields,
+                    lst_query_replace=lst_query_replace,
                 )
 
                 lst_data = list(
@@ -1230,10 +1258,26 @@ class CodeGeneratorDbTable(models.Model):
                     )
                 )
 
+                # sql_select_modify
+                sql_select_modify_id = self.env[
+                    "code.generator.db.update.migration.field"
+                ].search(
+                    [
+                        ("sql_select_modify", "!=", False),
+                        ("model_name", "=", model_created.model),
+                        ("code_generator_id", "=", module.id),
+                    ]
+                )
+                lst_query_replace = [
+                    (a.field_name, a.sql_select_modify)
+                    for a in sql_select_modify_id
+                ]
+
                 l_foreign_table_data = _get_table_data(
                     foreign_table.name,
                     foreign_table.m2o_db,
                     lst_added_field_origin_name,
+                    lst_query_replace=lst_query_replace,
                 )
 
                 lst_data = list(

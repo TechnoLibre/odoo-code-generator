@@ -853,64 +853,82 @@ class CodeGeneratorDbTable(models.Model):
                     if modif_id.field_name:
                         if modif_id.field_name in dct_field.keys():
                             _logger.warning(
-                                "Cannot support multiple update for model"
-                                f" field {dct_model.get('model')} and field"
+                                "Cannot support multiple update field for"
+                                f" model {dct_model.get('model')} and field"
                                 f" {modif_id.field_name}"
                             )
                             continue
-                        dct_field[modif_id.field_name] = modif_id
+                        # Validate update field name exist from database
+                        for _, _, dct_model_field in dct_model.get("field_id"):
+                            if modif_id.field_name == dct_model_field.get(
+                                "name"
+                            ):
+                                is_exist = True
+                                break
+                        else:
+                            is_exist = False
+                            if not modif_id.ignore_field:
+                                _logger.warning(
+                                    "Field name doesn't exist from update field"
+                                    f" for model {dct_model.get('model')} and"
+                                    f" field {modif_id.field_name}"
+                                )
+
+                        if is_exist:
+                            dct_field[modif_id.field_name] = modif_id
+                    else:
+                        _logger.warning(
+                            "Missing field name in update field for model"
+                            f" {dct_model.get('model')} and field"
+                            f" {modif_id.field_name}"
+                        )
 
                 i = -1
-                for dct_model_field in dct_model.get("field_id"):
+                for _, _, dct_model_field in dct_model.get("field_id"):
                     i += 1
-                    origin_field_data = dct_model_field[2]
                     # Force origin_name to simplify code
-                    origin_field_data["origin_name"] = origin_field_data[
-                        "name"
-                    ]
-                    update_info = dct_field.get(origin_field_data.get("name"))
+                    dct_model_field["origin_name"] = dct_model_field["name"]
+                    update_info = dct_field.get(dct_model_field.get("name"))
                     if not update_info:
                         continue
 
                     if update_info.new_field_name:
-                        origin_field_data["name"] = update_info.new_field_name
+                        dct_model_field["name"] = update_info.new_field_name
 
                     # Keep empty value
                     if update_info.new_help is not False:
-                        if "help" in origin_field_data:
-                            origin_field_data[
-                                "origin_help"
-                            ] = origin_field_data["help"]
-                        origin_field_data["help"] = update_info.new_help
+                        if "help" in dct_model_field:
+                            dct_model_field["origin_help"] = dct_model_field[
+                                "help"
+                            ]
+                        dct_model_field["help"] = update_info.new_help
 
                     if update_info.new_change_required:
-                        if "required" in origin_field_data:
-                            origin_field_data[
+                        if "required" in dct_model_field:
+                            dct_model_field[
                                 "origin_required"
-                            ] = origin_field_data["required"]
-                        origin_field_data[
-                            "required"
-                        ] = update_info.new_required
+                            ] = dct_model_field["required"]
+                        dct_model_field["required"] = update_info.new_required
 
                     if update_info.new_type:
-                        origin_field_data["origin_type"] = origin_field_data[
+                        dct_model_field["origin_type"] = dct_model_field[
                             "ttype"
                         ]
-                        origin_field_data["ttype"] = update_info.new_type
+                        dct_model_field["ttype"] = update_info.new_type
 
                     if update_info.path_binary:
-                        origin_field_data[
+                        dct_model_field[
                             "path_binary"
                         ] = update_info.path_binary
 
                     if update_info.force_widget:
-                        origin_field_data[
+                        dct_model_field[
                             "force_widget"
                         ] = update_info.force_widget
 
                     if update_info.add_one2many:
                         model_related_id = dct_model_dct[
-                            origin_field_data.get("relation")
+                            dct_model_field.get("relation")
                         ]
 
                         new_name_one2many = update_info.model_name
@@ -960,21 +978,13 @@ class CodeGeneratorDbTable(models.Model):
 
                     # Keep empty value
                     if update_info.new_string is not False:
-                        if "field_description" in origin_field_data:
-                            origin_field_data[
-                                "origin_string"
-                            ] = origin_field_data["field_description"]
-                        origin_field_data[
+                        if "field_description" in dct_model_field:
+                            dct_model_field["origin_string"] = dct_model_field[
+                                "field_description"
+                            ]
+                        dct_model_field[
                             "field_description"
                         ] = update_info.new_string
-
-                    # Already replaced
-                    # dct_model.get("field_id")[i] = (
-                    #     dct_model_field[0],
-                    #     dct_model_field[1],
-                    #     origin_field_data,
-                    # )
-
             (
                 lst_model_dct,
                 dct_complete_looping_model,

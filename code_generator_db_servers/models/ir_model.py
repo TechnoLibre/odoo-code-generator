@@ -18,6 +18,7 @@ class IrModelFields(models.Model):
         string="Origin string", help="String before migration."
     )
 
+    # TODO not used field, remove this
     origin_help = fields.Char(
         string="Origin help", help="Help before migration."
     )

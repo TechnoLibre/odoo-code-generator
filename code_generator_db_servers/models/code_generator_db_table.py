@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import re
 
 import psycopg2
@@ -23,594 +21,10 @@ MAGIC_FIELDS = MAGIC_COLUMNS + [
     "access_token",
     "access_warning",
 ]
-INVALIDPORT = "The specify port is invalid."
-PSYCOPGUNINSTALLED = "Verify that the psycopg package is installed."
-PYMYSQLUNINSTALLED = "Verify that the pymysql package is installed."
-PYMSSQLUNINSTALLED = "Verify that the pymssql package is installed."
-CONECTIONPROBLEM = "A conection problem occur."
 TABLEFIELDPROBLEM = (
-    "A conection problem occur trying to obtain a table fields."
+    "A connection problem occur trying to obtain a table fields."
 )
-TABLEDATAPROBLEM = "A conection problem occur trying to obtain a table data."
-CREATEDBPROBLEM = "An error occur creating the database."
-
-
-def _replace_in(string, regex="\d"):
-    """
-    Util function to replace some content in a string
-    :param string:
-    :param regex:
-    :return:
-    """
-    return re.sub(regex, "", string)
-
-
-def _get_port(port):
-    """
-    Util function to check the specify port
-    :param port:
-    :return:
-    """
-
-    try:
-        port = int(port)
-
-    except ValueError:
-        raise ValidationError(INVALIDPORT)
-
-    return port
-
-
-def _get_db_cr(sgdb, database, host, port, user, password):
-    """
-    Util function to obtain an specific database cursor
-    :param sgdb:
-    :param database:
-    :param host:
-    :param port:
-    :param user:
-    :param password:
-    :return:
-    """
-
-    conn, port = None, _get_port(port)
-    if sgdb == "PostgreSQL":
-
-        try:
-            conn = psycopg2.connect(
-                database=database,
-                host=host,
-                port=port,
-                user=user,
-                password=password,
-            )
-
-        except ImportError:
-            raise ValidationError(PSYCOPGUNINSTALLED)
-
-    elif sgdb == "MySQL":
-
-        try:
-            import pymysql
-
-            conn = pymysql.connect(
-                db=database, host=host, port=port, user=user, password=password
-            )
-
-        except ImportError:
-            raise ValidationError(PYMYSQLUNINSTALLED)
-
-    elif sgdb == "SQLServer":
-
-        try:
-            import pymssql
-
-            conn = pymssql.connect(
-                database=database,
-                server=host,
-                port=port,
-                user=user,
-                password=password,
-            )
-
-        except ImportError:
-            raise ValidationError(PYMSSQLUNINSTALLED)
-
-    if conn:
-        return conn.cursor()
-
-    else:
-        raise ValidationError(CONECTIONPROBLEM)
-
-
-def _get_db_query_4_tables(sgdb, schema, database):
-    """
-    Function to obtain the SELECT query for a table
-    :param sgdb:
-    :param schema:
-    :param database:
-    :return:
-    """
-
-    query = (
-        f" SELECT table_name, table_type FROM {'information_schema.tables'} "
-    )
-
-    if sgdb != "SQLServer":
-        query += (
-            " WHERE table_schema ="
-            f" '{schema if sgdb == 'PostgreSQL' else database}' "
-        )
-
-    return query + """ ORDER BY table_name """
-
-
-def _get_db_query_4_columns(m2o_db, table_name, schema, database):
-    """
-    Function to obtain the SELECT query for a table columns
-    :param m2o_db:
-    :param table_name:
-    :param schema:
-    :param database:
-    :return:
-    """
-
-    sgdb = m2o_db.m2o_dbtype.name
-
-    query = """ SELECT * FROM {t_from} WHERE """.format(
-        t_from="information_schema.columns"
-    )
-
-    if sgdb != "SQLServer":
-        query += (
-            f" table_schema = '{schema if sgdb == 'PostgreSQL' else database}'"
-            " AND "
-        )
-
-    return query + f" table_name = '{table_name}' "
-
-
-def _get_q_4constraints(table_name, column_name, fkey=False, sgdb=None):
-    """
-    Function to obtain the SELECT query for a table constraints
-    :param table_name:
-    :param column_name:
-    :param fkey:
-    :param sgdb:
-    :return:
-    """
-
-    if fkey:
-        if sgdb != "MySQL":
-            return f""" SELECT ccu.table_name, ccu.COLUMN_NAME FROM {'information_schema.table_constraints'} AS tc
-            JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
-            JOIN {'information_schema.constraint_column_usage'} AS ccu ON ccu.constraint_name = tc.constraint_name
-            WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table_name}'
-            AND kcu.column_name = '{column_name}' """
-
-        else:
-            return f""" SELECT kcu.referenced_table_name, kcu.REFERENCED_COLUMN_NAME FROM {'information_schema.table_constraints'} AS tc
-            JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
-            WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table_name}'
-            AND kcu.column_name = '{column_name}' """
-
-    else:
-        return f""" SELECT * FROM {'information_schema.table_constraints'} AS tc
-        JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
-        WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_name = '{table_name}'
-        AND kcu.column_name = '{column_name}' """
-
-
-def _get_odoo_field_tuple_4insert(
-    name, field_description, ttype, required=False
-):
-    """
-    Function to obtain the tuple for a insert operation (0, 0, {...})
-    :param name:
-    :param field_description:
-    :param ttype:
-    :param required:
-    :return:
-    """
-
-    return (
-        0,
-        0,
-        dict(
-            name=name.lower().replace("ñ", "n"),
-            field_description=field_description.replace("_", " "),
-            ttype=ttype,
-            required=required,
-        ),
-    )
-
-
-def _get_odoo_ttype(data_type):
-    """
-    Util function to adapt some filed types for Odoo
-    :param data_type:
-    :return:
-    """
-
-    odoo_ttype = data_type
-    if (
-        data_type == "smallint"
-        or data_type == "int"
-        or data_type == "bit"
-        or data_type == "tinyint"
-    ):
-        odoo_ttype = "integer"
-
-    elif data_type == "money":
-        odoo_ttype = "monetary"
-
-    elif data_type == "decimal" or data_type == "double":
-        odoo_ttype = "float"
-
-    elif data_type == "character varying" or data_type == "varchar":
-        odoo_ttype = "char"
-
-    elif (
-        data_type == "timestamp with time zone"
-        or data_type == "timestamp"
-        or data_type == "time"
-    ):
-        odoo_ttype = "datetime"
-
-    elif data_type == "date":
-        odoo_ttype = "date"
-
-    return odoo_ttype
-
-
-def _get_table_fields(origin_table_name, m2o_db, rec_name="name"):
-    """
-    Function to obtain a table fields
-    :param origin_table_name:
-    :param m2o_db:
-    :param rec_name:
-    :return:
-    """
-
-    try:
-        sgdb = m2o_db.m2o_dbtype.name
-        database = m2o_db.database
-        cr = _get_db_cr(
-            sgdb=sgdb,
-            database=database,
-            host=m2o_db.host,
-            port=m2o_db.port,
-            user=m2o_db.user,
-            password=m2o_db.password,
-        )
-        str_query_4_columns = _get_db_query_4_columns(
-            m2o_db, origin_table_name, m2o_db.schema, database
-        )
-        cr.execute(str_query_4_columns)
-
-        l_fields = []
-        having_column_name = False
-        lst_column_info = cr.fetchall()
-        for column_info in lst_column_info:
-
-            column_name = column_info[3]
-
-            if column_name == "name":
-                having_column_name = True
-
-            # elif len(column_name) > 63:
-            #     slice_column_name = column_name[:63]
-            #     _logger.warning(
-            #         f"Slice column {column_name} to"
-            #         f" {slice_column_name} because length is upper than 63."
-            #     )
-            #     column_name = slice_column_name
-
-            str_query_4_constraints = _get_q_4constraints(
-                origin_table_name, column_name
-            )
-            cr.execute(str_query_4_constraints)
-            if (
-                m2o_db.accept_primary_key or not cr.fetchone()
-            ):  # if it is not a primary key
-
-                str_query_4_constraints_fkey = _get_q_4constraints(
-                    origin_table_name, column_name, fkey=True, sgdb=sgdb
-                )
-                cr.execute(str_query_4_constraints_fkey)
-                is_m2o = cr.fetchone()
-
-                t_odoo_field_4insert = _get_odoo_field_tuple_4insert(
-                    column_name,
-                    column_name.capitalize(),
-                    "many2one" if is_m2o else _get_odoo_ttype(column_info[7]),
-                    column_info[6] == "NO",
-                )
-
-                if is_m2o:  # It is a foreign key?
-                    model_name = is_m2o[0]
-                    column_name = is_m2o[1]
-                    name_splitted = model_name.split("_", maxsplit=1)
-
-                    if len(name_splitted) > 1:
-                        module_name, table_name = (
-                            name_splitted[0],
-                            name_splitted[1],
-                        )
-
-                    else:
-                        module_name, table_name = "comun", name_splitted[0]
-                    t_odoo_field_4insert[2][
-                        "relation"
-                    ] = f"{table_name.replace('_', '.')}"
-                    t_odoo_field_4insert[2][
-                        "foreign_key_field_name"
-                    ] = column_name.lower()
-
-                l_fields.append(t_odoo_field_4insert)
-
-        if not having_column_name and (
-            rec_name == "name" or rec_name is False
-        ):
-            # Force create field name if rec_name is "name" and missing name field
-            l_fields.append(
-                _get_odoo_field_tuple_4insert("name", "Name", "char")
-            )
-
-        return l_fields
-
-    except psycopg2.OperationalError:
-        raise ValidationError(TABLEFIELDPROBLEM)
-
-
-def _get_table_data(
-    table_name, m2o_db, model_created_fields, limit=None, lst_query_replace=[]
-):
-    """
-    Function to obtain a table data
-    :param table_name:
-    :param m2o_db:
-    :param model_created_fields:
-    :param limit: int max to get data
-    :param lst_query_replace: list of query to replace, tuple [0] string to replace, [1] new string
-    :return:
-    """
-
-    if not table_name:
-        raise ValueError(f"table name is empty.")
-
-    port = _get_port(m2o_db.port)
-    try:
-        cr = _get_db_cr(
-            sgdb=m2o_db.m2o_dbtype.name,
-            database=m2o_db.database,
-            host=m2o_db.host,
-            port=port,
-            user=m2o_db.user,
-            password=m2o_db.password,
-        )
-        if False in model_created_fields:
-            raise ValueError(
-                f"One element is False in list of field {model_created_fields}"
-            )
-        query = f" SELECT {','.join(model_created_fields)} FROM {table_name} "
-        if limit:
-            query += f"LIMIT {limit} "
-
-        for str_search, str_replace in lst_query_replace:
-            query = query.replace(str_search, str_replace)
-
-        cr.execute(query)
-
-        return cr.fetchall()
-
-    except psycopg2.OperationalError:
-        raise ValidationError(TABLEDATAPROBLEM)
-
-
-class CodeGeneratorDbType(models.Model):
-    _name = "code.generator.db.type"
-    _description = "Code Generator Db Type"
-
-    name = fields.Char(string="Db Type Name", help="Db Type", required=True)
-
-    _sql_constraints = [
-        ("unique_name", "unique (name)", "The Db Type must be unique.")
-    ]
-
-
-class CodeGeneratorDbUpdateMigrationField(models.Model):
-    _name = "code.generator.db.update.migration.field"
-    _description = "Code Generator Db update field before migration"
-
-    code_generator_id = fields.Many2one(
-        comodel_name="code.generator.module",
-        string="Code Generator",
-        required=True,
-        ondelete="cascade",
-    )
-
-    model_name = fields.Char(
-        string="Model name", help="Name of field to update.", required=True
-    )
-
-    field_name = fields.Char(
-        string="Field name", help="Name of field to update.", required=True
-    )
-
-    new_field_name = fields.Char(string="New name")
-
-    new_string = fields.Char(string="New string")
-
-    new_type = fields.Char(string="New type")
-
-    force_widget = fields.Char(
-        string="Force widget",
-        help="Use this widget for this field when create views.",
-    )
-
-    add_one2many = fields.Boolean(
-        string="Add one2many",
-        help="Add field one2many to related model on this field.",
-    )
-
-    sql_select_modify = fields.Char(
-        string="SQL selection modify",
-        help="Change field name with this query",
-    )
-
-    compute_data_function = fields.Char(
-        string="Function compute data",
-        help=(
-            "Will be execute when extract data, first argument is the origin"
-            " data and return data to be overwrite. In string, will be execute"
-            " with eval. Use variable name from field in the model."
-        ),
-    )
-
-    path_binary = fields.Char(
-        string="Path binary type",
-        help=(
-            "Attribut path to use with value of char to binary, import binary"
-            " in database."
-        ),
-    )
-
-    new_help = fields.Char(string="New help")
-
-    new_required = fields.Boolean(string="New required")
-
-    delete = fields.Boolean(
-        string="Delete", help="When enable, remove the field in generation."
-    )
-
-    ignore_field = fields.Boolean(
-        string="Ignore field",
-        help="When enable, ignore import field and never compute it.",
-    )
-
-    new_change_required = fields.Boolean(
-        string="New required update",
-        help="Set at True if need to update required value.",
-    )
-
-
-class CodeGeneratorDbUpdateMigrationModel(models.Model):
-    _name = "code.generator.db.update.migration.model"
-    _description = "Code Generator Db update model before migration"
-
-    code_generator_id = fields.Many2one(
-        comodel_name="code.generator.module",
-        string="Code Generator",
-        required=True,
-        ondelete="cascade",
-    )
-
-    model_name = fields.Char(
-        string="Model name", help="Name of field to update.", required=True
-    )
-
-    new_rec_name = fields.Char(string="New rec name")
-
-    new_description = fields.Char(string="New description")
-
-    new_model_name = fields.Char(string="New model name")
-
-
-class CodeGeneratorDb(models.Model):
-    _name = "code.generator.db"
-    _description = "Code Generator Db"
-    _rec_name = "database"
-
-    m2o_dbtype = fields.Many2one(
-        "code.generator.db.type",
-        "Db Type",
-        required=True,
-        default=lambda self: self.env.ref(
-            "code_generator_db_servers.code_generator_db_type_pgsql"
-        ).id,
-        ondelete="cascade",
-    )
-
-    m2o_dbtype_name = fields.Char(related="m2o_dbtype.name")
-
-    database = fields.Char(string="Db Name", help="Db Name", required=True)
-
-    schema = fields.Char(
-        string="Schema", help="Schema", required=True, default="public"
-    )
-
-    host = fields.Char(string="Ip address", help="Ip address", required=True)
-
-    port = fields.Char(string="Port", help="Port", required=True)
-
-    user = fields.Char(string="User", help="User", required=True)
-
-    password = fields.Char(string="Password", help="Password", required=True)
-
-    accept_primary_key = fields.Boolean(
-        string="Accept Primary Key",
-        help="Integrate primary key fields in column",
-        default=False,
-    )
-
-    _sql_constraints = [
-        (
-            "unique_db",
-            "unique (m2o_dbtype, host, port)",
-            "The Db Type, host and port combination must be unique.",
-        )
-    ]
-
-    @api.model_create_multi
-    def create(self, vals_list):
-
-        failure, result = 0, None
-        for value in vals_list:
-
-            try:
-
-                sgdb = (
-                    self.env["code.generator.db.type"]
-                    .browse(value["m2o_dbtype"])
-                    .name
-                )
-                cr = _get_db_cr(
-                    sgdb=sgdb,
-                    database=value["database"],
-                    host=value["host"],
-                    port=value["port"],
-                    user=value["user"],
-                    password=value["password"],
-                )
-
-                result = super(CodeGeneratorDb, self).create(value)
-
-                str_query_4_tables = _get_db_query_4_tables(
-                    sgdb, value["schema"], value["database"]
-                )
-                cr.execute(str_query_4_tables)
-                for table_info in cr.fetchall():
-                    dct_all_table = dict(
-                        m2o_db=result.id,
-                        name=table_info[0],
-                        table_type="view"
-                        if table_info[1] == "VIEW"
-                        else "table",
-                    )
-
-                    self.env["code.generator.db.table"].sudo().create(
-                        dct_all_table
-                    )
-
-            except Exception as e:
-                failure += 1
-                _logger.error(e)
-
-        if len(vals_list) == failure:
-            raise ValidationError(CREATEDBPROBLEM)
-
-        return result
+TABLEDATAPROBLEM = "A connection problem occur trying to obtain a table data."
 
 
 class CodeGeneratorDbTable(models.Model):
@@ -659,7 +73,7 @@ class CodeGeneratorDbTable(models.Model):
     def create(self, vals_list):
         for value in vals_list:
             result = super(CodeGeneratorDbTable, self).create(value)
-            lst_fields = _get_table_fields(result.name, result.m2o_db)
+            lst_fields = self.get_table_fields(result.name, result.m2o_db)
             for field in lst_fields:
                 column_value = {
                     "name": field[2].get("name"),
@@ -757,8 +171,10 @@ class CodeGeneratorDbTable(models.Model):
                     lambda t_info: dict(
                         name="Model %s belonging to Module %s"
                         % (t_info[0].capitalize(), module_name_caps),
-                        model=_replace_in(t_info[0].lower().replace("_", ".")),
-                        field_id=_get_table_fields(
+                        model=self.replace_in(
+                            t_info[0].lower().replace("_", ".")
+                        ),
+                        field_id=self.get_table_fields(
                             self._get_model_name(module_name, t_info[0]),
                             t_info[1],
                             rec_name=self.env[
@@ -869,9 +285,10 @@ class CodeGeneratorDbTable(models.Model):
                             is_exist = False
                             if not modif_id.ignore_field:
                                 _logger.warning(
-                                    "Field name doesn't exist from update field"
-                                    f" for model {dct_model.get('model')} and"
-                                    f" field {modif_id.field_name}"
+                                    "Field name doesn't exist from update"
+                                    " field for model"
+                                    f" {dct_model.get('model')} and field"
+                                    f" {modif_id.field_name}"
                                 )
 
                         if is_exist:
@@ -1057,7 +474,7 @@ class CodeGeneratorDbTable(models.Model):
                     for a in sql_select_modify_id
                 ]
 
-                l_foreign_table_data = _get_table_data(
+                l_foreign_table_data = self.get_table_data(
                     foreign_table.name,
                     foreign_table.m2o_db,
                     origin_mapped_model_created_fields,
@@ -1324,7 +741,7 @@ class CodeGeneratorDbTable(models.Model):
                     for a in sql_select_modify_id
                 ]
 
-                l_foreign_table_data = _get_table_data(
+                l_foreign_table_data = self.get_table_data(
                     foreign_table.name,
                     foreign_table.m2o_db,
                     lst_added_field_origin_name,
@@ -1446,6 +863,286 @@ class CodeGeneratorDbTable(models.Model):
                         )
                     field_to_remove_id.unlink()
         return module
+
+    def get_db_query_4_columns(self, m2o_db, table_name, schema, database):
+        """
+        Function to obtain the SELECT query for a table columns
+        :param m2o_db:
+        :param table_name:
+        :param schema:
+        :param database:
+        :return:
+        """
+
+        sgdb = m2o_db.m2o_dbtype.name
+
+        query = """ SELECT * FROM {t_from} WHERE """.format(
+            t_from="information_schema.columns"
+        )
+
+        if sgdb != "SQLServer":
+            query += (
+                " table_schema ="
+                f" '{schema if sgdb == 'PostgreSQL' else database}' AND "
+            )
+
+        return query + f" table_name = '{table_name}' "
+
+    @staticmethod
+    def get_q_4constraints(table_name, column_name, fkey=False, sgdb=None):
+        """
+        Function to obtain the SELECT query for a table constraints
+        :param table_name:
+        :param column_name:
+        :param fkey:
+        :param sgdb:
+        :return:
+        """
+
+        if fkey:
+            if sgdb != "MySQL":
+                return f""" SELECT ccu.table_name, ccu.COLUMN_NAME FROM {'information_schema.table_constraints'} AS tc
+                JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
+                JOIN {'information_schema.constraint_column_usage'} AS ccu ON ccu.constraint_name = tc.constraint_name
+                WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table_name}'
+                AND kcu.column_name = '{column_name}' """
+
+            else:
+                return f""" SELECT kcu.referenced_table_name, kcu.REFERENCED_COLUMN_NAME FROM {'information_schema.table_constraints'} AS tc
+                JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
+                WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table_name}'
+                AND kcu.column_name = '{column_name}' """
+
+        else:
+            return f""" SELECT * FROM {'information_schema.table_constraints'} AS tc
+            JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
+            WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_name = '{table_name}'
+            AND kcu.column_name = '{column_name}' """
+
+    @staticmethod
+    def get_odoo_field_tuple_4insert(
+        name, field_description, ttype, required=False
+    ):
+        """
+        Function to obtain the tuple for a insert operation (0, 0, {...})
+        :param name:
+        :param field_description:
+        :param ttype:
+        :param required:
+        :return:
+        """
+
+        return (
+            0,
+            0,
+            dict(
+                name=unidecode.unidecode(name.lower()),
+                field_description=field_description.replace("_", " "),
+                ttype=ttype,
+                required=required,
+            ),
+        )
+
+    @staticmethod
+    def get_odoo_ttype(data_type):
+        """
+        Util function to adapt some filed types for Odoo
+        :param data_type:
+        :return:
+        """
+
+        odoo_ttype = data_type
+        if (
+            data_type == "smallint"
+            or data_type == "int"
+            or data_type == "bit"
+            or data_type == "tinyint"
+        ):
+            odoo_ttype = "integer"
+
+        elif data_type == "money":
+            odoo_ttype = "monetary"
+
+        elif data_type == "decimal" or data_type == "double":
+            odoo_ttype = "float"
+
+        elif data_type == "character varying" or data_type == "varchar":
+            odoo_ttype = "char"
+
+        elif (
+            data_type == "timestamp with time zone"
+            or data_type == "timestamp"
+            or data_type == "time"
+        ):
+            odoo_ttype = "datetime"
+
+        elif data_type == "date":
+            odoo_ttype = "date"
+
+        return odoo_ttype
+
+    def get_table_fields(self, origin_table_name, m2o_db, rec_name="name"):
+        """
+        Function to obtain a table fields
+        :param origin_table_name:
+        :param m2o_db:
+        :param rec_name:
+        :return:
+        """
+
+        try:
+            sgdb = m2o_db.m2o_dbtype.name
+            database = m2o_db.database
+            cr = self.env["code.generator.db"].get_db_cr(
+                sgdb=sgdb,
+                database=database,
+                host=m2o_db.host,
+                port=m2o_db.port,
+                user=m2o_db.user,
+                password=m2o_db.password,
+            )
+            str_query_4_columns = self.get_db_query_4_columns(
+                m2o_db, origin_table_name, m2o_db.schema, database
+            )
+            cr.execute(str_query_4_columns)
+
+            l_fields = []
+            having_column_name = False
+            lst_column_info = cr.fetchall()
+            for column_info in lst_column_info:
+
+                column_name = column_info[3]
+
+                if column_name == "name":
+                    having_column_name = True
+
+                # elif len(column_name) > 63:
+                #     slice_column_name = column_name[:63]
+                #     _logger.warning(
+                #         f"Slice column {column_name} to"
+                #         f" {slice_column_name} because length is upper than 63."
+                #     )
+                #     column_name = slice_column_name
+
+                str_query_4_constraints = self.get_q_4constraints(
+                    origin_table_name, column_name
+                )
+                cr.execute(str_query_4_constraints)
+                if (
+                    m2o_db.accept_primary_key or not cr.fetchone()
+                ):  # if it is not a primary key
+
+                    str_query_4_constraints_fkey = self.get_q_4constraints(
+                        origin_table_name, column_name, fkey=True, sgdb=sgdb
+                    )
+                    cr.execute(str_query_4_constraints_fkey)
+                    is_m2o = cr.fetchone()
+
+                    t_odoo_field_4insert = self.get_odoo_field_tuple_4insert(
+                        column_name,
+                        column_name.capitalize(),
+                        "many2one"
+                        if is_m2o
+                        else self.get_odoo_ttype(column_info[7]),
+                        column_info[6] == "NO",
+                    )
+
+                    if is_m2o:  # It is a foreign key?
+                        model_name = is_m2o[0]
+                        column_name = is_m2o[1]
+                        name_splitted = model_name.split("_", maxsplit=1)
+
+                        if len(name_splitted) > 1:
+                            module_name, table_name = (
+                                name_splitted[0],
+                                name_splitted[1],
+                            )
+
+                        else:
+                            module_name, table_name = "comun", name_splitted[0]
+                        t_odoo_field_4insert[2][
+                            "relation"
+                        ] = f"{table_name.replace('_', '.')}"
+                        t_odoo_field_4insert[2][
+                            "foreign_key_field_name"
+                        ] = column_name.lower()
+
+                    l_fields.append(t_odoo_field_4insert)
+
+            if not having_column_name and (
+                rec_name == "name" or rec_name is False
+            ):
+                # Force create field name if rec_name is "name" and missing name field
+                l_fields.append(
+                    self.get_odoo_field_tuple_4insert("name", "Name", "char")
+                )
+
+            return l_fields
+
+        except psycopg2.OperationalError:
+            raise ValidationError(TABLEFIELDPROBLEM)
+
+    def get_table_data(
+        self,
+        table_name,
+        m2o_db,
+        model_created_fields,
+        limit=None,
+        lst_query_replace=[],
+    ):
+        """
+        Function to obtain a table data
+        :param table_name:
+        :param m2o_db:
+        :param model_created_fields:
+        :param limit: int max to get data
+        :param lst_query_replace: list of query to replace, tuple [0] string to replace, [1] new string
+        :return:
+        """
+
+        if not table_name:
+            raise ValueError(f"table name is empty.")
+
+        port = self.env["code.generator.db"].get_port(m2o_db.port)
+        try:
+            cr = self.env["code.generator.db"].get_db_cr(
+                sgdb=m2o_db.m2o_dbtype.name,
+                database=m2o_db.database,
+                host=m2o_db.host,
+                port=port,
+                user=m2o_db.user,
+                password=m2o_db.password,
+            )
+            if False in model_created_fields:
+                raise ValueError(
+                    "One element is False in list of field"
+                    f" {model_created_fields}"
+                )
+            query = (
+                f" SELECT {','.join(model_created_fields)} FROM {table_name} "
+            )
+            if limit:
+                query += f"LIMIT {limit} "
+
+            for str_search, str_replace in lst_query_replace:
+                query = query.replace(str_search, str_replace)
+
+            cr.execute(query)
+
+            return cr.fetchall()
+
+        except psycopg2.OperationalError:
+            raise ValidationError(TABLEDATAPROBLEM)
+
+    @staticmethod
+    def replace_in(string, regex="\d"):
+        """
+        Util function to replace some content in a string
+        :param string:
+        :param regex:
+        :return:
+        """
+        return re.sub(regex, "", string)
 
     def search_new_field_name(self, module_id, model_name, old_field_name):
         update_ids = self.env[
@@ -1623,48 +1320,3 @@ class CodeGeneratorDbTable(models.Model):
                     if is_find:
                         break
         return lst_model_ordered, dct_complete_looping_model
-
-
-class CodeGeneratorDbColumn(models.Model):
-    _name = "code.generator.db.column"
-    _description = "Code Generator Db Column"
-
-    m2o_table = fields.Many2one(
-        "code.generator.db.table", "Table", required=True, ondelete="cascade"
-    )
-
-    name = fields.Char(string="Name", help="Column name", required=True)
-
-    description = fields.Char(
-        string="Description",
-        help="Column description",
-    )
-
-    required = fields.Boolean(
-        string="Required",
-        help="Column required",
-    )
-
-    column_type = fields.Selection(
-        string="Column type",
-        help="Column type",
-        required=True,
-        selection=[
-            ("char", "Char"),
-            ("text", "Text"),
-            ("integer", "Integer"),
-            ("monetary", "Monetary"),
-            ("float", "Float"),
-            ("datetime", "Datetime"),
-            ("date", "Date"),
-            ("boolean", "Boolean"),
-            ("html", "Html"),
-            ("binary", "Binary"),
-            ("selection", "Selection"),
-            ("many2one", "Many2one"),
-            # TODO support many2many
-            # ("many2many", "Many2many"),
-            # Cannot detect one2many in database relation
-            # ("one2many", "One2many"),
-        ],
-    )

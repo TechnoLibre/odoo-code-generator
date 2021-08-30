@@ -295,6 +295,10 @@ class CodeGeneratorModule(models.Model):
             # module.icon_image = ""
             if module.icon:
                 path_parts = module.icon.split("/")
+                # TODO this is broken ??
+                # path = modules.get_module_resource(
+                #     path_parts[0], *path_parts[1:]
+                # )
                 path = modules.get_module_resource(
                     path_parts[1], *path_parts[2:]
                 )

@@ -56,6 +56,22 @@ class CodeGeneratorDbTable(models.Model):
         help="Set if you want this table to be used as nomenclator",
     )
 
+    new_rec_name = fields.Char(string="New rec name")
+
+    new_description = fields.Char(string="New description")
+
+    new_model_name = fields.Char(string="New model name")
+
+    has_update = fields.Boolean(
+        string="Has new data",
+        compute="_compute_has_update",
+        store=True,
+    )
+
+    delete = fields.Boolean(
+        string="Delete", help="When enable, remove the table in generation."
+    )
+
     _sql_constraints = [
         (
             "unique_db_table",
@@ -63,6 +79,24 @@ class CodeGeneratorDbTable(models.Model):
             "The Db and name combination must be unique.",
         )
     ]
+
+    @api.depends(
+        "new_rec_name",
+        "new_description",
+        "new_model_name",
+    )
+    def _compute_has_update(self):
+        for obj in self:
+            obj.has_update = bool(
+                obj.new_rec_name or obj.new_description or obj.new_model_name
+            )
+            # if obj.new_rec_name:
+            #     # Remove temporary name field if exist
+            #     for column_id in self.o2m_columns.filtered(
+            #         lambda column: column.temporary_name_field
+            #     ):
+            #         if column_id.name != obj.new_rec_name:
+            #             column_id.delete = True
 
     @api.multi
     def toggle_nomenclator(self):
@@ -73,13 +107,18 @@ class CodeGeneratorDbTable(models.Model):
     def create(self, vals_list):
         for value in vals_list:
             result = super(CodeGeneratorDbTable, self).create(value)
-            lst_fields = self.get_table_fields(result.name, result.m2o_db)
+            lst_fields = self.get_table_fields(
+                result.name, result.m2o_db, mark_temporary_field=True
+            )
             for field in lst_fields:
                 column_value = {
                     "name": field[2].get("name"),
                     "required": field[2].get("required"),
                     "column_type": field[2].get("ttype"),
                     "description": field[2].get("field_description"),
+                    "temporary_name_field": field[2].get(
+                        "temporary_name_field"
+                    ),
                     "m2o_table": result.id,
                 }
                 self.env["code.generator.db.column"].create(column_value)
@@ -921,7 +960,7 @@ class CodeGeneratorDbTable(models.Model):
 
     @staticmethod
     def get_odoo_field_tuple_4insert(
-        name, field_description, ttype, required=False
+        name, field_description, ttype, required=False, dct_new_info={}
     ):
         """
         Function to obtain the tuple for a insert operation (0, 0, {...})
@@ -929,19 +968,21 @@ class CodeGeneratorDbTable(models.Model):
         :param field_description:
         :param ttype:
         :param required:
+        :param dct_new_info:
         :return:
         """
 
-        return (
-            0,
-            0,
-            dict(
+        dct_value = {
+            **dict(
                 name=unidecode.unidecode(name.lower()),
                 field_description=field_description.replace("_", " "),
                 ttype=ttype,
                 required=required,
             ),
-        )
+            **dct_new_info,
+        }
+
+        return 0, 0, dct_value
 
     @staticmethod
     def get_odoo_ttype(data_type):
@@ -981,12 +1022,19 @@ class CodeGeneratorDbTable(models.Model):
 
         return odoo_ttype
 
-    def get_table_fields(self, origin_table_name, m2o_db, rec_name="name"):
+    def get_table_fields(
+        self,
+        origin_table_name,
+        m2o_db,
+        rec_name="name",
+        mark_temporary_field=False,
+    ):
         """
         Function to obtain a table fields
         :param origin_table_name:
         :param m2o_db:
         :param rec_name:
+        :param mark_temporary_field:
         :return:
         """
 
@@ -1073,8 +1121,16 @@ class CodeGeneratorDbTable(models.Model):
                 rec_name == "name" or rec_name is False
             ):
                 # Force create field name if rec_name is "name" and missing name field
+                dct_temp_info = {}
+                if mark_temporary_field:
+                    dct_temp_info["temporary_name_field"] = True
                 l_fields.append(
-                    self.get_odoo_field_tuple_4insert("name", "Name", "char")
+                    self.get_odoo_field_tuple_4insert(
+                        "name",
+                        "Name",
+                        "char",
+                        dct_new_info=dct_temp_info,
+                    )
                 )
 
             return l_fields

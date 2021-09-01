@@ -46,7 +46,7 @@ class CodeGeneratorDbUpdateMigrationField(models.Model):
 
     new_field_name = fields.Char(string="New name")
 
-    new_string = fields.Char(string="New string")
+    new_description = fields.Char(string="New description")
 
     new_type = fields.Char(string="New type")
 
@@ -197,12 +197,19 @@ class CodeGeneratorDb(models.Model):
                 )
                 cr.execute(str_query_4_tables)
                 for table_info in cr.fetchall():
+                    table_name = table_info[0]
+                    split_name = table_name.split("_", maxsplit=1)
+                    if len(split_name) > 1:
+                        module_name = split_name[0]
+                    else:
+                        module_name = ""
                     dct_all_table = dict(
                         m2o_db=result.id,
-                        name=table_info[0],
+                        name=table_name,
                         table_type="view"
                         if table_info[1] == "VIEW"
                         else "table",
+                        module_name=module_name,
                     )
 
                     self.env["code.generator.db.table"].sudo().create(

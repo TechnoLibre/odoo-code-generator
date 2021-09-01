@@ -257,9 +257,10 @@ class IrModel(models.Model):
             if not models.check_object_name(model.model):
                 raise ValidationError(
                     _(
-                        "The model name can only contain lowercase characters,"
-                        " digits, underscores and dots."
+                        "The model name %s can only contain lowercase"
+                        " characters, digits, underscores and dots."
                     )
+                    % model.model
                 )
 
     rec_name = fields.Char(default="name")

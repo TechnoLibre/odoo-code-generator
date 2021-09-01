@@ -1142,7 +1142,21 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        return str(string).lower().replace(replacee, replacer)
+        v = (
+            str(string)
+            .lower()
+            .replace(replacee, replacer)
+            .replace("-", "_")
+            .replace(".", "_")
+            .replace("'", "_")
+            .replace("`", "_")
+            .replace("^", "_")
+        )
+        new_v = v.strip("_")
+
+        while new_v.count("__"):
+            new_v = new_v.replace("__", "_")
+        return new_v
 
     def _get_model_model(self, model_model, replacee="."):
         """

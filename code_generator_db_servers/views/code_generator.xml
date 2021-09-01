@@ -136,20 +136,22 @@
         <field name="name"/>
         <field name="description"/>
         <field name="column_type"/>
+        <field name="relation"/>
         <field name="required"/>
-        <field name="new_name"/>
-        <field name="new_string"/>
-        <field name="new_type"/>
-        <field name="new_required"/>
-        <field name="new_change_required"/>
-        <field name="force_widget"/>
-        <field name="add_one2many"/>
-        <field name="sql_select_modify"/>
-        <field name="compute_data_function"/>
-        <field name="path_binary"/>
-        <field name="new_help"/>
         <field name="delete"/>
         <field name="ignore_field"/>
+        <field name="new_name"/>
+        <field name="new_description"/>
+        <field name="new_type"/>
+        <field name="new_relation"/>
+        <field name="new_help"/>
+        <field name="new_change_required"/>
+        <field name="new_required"/>
+        <field name="add_one2many"/>
+        <field name="force_widget"/>
+        <field name="path_binary"/>
+        <field name="sql_select_modify"/>
+        <field name="compute_data_function"/>
         <field name="has_update" invisible="1"/>
         <field name="temporary_name_field" invisible="1"/>
       </tree>

@@ -143,7 +143,6 @@
         <field name="new_name"/>
         <field name="new_description"/>
         <field name="new_type"/>
-        <field name="new_relation"/>
         <field name="new_help"/>
         <field name="new_change_required"/>
         <field name="new_required"/>

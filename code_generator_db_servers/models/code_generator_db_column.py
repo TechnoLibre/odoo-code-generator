@@ -40,12 +40,21 @@ class CodeGeneratorDbColumn(models.Model):
 
     new_name = fields.Char(help="Rename the field name to this value.")
 
+    field_name = fields.Char(
+        help="Field name, use name, or new_name", compute="_compute_field_name"
+    )
+
     description = fields.Char(
         help="Column description, be converted to field description.",
     )
 
     new_description = fields.Char(
         help="Rename the field description this value."
+    )
+
+    field_description = fields.Char(
+        help="Field description, use new_description or description.",
+        compute="_compute_field_description",
     )
 
     new_help = fields.Char(string="New help")
@@ -57,6 +66,10 @@ class CodeGeneratorDbColumn(models.Model):
 
     new_type = fields.Selection(
         selection=SELECTION_TYPE,
+    )
+
+    field_type = fields.Char(
+        selection=SELECTION_TYPE, compute="_compute_field_type"
     )
 
     required = fields.Boolean(
@@ -73,6 +86,8 @@ class CodeGeneratorDbColumn(models.Model):
             " instead of field required."
         ),
     )
+
+    field_required = fields.Boolean(compute="_compute_field_required")
 
     relation_table_id = fields.Many2one(
         string="Depend table",
@@ -93,19 +108,9 @@ class CodeGeneratorDbColumn(models.Model):
         help="The field related with foreign key, contain the new model name.",
     )
 
-    new_relation = fields.Char(
-        string="New relation many2one",
-        help="New relation name after migration.",
-    )
-
     relation_column = fields.Char(
         string="Relation many2one column",
         help="The column foreign key from relation.",
-    )
-
-    new_relation_field = fields.Char(
-        string="New relation many2one field",
-        help="The field related with foreign key, contain the new field name.",
     )
 
     force_widget = fields.Char(
@@ -171,9 +176,8 @@ class CodeGeneratorDbColumn(models.Model):
         "new_name",
         "new_description",
         "new_type",
-        "new_change_required",
         "new_help",
-        "new_relation",
+        "field_required",
         "force_widget",
         "add_one2many",
         "sql_select_modify",
@@ -187,7 +191,6 @@ class CodeGeneratorDbColumn(models.Model):
             has_update = bool(
                 obj.new_name
                 or obj.new_description
-                or obj.new_change_required
                 or obj.new_type
                 or obj.new_help
                 or obj.force_widget
@@ -198,6 +201,28 @@ class CodeGeneratorDbColumn(models.Model):
                 or obj.delete
                 or obj.ignore_field
             )
-            if not has_update and obj.relation:
-                has_update = obj.new_relation != obj.relation.replace("_", ".")
-            obj.has_update = has_update
+            obj.has_update = has_update or obj.field_required != obj.required
+
+    @api.depends("name", "new_name")
+    def _compute_field_name(self):
+        for obj in self:
+            obj.field_name = obj.new_name if obj.new_name else obj.name
+
+    @api.depends("description", "new_description")
+    def _compute_field_description(self):
+        for obj in self:
+            obj.field_description = (
+                obj.new_description if obj.new_description else obj.description
+            )
+
+    @api.depends("column_type", "new_type")
+    def _compute_field_type(self):
+        for obj in self:
+            obj.field_type = obj.new_type if obj.new_type else obj.column_type
+
+    @api.depends("required", "new_required", "new_change_required")
+    def _compute_field_required(self):
+        for obj in self:
+            obj.field_required = (
+                obj.new_required if obj.new_change_required else obj.required
+            )

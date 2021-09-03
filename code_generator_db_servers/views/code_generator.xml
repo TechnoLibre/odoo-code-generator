@@ -131,7 +131,7 @@
     <field name="name">code.generator.db.column.tree</field>
     <field name="model">code.generator.db.column</field>
     <field name="arch" type="xml">
-      <tree editable="top" decoration-success="has_update and not temporary_name_field" decoration-muted="temporary_name_field">
+      <tree editable="top" decoration-success="has_update and not temporary_name_field and not delete and not ignore_field" decoration-muted="temporary_name_field or delete or ignore_field">
         <field name="m2o_table"/>
         <field name="name"/>
         <field name="description"/>

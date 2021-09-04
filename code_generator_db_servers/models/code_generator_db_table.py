@@ -143,7 +143,7 @@ class CodeGeneratorDbTable(models.Model):
             obj.model_name = (
                 obj.new_model_name
                 if obj.new_model_name
-                else obj.name.replace("_", ".")
+                else obj.name.replace("_", ".").lower()
             )
             obj.module_display_name = obj.model_name.replace(".", " ").title()
 
@@ -151,6 +151,33 @@ class CodeGeneratorDbTable(models.Model):
     def toggle_nomenclator(self):
         for table in self:
             table.nomenclator = not table.nomenclator
+
+    def update_table(
+        self,
+        table_name,
+        new_model_name=None,
+        new_description=None,
+        new_rec_name=None,
+        delete=False,
+        nomenclator=False,
+    ):
+        table_id = self.search([("name", "=", table_name)])
+        if not table_id:
+            _logger.error(f"Cannot update table {table_name}.")
+            return
+        if delete:
+            table_id.delete = True
+            for column_id in table_id.o2m_columns:
+                column_id.ignore_field = True
+                column_id.delete = True
+        if new_model_name:
+            table_id.new_model_name = new_model_name
+        if new_rec_name:
+            table_id.new_rec_name = new_rec_name
+        if new_description:
+            table_id.new_description = new_description
+        if nomenclator:
+            table_id.nomenclator = True
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -207,6 +234,8 @@ class CodeGeneratorDbTable(models.Model):
         dct_module = {}
         dct_module_table = defaultdict(list)
         for table in self:
+            if table.delete:
+                continue
             dct_module_table[table.module_name].append(table)
 
         for module_name, lst_table in dct_module_table.items():

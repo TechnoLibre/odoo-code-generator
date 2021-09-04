@@ -226,3 +226,90 @@ class CodeGeneratorDbColumn(models.Model):
             obj.field_required = (
                 obj.new_required if obj.new_change_required else obj.required
             )
+
+    def update_column(
+        self,
+        table_name,
+        column_name,
+        new_field_name=None,
+        new_description=None,
+        new_type=None,
+        new_help=None,
+        new_required=None,
+        new_compute=None,
+        sql_select_modify=None,
+        delete=False,
+        ignore_field=False,
+        path_binary=None,
+        force_widget=None,
+        compute_data_function=None,
+        add_one2many=False,
+    ):
+        """
+
+        :param table_name:
+        :param column_name:
+        :param new_field_name:
+        :param new_description:
+        :param new_type:
+        :param new_help:
+        :param new_required:
+        :param new_compute:
+        :param sql_select_modify: update select command with this string
+        :param delete: import data, use to compute information but delete the field at the end with his data
+        :param ignore_field: never compute it and ignore data from it
+        :param path_binary: path for type binary when the past was char
+        :param force_widget:
+        :param compute_data_function: function, in string, to run with data in argument and overwrite data
+        :param add_one2many:
+        :return:
+        """
+        table_id = self.env["code.generator.db.table"].search(
+            [("name", "=", table_name)]
+        )
+        if not table_id:
+            _logger.error(
+                f"Cannot update table {table_name} with column {column_name}."
+            )
+            return
+
+        column_id = self.env["code.generator.db.column"].search(
+            [("m2o_table", "=", table_id.id), ("name", "=", column_name)]
+        )
+        if len(column_id) > 1:
+            _logger.error(
+                f"Find too much column {column_name} from table {table_name}."
+            )
+            return
+        elif not column_id:
+            _logger.error(
+                f"Cannot column {column_name} from table {table_name}."
+            )
+            return
+        if new_field_name:
+            column_id.new_name = new_field_name
+        if new_description:
+            column_id.new_description = new_description
+        if new_type:
+            column_id.new_type = new_type
+        if new_help:
+            column_id.new_help = new_help
+        if new_required is not None:
+            column_id.new_change_required = True
+            column_id.new_required = new_required
+        if new_compute is not None:
+            column_id.new_compute = new_compute
+        if path_binary:
+            column_id.path_binary = path_binary
+        if force_widget:
+            column_id.force_widget = force_widget
+        if add_one2many:
+            column_id.add_one2many = add_one2many
+        if compute_data_function:
+            column_id.compute_data_function = compute_data_function
+        if sql_select_modify:
+            column_id.sql_select_modify = sql_select_modify
+        if delete:
+            column_id.delete = True
+        if ignore_field:
+            column_id.ignore_field = True

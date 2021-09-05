@@ -757,8 +757,18 @@ pass''',
 
             self.nb_sub_menu += 1
 
+            # Compute menu name
+            menu_name = model_name_str
+            application_name, sub_model_name = model_name.split(
+                ".", maxsplit=1
+            )
+            if sub_model_name and menu_name.lower().startswith(
+                application_name.lower()
+            ):
+                menu_name = sub_model_name.title().replace(".", " ")
+
             v = {
-                "name": model_name_str,
+                "name": menu_name,
                 "sequence": self.nb_sub_menu,
                 "action": "ir.actions.act_window,%s" % action_id.id,
                 # 'group_id': group_id.id,

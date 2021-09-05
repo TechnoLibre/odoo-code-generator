@@ -343,6 +343,8 @@ class CodeGeneratorDbTable(models.Model):
 
             if field.new_help:
                 dct_field["help"] = field.new_help
+            if field.new_default_value:
+                dct_field["default"] = field.new_default_value
             if field.relation_table_id:
                 # Don't share field.relation, it's the relation with the table_name
                 dct_field["relation"] = field.relation_table_id.model_name

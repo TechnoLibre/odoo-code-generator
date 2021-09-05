@@ -1934,8 +1934,12 @@ class CodeGeneratorWriter(models.Model):
                 if rfield.id in lst_field_id_blacklist:
                     continue
                 record_value = getattr(record, rfield.name)
-                if record_value:
-
+                if record_value or (
+                    not record_value
+                    and rfield.ttype == "boolean"
+                    and rfield.default == "True"
+                ):
+                    delete_node = False
                     if rfield.ttype == "many2one":
                         ref = self._get_ir_model_data(
                             record_value,
@@ -1993,7 +1997,15 @@ class CodeGeneratorWriter(models.Model):
                             {"name": rfield.name},
                             str(record_value)[2:-1],
                         )
-
+                    elif rfield.ttype == "boolean":
+                        # Don't show boolean if same value of default
+                        if str(record_value) != rfield.default:
+                            child = E.field(
+                                {"name": rfield.name},
+                                str(record_value),
+                            )
+                        else:
+                            delete_node = True
                     elif rfield.related == "view_id.arch" or (
                         rfield.name == "arch" and rfield.model == "ir.ui.view"
                     ):
@@ -2007,7 +2019,8 @@ class CodeGeneratorWriter(models.Model):
                             {"name": rfield.name}, str(record_value)
                         )
 
-                    lst_field.append(child)
+                    if not delete_node:
+                        lst_field.append(child)
 
             # TODO delete this comment, check why no need anymore rec_name
             # rec_name_v = self._get_from_rec_name(record, model)
@@ -3184,11 +3197,11 @@ class CodeGeneratorWriter(models.Model):
 
             if f2export.default:
                 # TODO support default = None
+                # TODO validate with type for boolean
                 if f2export.default == "True":
                     dct_field_attribute["default"] = True
                 elif f2export.default == "False":
-                    # Ignore False value
-                    pass
+                    dct_field_attribute["default"] = False
                 elif f2export.ttype == "integer":
                     dct_field_attribute["default"] = int(f2export.default)
                 elif f2export.ttype in ("char", "selection"):

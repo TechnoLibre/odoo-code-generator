@@ -245,10 +245,15 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
 
-        field_ids = model_created_fields.filtered(
-            lambda a: a.code_generator_tree_view_sequence >= 0
-        )
-        if not field_ids:
+        lst_field_to_remove = ("active", "actif")
+
+        has_sequence = False
+        for field_id in model_created_fields:
+            if field_id.code_generator_tree_view_sequence >= 0:
+                has_sequence = True
+                break
+
+        if not has_sequence:
             # code_generator_tree_view_sequence all -1, default value
             # Move rec_name in beginning
             # Move one2many at the end
@@ -268,6 +273,8 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
         lst_field = []
         for field_id in lst_field_sorted:
+            if field_id.name in lst_field_to_remove:
+                continue
             # TODO validate code_generator_tree_view_sequence is supported
             # if a.code_generator_tree_view_sequence >= 0
             dct_value = {"name": field_id.name}
@@ -333,14 +340,18 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     ):
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
-        lst_field = []
-        lst_group = []
+        lst_item_sheet = []
         key = "geo_"
 
-        field_ids = model_created_fields.filtered(
-            lambda a: a.code_generator_form_simple_view_sequence >= 0
-        )
-        if not field_ids:
+        lst_field_to_transform_button_box = ("active", "actif")
+
+        has_sequence = False
+        for field_id in model_created_fields:
+            if field_id.code_generator_form_simple_view_sequence >= 0:
+                has_sequence = True
+                break
+
+        if not has_sequence:
             # code_generator_form_simple_view_sequence all -1, default value
             # Move rec_name in beginning
             # Move one2many at the end
@@ -356,7 +367,33 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             lambda field: field.code_generator_form_simple_view_sequence
         )
 
+        lst_button_box = []
         for field_id in field_sorted_ids:
+            if field_id.name in lst_field_to_transform_button_box:
+                item_field = E.field(
+                    {"name": field_id.name, "widget": "boolean_button"}
+                )
+                item_button = E.button(
+                    {
+                        "name": "toggle_active",
+                        "type": "object",
+                        "class": "oe_stat_button",
+                        "icon": "fa-archive",
+                    },
+                    item_field,
+                )
+                lst_button_box.append(item_button)
+
+        if lst_button_box:
+            item = E.div(
+                {"class": "oe_button_box", "name": "button_box"},
+                *lst_button_box,
+            )
+            lst_item_sheet.append(item)
+
+        for field_id in field_sorted_ids:
+            if field_id.name in lst_field_to_transform_button_box:
+                continue
             lst_value = []
             value = {"name": field_id.name}
             lst_value.append(value)
@@ -367,12 +404,13 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 value["widget"] = "geo_edit_map"
                 # value["attrs"] = "{'invisible': [('type', '!=', '"f"{model[len(key):]}')]""}"
             # lst_field.append(value)
-            lst_group.append(E.group({}, E.field(value)))
+            lst_item_sheet.append(E.group({}, E.field(value)))
+
         arch_xml = E.form(
             {
                 "string": "Titre",
             },
-            E.sheet({}, *lst_group),
+            E.sheet({}, *lst_item_sheet),
         )
         str_arch = ET.tostring(arch_xml, pretty_print=True)
         view_value = self.env["ir.ui.view"].create(

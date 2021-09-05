@@ -72,6 +72,12 @@ class CodeGeneratorDbColumn(models.Model):
         selection=SELECTION_TYPE, compute="_compute_field_type"
     )
 
+    new_default_value = fields.Char(
+        help=""""True" -> True
+    "False" -> False
+    After, will be converted dependent of type."""
+    )
+
     required = fields.Boolean(
         string="Required",
         help="Column required",
@@ -237,6 +243,7 @@ class CodeGeneratorDbColumn(models.Model):
         new_help=None,
         new_required=None,
         new_compute=None,
+        new_default_value=None,
         sql_select_modify=None,
         delete=False,
         ignore_field=False,
@@ -255,6 +262,7 @@ class CodeGeneratorDbColumn(models.Model):
         :param new_help:
         :param new_required:
         :param new_compute:
+        :param new_default_value:
         :param sql_select_modify: update select command with this string
         :param delete: import data, use to compute information but delete the field at the end with his data
         :param ignore_field: never compute it and ignore data from it
@@ -292,6 +300,8 @@ class CodeGeneratorDbColumn(models.Model):
             column_id.new_description = new_description
         if new_type:
             column_id.new_type = new_type
+        if new_default_value:
+            column_id.new_default_value = new_default_value
         if new_help:
             column_id.new_help = new_help
         if new_required is not None:

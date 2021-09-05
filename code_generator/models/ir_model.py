@@ -551,6 +551,15 @@ class IrModelFields(models.Model):
         default=-1,
     )
 
+    code_generator_form_simple_view_sequence = fields.Integer(
+        string="Form simple view sequence",
+        help=(
+            "Sequence to write this field in form simple view from Code"
+            " Generator."
+        ),
+        default=-1,
+    )
+
     code_generator_search_sequence = fields.Integer(
         string="Search sequence",
         help="Sequence to write this field in search from Code Generator.",

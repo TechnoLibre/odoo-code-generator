@@ -244,10 +244,28 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     ):
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
-        # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
+
+        field_ids = model_created_fields.filtered(
+            lambda a: a.code_generator_tree_view_sequence >= 0
+        )
+        if not field_ids:
+            # code_generator_tree_view_sequence all -1, default value
+            # Move rec_name in beginning
+            # Move one2many at the end
+            for field_id in model_created_fields:
+                if field_id.name == model_created.rec_name:
+                    field_id.code_generator_tree_view_sequence = 0
+                elif field_id.ttype == "one2many":
+                    field_id.code_generator_tree_view_sequence = 2
+                else:
+                    field_id.code_generator_tree_view_sequence = 1
+
+        # Use tree view sequence, or generic sequence
         lst_field_sorted = model_created_fields.sorted(
             lambda field: field.code_generator_tree_view_sequence
         )
+
+        # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
         lst_field = []
         for field_id in lst_field_sorted:
             # TODO validate code_generator_tree_view_sequence is supported
@@ -318,7 +336,27 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         lst_field = []
         lst_group = []
         key = "geo_"
-        for field_id in model_created_fields:
+
+        field_ids = model_created_fields.filtered(
+            lambda a: a.code_generator_form_simple_view_sequence >= 0
+        )
+        if not field_ids:
+            # code_generator_form_simple_view_sequence all -1, default value
+            # Move rec_name in beginning
+            # Move one2many at the end
+            for field_id in model_created_fields:
+                if field_id.name == model_created.rec_name:
+                    field_id.code_generator_form_simple_view_sequence = 0
+                elif field_id.ttype == "one2many":
+                    field_id.code_generator_form_simple_view_sequence = 2
+                else:
+                    field_id.code_generator_form_simple_view_sequence = 1
+
+        field_sorted_ids = model_created_fields.sorted(
+            lambda field: field.code_generator_form_simple_view_sequence
+        )
+
+        for field_id in field_sorted_ids:
             lst_value = []
             value = {"name": field_id.name}
             lst_value.append(value)

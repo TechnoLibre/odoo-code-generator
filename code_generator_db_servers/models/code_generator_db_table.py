@@ -338,6 +338,8 @@ class CodeGeneratorDbTable(models.Model):
             dct_field["ttype"] = field.field_type
             dct_field["required"] = field.field_required
             dct_field["db_columns_ids"] = field.id
+            if field.force_widget:
+                dct_field["force_widget"] = field.force_widget
 
             if field.new_help:
                 dct_field["help"] = field.new_help
@@ -436,26 +438,28 @@ class CodeGeneratorDbTable(models.Model):
                 for column_binary_char_id in column_binary_char_ids:
                     if data:
                         value = data.get(column_binary_char_id.field_name)
-                        # import path in binary
-                        path_file = os.path.join(
-                            column_binary_char_id.path_binary,
-                            value,
-                        )
-                        if os.path.isfile(path_file):
-                            new_data_binary = open(
-                                path_file,
-                                "rb",
-                            ).read()
-                            data[
-                                column_binary_char_id.field_name
-                            ] = base64.b64encode(new_data_binary)
-                        else:
-                            _logger.error(
-                                f"Cannot add file path `{path_file}` for model"
-                                f" `{column_binary_char_id.ir_model_field_id.model}`"
-                                " and field"
-                                f" `{column_binary_char_id.field_name}`"
+                        if value:
+                            # import path in binary
+                            path_file = os.path.join(
+                                column_binary_char_id.path_binary,
+                                value,
                             )
+                            if os.path.isfile(path_file):
+                                new_data_binary = open(
+                                    path_file,
+                                    "rb",
+                                ).read()
+                                data[
+                                    column_binary_char_id.field_name
+                                ] = base64.b64encode(new_data_binary)
+                            else:
+                                _logger.error(
+                                    f"Cannot add file path `{path_file}` for"
+                                    " model"
+                                    f" `{column_binary_char_id.ir_model_field_id.model}`"
+                                    " and field"
+                                    f" `{column_binary_char_id.field_name}`"
+                                )
                 for column_many2one_id in column_many2one_ids:
                     value = data.get(column_many2one_id.field_name)
                     # Update value with foreign key value

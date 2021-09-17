@@ -78,6 +78,10 @@ class CodeGeneratorDbColumn(models.Model):
     After, will be converted dependent of type."""
     )
 
+    selection_migration_start_at = fields.Integer(
+        default=0, help="For migrating data, start indexing from this number."
+    )
+
     new_selection = fields.Char(help=""""Use value like [('value','text'),]""")
 
     required = fields.Boolean(
@@ -247,6 +251,7 @@ class CodeGeneratorDbColumn(models.Model):
         new_compute=None,
         new_default_value=None,
         new_selection=None,
+        selection_migration_start_at=0,
         sql_select_modify=None,
         delete=False,
         ignore_field=False,
@@ -266,6 +271,7 @@ class CodeGeneratorDbColumn(models.Model):
         :param new_required:
         :param new_compute:
         :param new_default_value:
+        :param selection_migration_start_at:
         :param new_selection:
         :param sql_select_modify: update select command with this string
         :param delete: import data, use to compute information but delete the field at the end with his data
@@ -306,8 +312,12 @@ class CodeGeneratorDbColumn(models.Model):
             column_id.new_type = new_type
         if new_default_value:
             column_id.new_default_value = new_default_value
+        if selection_migration_start_at:
+            column_id.selection_migration_start_at = (
+                selection_migration_start_at
+            )
         if new_selection:
-            column_id.new_selection = new_selection
+            column_id.new_selection = new_selection.replace("\n", "")
         if new_help:
             column_id.new_help = new_help
         if new_required is not None:

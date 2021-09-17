@@ -474,7 +474,10 @@ class CodeGeneratorDbTable(models.Model):
                         selection_value = eval(
                             column_selection_id.new_selection
                         )
-                        new_value = selection_value[value]
+                        new_value = selection_value[
+                            value
+                            - column_selection_id.selection_migration_start_at
+                        ]
                         data[column_selection_id.field_name] = new_value[0]
                 # Compute char path to transform in binary
                 for column_binary_char_id in column_binary_char_ids:

@@ -357,6 +357,8 @@ class CodeGeneratorDbTable(models.Model):
 
             if field.new_help:
                 dct_field["help"] = field.new_help
+            if field.new_selection:
+                dct_field["selection"] = field.new_selection
             if field.new_default_value:
                 dct_field["default"] = field.new_default_value
             if field.relation_table_id:
@@ -400,6 +402,9 @@ class CodeGeneratorDbTable(models.Model):
         column_many2one_ids = column_nomenclator_ids.filtered(
             lambda a: a.field_type == "many2one"
         )
+        column_selection_ids = column_nomenclator_ids.filtered(
+            lambda a: a.field_type == "selection"
+        )
 
         # Get query for SQL
         lst_query_replace = [
@@ -425,7 +430,12 @@ class CodeGeneratorDbTable(models.Model):
         )
 
         # Compute data before create it
-        if column_compute_ids or column_binary_char_ids or column_many2one_ids:
+        if (
+            column_compute_ids
+            or column_binary_char_ids
+            or column_many2one_ids
+            or column_selection_ids
+        ):
             for data in lst_data:
                 # Compute data with a method call
                 try:
@@ -450,6 +460,22 @@ class CodeGeneratorDbTable(models.Model):
                         f" `{column_compute_id.compute_data_function}`"
                     )
 
+                # Selection
+                for column_selection_id in column_selection_ids:
+                    if data:
+                        value = data.get(column_selection_id.field_name)
+                        if type(value) is not int:
+                            _logger.error(
+                                "Selection type support only database type"
+                                " int, check column"
+                                f" `{column_selection_id.field_name}`"
+                            )
+                            break
+                        selection_value = eval(
+                            column_selection_id.new_selection
+                        )
+                        new_value = selection_value[value]
+                        data[column_selection_id.field_name] = new_value[0]
                 # Compute char path to transform in binary
                 for column_binary_char_id in column_binary_char_ids:
                     if data:

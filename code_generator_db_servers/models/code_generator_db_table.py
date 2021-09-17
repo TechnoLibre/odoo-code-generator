@@ -5,7 +5,7 @@ from odoo import _, models, fields, api
 from odoo.exceptions import ValidationError
 from collections import defaultdict
 from odoo.models import MAGIC_COLUMNS
-import uuid
+import time
 import base64
 import os
 import unidecode
@@ -262,14 +262,21 @@ class CodeGeneratorDbTable(models.Model):
             dct_module[module_name] = module
             lst_module.append(module)
 
+        before_time = time.process_time()
         for module_name, lst_table in dct_module_table.items():
             table_ids = self.browse([a.id for a in lst_table])
             self._compute_table(
                 dct_module.get(module_name), module_name, table_ids
             )
+        after_time = time.process_time()
+        _logger.info(
+            "DEBUG time execution generate_module db_table"
+            f" {after_time - before_time}"
+        )
         return lst_module
 
     def _compute_table(self, cg_module_id, module_name, table_ids):
+        # Not supported
         # Double link
         # Double data link
 
@@ -300,12 +307,19 @@ class CodeGeneratorDbTable(models.Model):
 
         # Delete field, after compute stuff
         _logger.info("Delete fields after compute with it.")
+        before_time = time.process_time()
+
         for model_id in models_created:
             field_ids = model_id.field_id.filtered(
                 lambda x: x.db_columns_ids.delete
             )
             field_ids.unlink()
 
+        after_time = time.process_time()
+        _logger.info(
+            "DEBUG time execution _compute_table unlinks"
+            f" {after_time - before_time}"
+        )
         _logger.info(f"End of migration for module {module_name}")
 
     @staticmethod

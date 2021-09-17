@@ -50,12 +50,12 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     )
 
     def _generate_form_views_models(
-        self, model_created, model_created_fields, module
+        self, model_created, model_created_fields, module, dct_value_to_create
     ):
         result = super(
             CodeGeneratorGenerateViewsWizard, self
         )._generate_form_views_models(
-            model_created, model_created_fields, module
+            model_created, model_created_fields, module, dct_value_to_create
         )
 
         field_geo_id = model_created.field_id.filtered(

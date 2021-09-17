@@ -1,3 +1,6 @@
+import time
+
+from collections import defaultdict
 from odoo import _, models, fields, api
 from odoo.models import MAGIC_COLUMNS
 from lxml.builder import E
@@ -138,13 +141,18 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
         self.clear_all()
 
+        # TODO refactor this part to control generation
+        dct_value_to_create = defaultdict(list)
+
+        before_time = time.process_time()
+
         if not self.code_generator_view_ids:
-            return self.generic_generate_view()
+            status = self.generic_generate_view(dct_value_to_create)
         else:
             lst_view_generated = []
             for code_generator_view_id in self.code_generator_view_ids:
                 view_id = self._generate_specific_form_views_models(
-                    code_generator_view_id
+                    code_generator_view_id, dct_value_to_create
                 )
                 lst_view_generated.append(view_id.type)
                 # TODO bug attach view to model (o2m_model) when not generate access
@@ -153,10 +161,21 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             self._generate_menu(
                 model_id, model_id.m2o_module, lst_view_generated
             )
-        return True
+            status = True
+        # Accelerate creation in batch
+        for model_name, lst_value in dct_value_to_create.items():
+            self.env[model_name].create(lst_value)
+
+        after_time = time.process_time()
+        _logger.info(
+            "DEBUG time execution button_generate_views"
+            f" {after_time - before_time}"
+        )
+        return status
 
     @api.multi
-    def generic_generate_view(self):
+    def generic_generate_view(self, dct_value_to_create):
+        # before_time = time.process_time()
         o2m_models_view_list = (
             self.code_generator_id.o2m_models
             if self.all_model
@@ -177,11 +196,20 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
             # Different view
             if model_id in o2m_models_view_list:
-                is_whitelist = bool(
-                    model_id.field_id.filtered(
-                        lambda field: field.is_show_whitelist_list_view
-                    )
+                is_whitelist = all(
+                    [a.is_show_whitelist_list_view for a in model_id.field_id]
                 )
+                # model_created_fields_list = list(
+                #     filter(
+                #         lambda x: x.name not in MAGIC_FIELDS
+                #                   and not x.is_hide_blacklist_list_view
+                #                   and (
+                #                           not is_whitelist
+                #                           or (is_whitelist and x.is_show_whitelist_list_view)
+                #                   ),
+                #         [a for a in model_id.field_id],
+                #     )
+                # )
                 model_created_fields_list = model_id.field_id.filtered(
                     lambda field: field.name not in MAGIC_FIELDS
                     and not field.is_hide_blacklist_list_view
@@ -194,16 +222,32 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                     model_created_fields_list
                 )
                 self._generate_list_views_models(
-                    model_id, model_created_fields_list, model_id.m2o_module
+                    model_id,
+                    model_created_fields_list,
+                    model_id.m2o_module,
+                    dct_value_to_create,
                 )
                 lst_view_generated.append("list")
 
             if model_id in o2m_models_view_form:
-                is_whitelist = bool(
-                    model_id.field_id.filtered(
-                        lambda field: field.is_show_whitelist_form_view
-                    )
+                is_whitelist = all(
+                    [
+                        a.is_show_whitelist_form_view
+                        for b in model_id
+                        for a in b.field_id
+                    ]
                 )
+                # model_created_fields_form = list(
+                #     filter(
+                #         lambda x: x.name not in MAGIC_FIELDS
+                #                   and not x.is_hide_blacklist_form_view
+                #                   and (
+                #                           not is_whitelist
+                #                           or (is_whitelist and x.is_show_whitelist_form_view)
+                #                   ),
+                #         [a for a in model_id.field_id],
+                #     )
+                # )
                 model_created_fields_form = model_id.field_id.filtered(
                     lambda field: field.name not in MAGIC_FIELDS
                     and not field.is_hide_blacklist_form_view
@@ -213,7 +257,10 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                     )
                 )
                 self._generate_form_views_models(
-                    model_id, model_created_fields_form, model_id.m2o_module
+                    model_id,
+                    model_created_fields_form,
+                    model_id.m2o_module,
+                    dct_value_to_create,
                 )
                 lst_view_generated.append("form")
 
@@ -231,6 +278,11 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         for model_id in self.code_generator_id.o2m_models:
             self._generate_model_access(model_id)
 
+        # after_time = time.process_time()
+        # _logger.info(
+        #     "DEBUG time execution generic_generate_view"
+        #     f" {after_time - before_time}"
+        # )
         return True
 
     def _add_dependencies(self):
@@ -240,7 +292,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         return model_created_fields_list
 
     def _generate_list_views_models(
-        self, model_created, model_created_fields, module
+        self, model_created, model_created_fields, module, dct_value_to_create
     ):
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
@@ -254,21 +306,58 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 break
 
         if not has_sequence:
+            lst_order_field_id = [[], [], []]
             # code_generator_tree_view_sequence all -1, default value
             # Move rec_name in beginning
             # Move one2many at the end
             for field_id in model_created_fields:
                 if field_id.name == model_created.rec_name:
-                    field_id.code_generator_tree_view_sequence = 0
+                    # TODO write this value
+                    lst_order_field_id[0].append(field_id.id)
+                    # field_id.code_generator_tree_view_sequence = 0
                 elif field_id.ttype == "one2many":
-                    field_id.code_generator_tree_view_sequence = 2
+                    lst_order_field_id[2].append(field_id.id)
+                    # field_id.code_generator_tree_view_sequence = 2
                 else:
-                    field_id.code_generator_tree_view_sequence = 1
-
-        # Use tree view sequence, or generic sequence
-        lst_field_sorted = model_created_fields.sorted(
-            lambda field: field.code_generator_tree_view_sequence
-        )
+                    lst_order_field_id[1].append(field_id.id)
+                    # field_id.code_generator_tree_view_sequence = 1
+            new_lst_order_field_id = (
+                lst_order_field_id[0]
+                + lst_order_field_id[1]
+                + lst_order_field_id[2]
+            )
+            # TODO this can slow, can we accumulate this data for the end?
+            # field_sorted_sequence_0 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[0]
+            # )
+            # field_sorted_sequence_1 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[1]
+            # )
+            # field_sorted_sequence_2 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[2]
+            # )
+            # field_sorted_sequence_0.write(
+            #     {"code_generator_form_simple_view_sequence": 0}
+            # )
+            # field_sorted_sequence_1.write(
+            #     {"code_generator_form_simple_view_sequence": 1}
+            # )
+            # field_sorted_sequence_2.write(
+            #     {"code_generator_form_simple_view_sequence": 2}
+            # )
+            # field_sorted_ids = (
+            #     field_sorted_sequence_0
+            #     + field_sorted_sequence_1
+            #     + field_sorted_sequence_2
+            # )
+            lst_field_sorted = self.env["ir.model.fields"].browse(
+                new_lst_order_field_id
+            )
+        else:
+            # Use tree view sequence, or generic sequence
+            lst_field_sorted = model_created_fields.sorted(
+                lambda field: field.code_generator_tree_view_sequence
+            )
 
         # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
         lst_field = []
@@ -289,40 +378,14 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             *lst_field,
         )
         str_arch = ET.tostring(arch_xml, pretty_print=True)
-        view_value = self.env["ir.ui.view"].create(
-            {
-                "name": f"{model_name_str}_tree",
-                "type": "tree",
-                "model": model_name,
-                "arch": str_arch,
-                "m2o_model": model_created.id,
-            }
-        )
-
-        return view_value
-
-    def _generate_list_search_models(
-        self, model_created, model_created_fields, module
-    ):
-        model_name = model_created.model
-        model_name_str = model_name.replace(".", "_")
-        # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
-        lst_field_sorted = model_created_fields.sorted(
-            lambda field: field.code_generator_search_sequence
-        )
-        lst_field = [
-            E.field({"name": a.name})
-            for a in lst_field_sorted
-            if a.code_generator_search_sequence >= 0
-        ]
-        arch_xml = E.search(
-            {
-                # TODO enable this when missing form
-                # "editable": "top",
-            },
-            *lst_field,
-        )
-        str_arch = ET.tostring(arch_xml, pretty_print=True)
+        # ir_ui_view_value = {
+        #     "name": f"{model_name_str}_tree",
+        #     "type": "tree",
+        #     "model": model_name,
+        #     "arch": str_arch,
+        #     "m2o_model": model_created.id,
+        # }
+        # dct_value_to_create["ir.ui.view"].append(ir_ui_view_value)
         view_value = self.env["ir.ui.view"].create(
             {
                 "name": f"{model_name_str}_tree",
@@ -336,7 +399,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         return view_value
 
     def _generate_form_views_models(
-        self, model_created, model_created_fields, module
+        self, model_created, model_created_fields, module, dct_value_to_create
     ):
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
@@ -352,20 +415,59 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 break
 
         if not has_sequence:
+            lst_order_field_id = [[], [], []]
             # code_generator_form_simple_view_sequence all -1, default value
             # Move rec_name in beginning
             # Move one2many at the end
             for field_id in model_created_fields:
                 if field_id.name == model_created.rec_name:
-                    field_id.code_generator_form_simple_view_sequence = 0
+                    # TODO write this value
+                    lst_order_field_id[0].append(field_id.id)
+                    # field_id.code_generator_form_simple_view_sequence = 0
                 elif field_id.ttype == "one2many":
-                    field_id.code_generator_form_simple_view_sequence = 2
+                    lst_order_field_id[2].append(field_id.id)
+                    # field_id.code_generator_form_simple_view_sequence = 2
                 else:
-                    field_id.code_generator_form_simple_view_sequence = 1
+                    lst_order_field_id[1].append(field_id.id)
+                    # field_id.code_generator_form_simple_view_sequence = 1
+            new_lst_order_field_id = (
+                lst_order_field_id[0]
+                + lst_order_field_id[1]
+                + lst_order_field_id[2]
+            )
 
-        field_sorted_ids = model_created_fields.sorted(
-            lambda field: field.code_generator_form_simple_view_sequence
-        )
+            # TODO this can slow, can we accumulate this data for the end?
+            # field_sorted_sequence_0 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[0]
+            # )
+            # field_sorted_sequence_1 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[1]
+            # )
+            # field_sorted_sequence_2 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[2]
+            # )
+            # field_sorted_sequence_0.write(
+            #     {"code_generator_form_simple_view_sequence": 0}
+            # )
+            # field_sorted_sequence_1.write(
+            #     {"code_generator_form_simple_view_sequence": 1}
+            # )
+            # field_sorted_sequence_2.write(
+            #     {"code_generator_form_simple_view_sequence": 2}
+            # )
+            # field_sorted_ids = (
+            #     field_sorted_sequence_0
+            #     + field_sorted_sequence_1
+            #     + field_sorted_sequence_2
+            # )
+            field_sorted_ids = self.env["ir.model.fields"].browse(
+                new_lst_order_field_id
+            )
+        else:
+            field_sorted_ids = sorted(
+                model_created_fields,
+                key=lambda x: x.code_generator_form_simple_view_sequence,
+            )
 
         lst_button_box = []
         for field_id in field_sorted_ids:
@@ -413,6 +515,14 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             E.sheet({}, *lst_item_sheet),
         )
         str_arch = ET.tostring(arch_xml, pretty_print=True)
+        # ir_ui_view_value = {
+        #     "name": f"{model_name_str}_form",
+        #     "type": "form",
+        #     "model": model_name,
+        #     "arch": str_arch,
+        #     "m2o_model": model_created.id,
+        # }
+        # dct_value_to_create["ir.ui.view"].append(ir_ui_view_value)
         view_value = self.env["ir.ui.view"].create(
             {
                 "name": f"{model_name_str}_form",
@@ -580,7 +690,9 @@ pass''',
             result = E.h5({}, item_field)
         return result
 
-    def _generate_specific_form_views_models(self, code_generator_view_id):
+    def _generate_specific_form_views_models(
+        self, code_generator_view_id, dct_value_to_create
+    ):
         view_type = code_generator_view_id.view_type
         model_name = code_generator_view_id.m2o_model.model
         model_id = code_generator_view_id.m2o_model.id
@@ -718,6 +830,14 @@ pass''',
                 "m2o_model": code_generator_view_id.m2o_model.id,
             }
         )
+        # ir_ui_view_value = {
+        #     "name": f"{model_name_str}_tree",
+        #     "type": "tree",
+        #     "model": model_name,
+        #     "arch": str_arch,
+        #     "m2o_model": model_created.id,
+        # }
+        # dct_value_to_create["ir.ui.view"].append(ir_ui_view_value)
 
         if code_generator_view_id.id_name:
             self.env["ir.model.data"].create(

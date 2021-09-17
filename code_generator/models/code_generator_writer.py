@@ -1775,15 +1775,29 @@ class CodeGeneratorWriter(models.Model):
             result = self._set_limit_4xmlid(
                 f"{self._get_model_model(record._name)}_{second}"
             )
+            # Check if name already exist
+            model_data_exist = self.env["ir.model.data"].search(
+                [("name", "=", result)]
+            )
+            new_result = result
+            i = 0
+            while model_data_exist:
+                i += 1
+                new_result = f"{result}_{i}"
+                model_data_exist = self.env["ir.model.data"].search(
+                    [("name", "=", new_result)]
+                )
+
             self.env["ir.model.data"].create(
                 {
-                    "name": result,
+                    "name": new_result,
                     "model": record._name,
                     "module": module_name,
                     "res_id": record.id,
                     "noupdate": True,  # If it's False, target record (res_id) will be removed while module update
                 }
             )
+            result = new_result
         else:
             result = False
 

@@ -1758,6 +1758,7 @@ class CodeGeneratorWriter(models.Model):
                 ("res_id", "=", record.id),
             ]
         )
+
         if ir_model_data:
             if module_name and module_name == ir_model_data[0].module:
                 result = ir_model_data[0].name
@@ -1773,6 +1774,15 @@ class CodeGeneratorWriter(models.Model):
                 second = uuid.uuid1().int
             result = self._set_limit_4xmlid(
                 f"{self._get_model_model(record._name)}_{second}"
+            )
+            self.env["ir.model.data"].create(
+                {
+                    "name": result,
+                    "model": record._name,
+                    "module": module_name,
+                    "res_id": record.id,
+                    "noupdate": True,  # If it's False, target record (res_id) will be removed while module update
+                }
             )
         else:
             result = False

@@ -297,7 +297,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
 
-        lst_field_to_remove = ("active", "actif")
+        lst_field_to_remove = ("active",)
 
         has_sequence = False
         for field_id in model_created_fields:
@@ -406,7 +406,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         lst_item_sheet = []
         key = "geo_"
 
-        lst_field_to_transform_button_box = ("active", "actif")
+        lst_field_to_transform_button_box = ("active",)
 
         has_sequence = False
         for field_id in model_created_fields:

@@ -508,16 +508,21 @@ class CodeGeneratorDbTable(models.Model):
                 for column_many2one_id in column_many2one_ids:
                     value = data.get(column_many2one_id.field_name)
                     # Update value with foreign key value
-                    new_id = self.env[
-                        column_many2one_id.relation_table_id.model_name
-                    ].search(
-                        [
-                            (
-                                column_many2one_id.relation_column_id.field_name,
-                                "=",
-                                value,
-                            )
+                    # Support active_test, some field can be not active from migration
+                    new_id = (
+                        self.env[
+                            column_many2one_id.relation_table_id.model_name
                         ]
+                        .with_context(active_test=False)
+                        .search(
+                            [
+                                (
+                                    column_many2one_id.relation_column_id.field_name,
+                                    "=",
+                                    value,
+                                )
+                            ]
+                        )
                     )
                     if len(new_id) > 1:
                         raise ValueError(

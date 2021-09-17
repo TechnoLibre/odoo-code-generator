@@ -1926,7 +1926,8 @@ class CodeGeneratorWriter(models.Model):
             if not expression_export_data
             else [ast.literal_eval(expression_export_data)]
         )
-        nomenclador_data = self.env[model.model].sudo().search(search)
+        # Search with active_test to support when active is False
+        nomenclador_data = self.env[model.model].sudo().with_context(active_test=False).search(search)
         if not nomenclador_data:
             return
 

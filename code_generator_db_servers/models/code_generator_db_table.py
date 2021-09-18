@@ -675,7 +675,8 @@ class CodeGeneratorDbTable(models.Model):
         if table_to_reorder_ids:
             _logger.error(
                 "Stopping infinity loop, a bug occur when try to reorder"
-                " model."
+                f" model : {[a.name for a in table_to_reorder_ids]}. i={i},"
+                f" max_i={max_loop}"
             )
 
     @staticmethod

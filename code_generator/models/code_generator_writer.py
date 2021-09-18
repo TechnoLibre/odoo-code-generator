@@ -1927,7 +1927,12 @@ class CodeGeneratorWriter(models.Model):
             else [ast.literal_eval(expression_export_data)]
         )
         # Search with active_test to support when active is False
-        nomenclador_data = self.env[model.model].sudo().with_context(active_test=False).search(search)
+        nomenclador_data = (
+            self.env[model.model]
+            .sudo()
+            .with_context(active_test=False)
+            .search(search)
+        )
         if not nomenclador_data:
             return
 

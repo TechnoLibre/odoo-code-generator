@@ -117,7 +117,9 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     generated_root_menu = None
     generated_parent_menu = None
     dct_group_generated_menu = {}
+    dct_parent_generated_menu = {}
     lst_group_generated_menu_name = []
+    lst_parent_generated_menu_name = []
     nb_sub_menu = 0
 
     def clear_all(self):
@@ -905,9 +907,11 @@ pass''',
         group_id = self.env.ref("base.group_user")
         model_name = model_created.model
         menu_group = model_created.menu_group
+        menu_parent = model_created.menu_parent
         model_name_str = model_name.replace(".", "_")
         module_name = module.name
         menu_group_id = None
+        menu_parent_id = None
         if module.application and is_generic_menu:
             # Create root if not exist
             if not self.generated_root_menu:
@@ -929,11 +933,49 @@ pass''',
                 }
                 self.generated_parent_menu = self.env["ir.ui.menu"].create(v)
 
+        # Create list of menu_parent
+        if not self.lst_parent_generated_menu_name:
+            self.lst_parent_generated_menu_name = sorted(
+                list(set([a.menu_parent for a in model_ids if a.menu_parent]))
+            )
+        # Create list of menu_group
         if not self.lst_group_generated_menu_name:
             self.lst_group_generated_menu_name = sorted(
                 list(set([a.menu_group for a in model_ids if a.menu_group]))
             )
 
+        # Create menu_parent item
+        if is_generic_menu and menu_parent:
+            menu_parent_id = self.dct_parent_generated_menu.get(menu_parent)
+            sequence = self.lst_parent_generated_menu_name.index(menu_parent)
+            if not menu_parent_id:
+                v = {
+                    "name": menu_parent,
+                    "sequence": sequence,
+                    # 'group_id': group_id.id,
+                    "m2o_module": module.id,
+                    "parent_id": self.generated_root_menu.id,
+                }
+
+                menu_parent_id = self.env["ir.ui.menu"].create(v)
+                self.dct_parent_generated_menu[menu_parent] = menu_parent_id
+
+                # Create id name
+                menu_parent_name = (
+                    f"parent_{unidecode.unidecode(menu_parent).replace(' ','').lower()}"
+                )
+                self.env["ir.model.data"].create(
+                    {
+                        "name": menu_parent_name,
+                        "model": "ir.ui.menu",
+                        "module": module.name,
+                        "res_id": menu_parent_id.id,
+                        "noupdate": True,
+                        # If it's False, target record (res_id) will be removed while module update
+                    }
+                )
+
+        # Create menu_group item
         if is_generic_menu and menu_group:
             menu_group_id = self.dct_group_generated_menu.get(menu_group)
             sequence = self.lst_group_generated_menu_name.index(menu_group)
@@ -944,7 +986,9 @@ pass''',
                     # 'group_id': group_id.id,
                     "m2o_module": module.id,
                 }
-                if self.generated_parent_menu:
+                if menu_parent_id:
+                    v["parent_id"] = menu_parent_id.id
+                elif self.generated_parent_menu:
                     v["parent_id"] = self.generated_parent_menu.id
                 else:
                     v["parent_id"] = self.generated_root_menu.id
@@ -1026,6 +1070,8 @@ pass''',
 
             if menu_group_id:
                 v["parent_id"] = menu_group_id.id
+            elif menu_parent_id:
+                v["parent_id"] = menu_parent_id.id
             elif self.generated_parent_menu:
                 v["parent_id"] = self.generated_parent_menu.id
 

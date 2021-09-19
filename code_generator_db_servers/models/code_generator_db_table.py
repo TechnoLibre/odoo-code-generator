@@ -74,6 +74,11 @@ class CodeGeneratorDbTable(models.Model):
         help="Will create group for auto-generation in menu.",
     )
 
+    menu_parent = fields.Char(
+        string="Parent menu",
+        help="Will create parent menu for auto-generation in menu.",
+    )
+
     menu_label = fields.Char(
         string="Menu label",
         help="Force update label menu with this value.",
@@ -171,6 +176,7 @@ class CodeGeneratorDbTable(models.Model):
         delete=False,
         nomenclator=False,
         menu_group=None,
+        menu_parent=None,
         menu_label=None,
     ):
         table_id = self.search([("name", "=", table_name)])
@@ -186,6 +192,8 @@ class CodeGeneratorDbTable(models.Model):
             table_id.new_model_name = new_model_name
         if menu_group:
             table_id.menu_group = menu_group
+        if menu_parent:
+            table_id.menu_parent = menu_parent
         if menu_label:
             table_id.menu_label = menu_label
         if new_rec_name:
@@ -390,6 +398,7 @@ class CodeGeneratorDbTable(models.Model):
             "field_id": lst_field,
             "model": table.model_name,
             "menu_group": table.menu_group,
+            "menu_parent": table.menu_parent,
             "menu_label": table.menu_label,
         }
         if table.new_rec_name:
@@ -482,6 +491,10 @@ class CodeGeneratorDbTable(models.Model):
                 for column_selection_id in column_selection_ids:
                     if data:
                         value = data.get(column_selection_id.field_name)
+                        if value is None:
+                            value = (
+                                column_selection_id.selection_migration_start_at
+                            )
                         if type(value) is not int:
                             _logger.error(
                                 "Selection type support only database type"

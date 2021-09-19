@@ -274,6 +274,13 @@ class IrModel(models.Model):
         )
     )
 
+    menu_parent = fields.Char(
+        help=(
+            "If not empty, will create a new root menu of element in menu when"
+            " auto-generate."
+        )
+    )
+
     menu_label = fields.Char(help="Force label menu to use this value.")
 
     m2o_module = fields.Many2one(

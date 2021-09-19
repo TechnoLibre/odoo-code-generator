@@ -69,6 +69,16 @@ class CodeGeneratorDbTable(models.Model):
 
     new_model_name = fields.Char(string="New model name")
 
+    menu_group = fields.Char(
+        string="Group menu",
+        help="Will create group for auto-generation in menu.",
+    )
+
+    menu_label = fields.Char(
+        string="Menu label",
+        help="Force update label menu with this value.",
+    )
+
     model_name = fields.Char(
         help="Will be name if no new_model_name, else new_model_name",
         compute="_compute_model_name",
@@ -160,6 +170,8 @@ class CodeGeneratorDbTable(models.Model):
         new_rec_name=None,
         delete=False,
         nomenclator=False,
+        menu_group=None,
+        menu_label=None,
     ):
         table_id = self.search([("name", "=", table_name)])
         if not table_id:
@@ -172,6 +184,10 @@ class CodeGeneratorDbTable(models.Model):
                 column_id.delete = True
         if new_model_name:
             table_id.new_model_name = new_model_name
+        if menu_group:
+            table_id.menu_group = menu_group
+        if menu_label:
+            table_id.menu_label = menu_label
         if new_rec_name:
             table_id.new_rec_name = new_rec_name
         if new_description:
@@ -373,6 +389,8 @@ class CodeGeneratorDbTable(models.Model):
             "nomenclator": table.nomenclator,
             "field_id": lst_field,
             "model": table.model_name,
+            "menu_group": table.menu_group,
+            "menu_label": table.menu_label,
         }
         if table.new_rec_name:
             dct_model["rec_name"] = table.new_rec_name

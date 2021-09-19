@@ -267,6 +267,15 @@ class IrModel(models.Model):
 
     description = fields.Char()
 
+    menu_group = fields.Char(
+        help=(
+            "If not empty, will create a group of element in menu when"
+            " auto-generate."
+        )
+    )
+
+    menu_label = fields.Char(help="Force label menu to use this value.")
+
     m2o_module = fields.Many2one(
         "code.generator.module",
         string="Module",

@@ -7,6 +7,7 @@ from lxml.builder import E
 from lxml import etree as ET
 import uuid
 import logging
+import unidecode
 
 _logger = logging.getLogger(__name__)
 
@@ -115,6 +116,8 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
     generated_root_menu = None
     generated_parent_menu = None
+    dct_group_generated_menu = {}
+    lst_group_generated_menu_name = []
     nb_sub_menu = 0
 
     def clear_all(self):
@@ -159,7 +162,10 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 for model_id in self.code_generator_id.o2m_models:
                     self._generate_model_access(model_id)
             self._generate_menu(
-                model_id, model_id.m2o_module, lst_view_generated
+                model_id,
+                model_id.m2o_module,
+                lst_view_generated,
+                self.code_generator_id.o2m_models,
             )
             status = True
         # Accelerate creation in batch
@@ -266,7 +272,10 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
             # Menu and action_windows
             self._generate_menu(
-                model_id, model_id.m2o_module, lst_view_generated
+                model_id,
+                model_id.m2o_module,
+                lst_view_generated,
+                o2m_models_view_form,
             )
 
         # for model_id in o2m_models_view_form:
@@ -887,14 +896,18 @@ pass''',
 
         access_value = self.env["ir.model.access"].create(v)
 
-    def _generate_menu(self, model_created, module, lst_view_generated):
+    def _generate_menu(
+        self, model_created, module, lst_view_generated, model_ids
+    ):
         # group_id = self.env['res.groups'].search([('name', '=', 'Code Generator / Manager')])
         # group_id = self.env['res.groups'].search([('name', '=', 'Internal User')])
         is_generic_menu = not model_created.m2o_module.code_generator_menus_id
         group_id = self.env.ref("base.group_user")
         model_name = model_created.model
+        menu_group = model_created.menu_group
         model_name_str = model_name.replace(".", "_")
         module_name = module.name
+        menu_group_id = None
         if module.application and is_generic_menu:
             # Create root if not exist
             if not self.generated_root_menu:
@@ -908,13 +921,51 @@ pass''',
                 self.generated_root_menu = self.env["ir.ui.menu"].create(v)
             if not self.generated_parent_menu:
                 v = {
-                    "name": _("Models"),
+                    "name": _("Menu"),
                     "sequence": 1,
                     "parent_id": self.generated_root_menu.id,
                     # 'group_id': group_id.id,
                     "m2o_module": module.id,
                 }
                 self.generated_parent_menu = self.env["ir.ui.menu"].create(v)
+
+        if not self.lst_group_generated_menu_name:
+            self.lst_group_generated_menu_name = sorted(
+                list(set([a.menu_group for a in model_ids if a.menu_group]))
+            )
+
+        if is_generic_menu and menu_group:
+            menu_group_id = self.dct_group_generated_menu.get(menu_group)
+            sequence = self.lst_group_generated_menu_name.index(menu_group)
+            if not menu_group_id:
+                v = {
+                    "name": menu_group,
+                    "sequence": sequence,
+                    # 'group_id': group_id.id,
+                    "m2o_module": module.id,
+                }
+                if self.generated_parent_menu:
+                    v["parent_id"] = self.generated_parent_menu.id
+                else:
+                    v["parent_id"] = self.generated_root_menu.id
+
+                menu_group_id = self.env["ir.ui.menu"].create(v)
+                self.dct_group_generated_menu[menu_group] = menu_group_id
+
+                # Create id name
+                menu_group_name = (
+                    f"group_{unidecode.unidecode(menu_group).replace(' ','').lower()}"
+                )
+                self.env["ir.model.data"].create(
+                    {
+                        "name": menu_group_name,
+                        "model": "ir.ui.menu",
+                        "module": module.name,
+                        "res_id": menu_group_id.id,
+                        "noupdate": True,
+                        # If it's False, target record (res_id) will be removed while module update
+                    }
+                )
 
         help_str = f"""<p class="o_view_nocontent_empty_folder">
         Add a new {model_name_str}
@@ -937,9 +988,21 @@ pass''',
 
         # Create menu
         if module.application and is_generic_menu:
+            # Compute menu name
+            menu_name = model_name_str
+            application_name, sub_model_name = model_name.split(
+                ".", maxsplit=1
+            )
+            if model_created.menu_label:
+                menu_name = model_created.menu_label
+            elif sub_model_name and menu_name.lower().startswith(
+                application_name.lower()
+            ):
+                menu_name = sub_model_name.capitalize().replace(".", " ")
+
             # Create action
             v = {
-                "name": model_name_str.replace("_", " ").title(),
+                "name": menu_name,
                 "res_model": model_name,
                 "type": "ir.actions.act_window",
                 "view_mode": view_mode,
@@ -953,16 +1016,6 @@ pass''',
 
             self.nb_sub_menu += 1
 
-            # Compute menu name
-            menu_name = model_name_str
-            application_name, sub_model_name = model_name.split(
-                ".", maxsplit=1
-            )
-            if sub_model_name and menu_name.lower().startswith(
-                application_name.lower()
-            ):
-                menu_name = sub_model_name.title().replace(".", " ")
-
             v = {
                 "name": menu_name,
                 "sequence": self.nb_sub_menu,
@@ -971,7 +1024,9 @@ pass''',
                 "m2o_module": module.id,
             }
 
-            if self.generated_parent_menu:
+            if menu_group_id:
+                v["parent_id"] = menu_group_id.id
+            elif self.generated_parent_menu:
                 v["parent_id"] = self.generated_parent_menu.id
 
             access_value = self.env["ir.ui.menu"].create(v)

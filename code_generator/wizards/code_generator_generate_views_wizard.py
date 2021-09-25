@@ -947,7 +947,13 @@ pass''',
         # Create menu_parent item
         if is_generic_menu and menu_parent:
             menu_parent_id = self.dct_parent_generated_menu.get(menu_parent)
-            sequence = self.lst_parent_generated_menu_name.index(menu_parent)
+            if menu_parent == "Configuration":
+                sequence = 99
+            else:
+                sequence = (
+                    self.lst_parent_generated_menu_name.index(menu_parent) + 1
+                )
+
             if not menu_parent_id:
                 v = {
                     "name": menu_parent,

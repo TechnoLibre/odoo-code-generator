@@ -101,6 +101,29 @@ class CodeGeneratorDbColumn(models.Model):
 
     field_required = fields.Boolean(compute="_compute_field_required")
 
+    is_show_whitelist_list_view = fields.Boolean(
+        string="Show in whitelist list view",
+        help=(
+            "If a field in model is in whitelist, all is not will be hide. "
+            "View list only."
+        ),
+    )
+    is_hide_blacklist_list_view = fields.Boolean(
+        string="Hide in blacklist list view",
+        help="Hide from view when field is blacklisted. View list only.",
+    )
+    is_show_whitelist_form_view = fields.Boolean(
+        string="Show in whitelist form view",
+        help=(
+            "If a field in model is in whitelist, all is not will be hide. "
+            "View form only."
+        ),
+    )
+    is_hide_blacklist_form_view = fields.Boolean(
+        string="Hide in blacklist form view",
+        help="Hide from view when field is blacklisted. View form only.",
+    )
+
     relation_table_id = fields.Many2one(
         string="Depend table",
         comodel_name="code.generator.db.table",
@@ -257,6 +280,10 @@ class CodeGeneratorDbColumn(models.Model):
         ignore_field=False,
         path_binary=None,
         force_widget=None,
+        is_show_whitelist_list_view=None,
+        is_hide_blacklist_list_view=None,
+        is_show_whitelist_form_view=None,
+        is_hide_blacklist_form_view=None,
         compute_data_function=None,
         add_one2many=False,
     ):
@@ -278,6 +305,10 @@ class CodeGeneratorDbColumn(models.Model):
         :param ignore_field: never compute it and ignore data from it
         :param path_binary: path for type binary when the past was char
         :param force_widget:
+        :param is_show_whitelist_list_view:
+        :param is_hide_blacklist_list_view:
+        :param is_show_whitelist_form_view:
+        :param is_hide_blacklist_form_view:
         :param compute_data_function: function, in string, to run with data in argument and overwrite data
         :param add_one2many:
         :return:
@@ -329,6 +360,14 @@ class CodeGeneratorDbColumn(models.Model):
             column_id.path_binary = path_binary
         if force_widget:
             column_id.force_widget = force_widget
+        if is_show_whitelist_list_view:
+            column_id.is_show_whitelist_list_view = is_show_whitelist_list_view
+        if is_hide_blacklist_list_view:
+            column_id.is_hide_blacklist_list_view = is_hide_blacklist_list_view
+        if is_show_whitelist_form_view:
+            column_id.is_show_whitelist_form_view = is_show_whitelist_form_view
+        if is_hide_blacklist_form_view:
+            column_id.is_hide_blacklist_form_view = is_hide_blacklist_form_view
         if add_one2many:
             column_id.add_one2many = add_one2many
         if compute_data_function:

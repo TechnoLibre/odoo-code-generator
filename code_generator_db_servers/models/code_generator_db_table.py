@@ -385,6 +385,22 @@ class CodeGeneratorDbTable(models.Model):
                 dct_field["selection"] = field.new_selection
             if field.new_default_value:
                 dct_field["default"] = field.new_default_value
+            if field.is_show_whitelist_list_view:
+                dct_field[
+                    "is_show_whitelist_list_view"
+                ] = field.is_show_whitelist_list_view
+            if field.is_hide_blacklist_list_view:
+                dct_field[
+                    "is_hide_blacklist_list_view"
+                ] = field.is_hide_blacklist_list_view
+            if field.is_show_whitelist_form_view:
+                dct_field[
+                    "is_show_whitelist_form_view"
+                ] = field.is_show_whitelist_form_view
+            if field.is_hide_blacklist_form_view:
+                dct_field[
+                    "is_hide_blacklist_form_view"
+                ] = field.is_hide_blacklist_form_view
             if field.relation_table_id:
                 # Don't share field.relation, it's the relation with the table_name
                 dct_field["relation"] = field.relation_table_id.model_name

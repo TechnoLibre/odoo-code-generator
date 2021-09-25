@@ -938,6 +938,7 @@ pass''',
             self.lst_parent_generated_menu_name = sorted(
                 list(set([a.menu_parent for a in model_ids if a.menu_parent]))
             )
+
         # Create list of menu_group
         if not self.lst_group_generated_menu_name:
             self.lst_group_generated_menu_name = sorted(

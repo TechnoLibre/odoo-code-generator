@@ -257,14 +257,31 @@ class IrModel(models.Model):
             if not models.check_object_name(model.model):
                 raise ValidationError(
                     _(
-                        "The model name can only contain lowercase characters,"
-                        " digits, underscores and dots."
+                        "The model name %s can only contain lowercase"
+                        " characters, digits, underscores and dots."
                     )
+                    % model.model
                 )
 
     rec_name = fields.Char(default="name")
 
     description = fields.Char()
+
+    menu_group = fields.Char(
+        help=(
+            "If not empty, will create a group of element in menu when"
+            " auto-generate."
+        )
+    )
+
+    menu_parent = fields.Char(
+        help=(
+            "If not empty, will create a new root menu of element in menu when"
+            " auto-generate."
+        )
+    )
+
+    menu_label = fields.Char(help="Force label menu to use this value.")
 
     m2o_module = fields.Many2one(
         "code.generator.module",
@@ -278,6 +295,13 @@ class IrModel(models.Model):
     )
 
     o2m_codes = fields.One2many("code.generator.model.code", "m2o_model")
+
+    menu_name_keep_application = fields.Boolean(
+        help=(
+            "When generate menu name, do we keep application name in item"
+            " name?"
+        )
+    )
 
     @api.onchange("m2o_module")
     def _onchange_m2o_module(self):
@@ -506,6 +530,11 @@ class IrModelUpdatedFields(models.Model):
 class IrModelFields(models.Model):
     _inherit = "ir.model.fields"
 
+    force_widget = fields.Char(
+        string="Force widget",
+        help="Use this widget for this field when create views.",
+    )
+
     default = fields.Char(string="Default value")
     is_show_whitelist_list_view = fields.Boolean(
         string="Show in whitelist list view",
@@ -542,6 +571,15 @@ class IrModelFields(models.Model):
     code_generator_tree_view_sequence = fields.Integer(
         string="Tree view sequence",
         help="Sequence to write this field in tree view from Code Generator.",
+        default=-1,
+    )
+
+    code_generator_form_simple_view_sequence = fields.Integer(
+        string="Form simple view sequence",
+        help=(
+            "Sequence to write this field in form simple view from Code"
+            " Generator."
+        ),
         default=-1,
     )
 
@@ -614,17 +652,19 @@ class IrModelFields(models.Model):
                 )
 
             if vals.get("ttype") == "one2many":
-                if not self.search(
-                    [
-                        ("model_id", "=", vals["relation"]),
-                        ("name", "=", vals["relation_field"]),
-                        ("ttype", "=", "many2one"),
-                    ]
-                ):
-                    raise UserError(
-                        _("Many2one %s on model %s does not exist!")
-                        % (vals["relation_field"], vals["relation"])
-                    )
+                # TODO check relation exist, but some times, it's created later to respect many2one order
+                # if not self.env[""].search(
+                #     [
+                #         ("model_id", "=", vals["relation"]),
+                #         ("name", "=", vals["relation_field"]),
+                #         ("ttype", "=", "many2one"),
+                #     ]
+                # ):
+                #     raise UserError(
+                #         _("Many2one %s on model %s does not exist!")
+                #         % (vals["relation_field"], vals["relation"])
+                #     )
+                pass
 
             self.clear_caches()  # for _existing_field_data()
 

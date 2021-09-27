@@ -276,7 +276,7 @@ return''',
         """
         Recreate nextcall_template
         :param ir_cron_id:
-        :return: new string
+        :return: new nextcall in string
         """
         if ir_cron_id.interval_type == "months":
             str_timedelta = f"relativedelta({ir_cron_id.interval_type}={ir_cron_id.interval_number})"

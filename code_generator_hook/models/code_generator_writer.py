@@ -865,6 +865,10 @@ class CodeGeneratorWriter(models.Model):
                                         [("model", "=", model_model)]
                                     )
                                     model_name = model_model.replace(".", "_")
+                                    (
+                                        application_name,
+                                        model_short_name,
+                                    ) = model_model.split(".", maxsplit=1)
                                     title_model_model = model_name.replace(
                                         "_", " "
                                     ).title()
@@ -886,6 +890,11 @@ class CodeGeneratorWriter(models.Model):
                                             " code_generator_id.id,"
                                         )
                                         cw.emit('"rec_name": None,')
+                                        if application_name.lower() == "demo":
+                                            cw.emit(
+                                                '"menu_name_keep_application":'
+                                                " True,"
+                                            )
                                         cw.emit('"nomenclator": True,')
                                     cw.emit("}")
                                     cw.emit(

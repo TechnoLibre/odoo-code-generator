@@ -1046,11 +1046,20 @@ pass''',
             )
             if model_created.menu_label:
                 menu_name = model_created.menu_label
-            elif sub_model_name and menu_name.lower().startswith(
-                application_name.lower()
+            elif (
+                not model_created.menu_name_keep_application
+                and sub_model_name
+                and menu_name.lower().startswith(application_name.lower())
             ):
-                menu_name = sub_model_name.capitalize().replace(".", " ")
-
+                menu_name = (
+                    sub_model_name.capitalize()
+                    .replace(".", " ")
+                    .replace("_", " ")
+                )
+            else:
+                menu_name = f"{application_name} {sub_model_name.replace('.', ' ')}".capitalize().replace(
+                    "_", " "
+                )
             # Create action
             v = {
                 "name": menu_name,

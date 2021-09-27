@@ -296,6 +296,13 @@ class IrModel(models.Model):
 
     o2m_codes = fields.One2many("code.generator.model.code", "m2o_model")
 
+    menu_name_keep_application = fields.Boolean(
+        help=(
+            "When generate menu name, do we keep application name in item"
+            " name?"
+        )
+    )
+
     @api.onchange("m2o_module")
     def _onchange_m2o_module(self):
         if self.m2o_module:

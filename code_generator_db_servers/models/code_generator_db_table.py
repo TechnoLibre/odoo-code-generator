@@ -401,6 +401,14 @@ class CodeGeneratorDbTable(models.Model):
                 dct_field[
                     "is_hide_blacklist_form_view"
                 ] = field.is_hide_blacklist_form_view
+            if field.is_show_whitelist_kanban_view:
+                dct_field[
+                    "is_show_whitelist_kanban_view"
+                ] = field.is_show_whitelist_kanban_view
+            if field.is_hide_blacklist_kanban_view:
+                dct_field[
+                    "is_hide_blacklist_kanban_view"
+                ] = field.is_hide_blacklist_kanban_view
             if field.relation_table_id:
                 # Don't share field.relation, it's the relation with the table_name
                 dct_field["relation"] = field.relation_table_id.model_name

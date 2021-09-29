@@ -114,6 +114,36 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         relation="selected_model_form_view_ids_ir_model",
     )
 
+    selected_model_kanban_view_ids = fields.Many2many(
+        comodel_name="ir.model",
+        relation="selected_model_kanban_view_ids_ir_model",
+    )
+
+    selected_model_search_view_ids = fields.Many2many(
+        comodel_name="ir.model",
+        relation="selected_model_search_view_ids_ir_model",
+    )
+
+    selected_model_pivot_view_ids = fields.Many2many(
+        comodel_name="ir.model",
+        relation="selected_model_pivot_view_ids_ir_model",
+    )
+
+    selected_model_calendar_view_ids = fields.Many2many(
+        comodel_name="ir.model",
+        relation="selected_model_calendar_view_ids_ir_model",
+    )
+
+    selected_model_timeline_view_ids = fields.Many2many(
+        comodel_name="ir.model",
+        relation="selected_model_timeline_view_ids_ir_model",
+    )
+
+    selected_model_graph_view_ids = fields.Many2many(
+        comodel_name="ir.model",
+        relation="selected_model_graph_view_ids_ir_model",
+    )
+
     generated_root_menu = None
     generated_parent_menu = None
     dct_group_generated_menu = {}
@@ -194,12 +224,53 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             if self.all_model
             else self.selected_model_form_view_ids
         )
+        o2m_models_view_kanban = (
+            self.code_generator_id.o2m_models
+            if self.all_model
+            else self.selected_model_kanban_view_ids
+        )
+        o2m_models_view_search = (
+            self.code_generator_id.o2m_models
+            if self.all_model
+            else self.selected_model_search_view_ids
+        )
+        o2m_models_view_pivot = (
+            self.code_generator_id.o2m_models
+            if self.all_model
+            else self.selected_model_pivot_view_ids
+        )
+        o2m_models_view_calendar = (
+            self.code_generator_id.o2m_models
+            if self.all_model
+            else self.selected_model_calendar_view_ids
+        )
+        o2m_models_view_graph = (
+            self.code_generator_id.o2m_models
+            if self.all_model
+            else self.selected_model_graph_view_ids
+        )
+        o2m_models_view_timeline = (
+            self.code_generator_id.o2m_models
+            if self.all_model
+            else self.selected_model_timeline_view_ids
+        )
+        # Get unique list order by name of all model to generate
         lst_model = sorted(
-            set(o2m_models_view_list + o2m_models_view_form),
+            set(
+                o2m_models_view_list
+                + o2m_models_view_form
+                + o2m_models_view_kanban
+                + o2m_models_view_search
+                + o2m_models_view_pivot
+                + o2m_models_view_calendar
+                + o2m_models_view_graph
+                + o2m_models_view_timeline
+            ),
             key=lambda model: model.name,
         )
+        lst_model_id = self.env["ir.model"].browse([a.id for a in lst_model])
 
-        for model_id in lst_model:
+        for model_id in lst_model_id:
             lst_view_generated = []
 
             # Different view
@@ -272,12 +343,223 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 )
                 lst_view_generated.append("form")
 
+            if model_id in o2m_models_view_kanban:
+                is_whitelist = all(
+                    [
+                        a.is_show_whitelist_kanban_view
+                        for b in model_id
+                        for a in b.field_id
+                    ]
+                )
+                # model_created_fields_kanban = list(
+                #     filter(
+                #         lambda x: x.name not in MAGIC_FIELDS
+                #                   and not x.is_hide_blacklist_kanban_view
+                #                   and (
+                #                           not is_whitelist
+                #                           or (is_whitelist and x.is_show_whitelist_kanban_view)
+                #                   ),
+                #         [a for a in model_id.field_id],
+                #     )
+                # )
+                model_created_fields_kanban = model_id.field_id.filtered(
+                    lambda field: field.name not in MAGIC_FIELDS
+                    and not field.is_hide_blacklist_kanban_view
+                    and (
+                        not is_whitelist
+                        or (
+                            is_whitelist
+                            and field.is_show_whitelist_kanban_view
+                        )
+                    )
+                )
+                self._generate_kanban_views_models(
+                    model_id,
+                    model_created_fields_kanban,
+                    model_id.m2o_module,
+                    dct_value_to_create,
+                )
+                lst_view_generated.append("kanban")
+
+            if model_id in o2m_models_view_search:
+                is_whitelist = all(
+                    [
+                        a.is_show_whitelist_search_view
+                        for b in model_id
+                        for a in b.field_id
+                    ]
+                )
+                # model_created_fields_search = list(
+                #     filter(
+                #         lambda x: x.name not in MAGIC_FIELDS
+                #                   and not x.is_hide_blacklist_search_view
+                #                   and (
+                #                           not is_whitelist
+                #                           or (is_whitelist and x.is_show_whitelist_search_view)
+                #                   ),
+                #         [a for a in model_id.field_id],
+                #     )
+                # )
+                model_created_fields_search = model_id.field_id.filtered(
+                    lambda field: field.name not in MAGIC_FIELDS
+                    and not field.is_hide_blacklist_search_view
+                    and (
+                        not is_whitelist
+                        or (
+                            is_whitelist
+                            and field.is_show_whitelist_search_view
+                        )
+                    )
+                )
+                self._generate_search_views_models(
+                    model_id,
+                    model_created_fields_search,
+                    model_id.m2o_module,
+                    dct_value_to_create,
+                )
+                lst_view_generated.append("search")
+
+            if model_id in o2m_models_view_pivot:
+                is_whitelist = all(
+                    [
+                        a.is_show_whitelist_pivot_view
+                        for b in model_id
+                        for a in b.field_id
+                    ]
+                )
+                # model_created_fields_pivot = list(
+                #     filter(
+                #         lambda x: x.name not in MAGIC_FIELDS
+                #                   and not x.is_hide_blacklist_pivot_view
+                #                   and (
+                #                           not is_whitelist
+                #                           or (is_whitelist and x.is_show_whitelist_pivot_view)
+                #                   ),
+                #         [a for a in model_id.field_id],
+                #     )
+                # )
+                model_created_fields_pivot = model_id.field_id.filtered(
+                    lambda field: field.name not in MAGIC_FIELDS
+                    and not field.is_hide_blacklist_pivot_view
+                    and (
+                        not is_whitelist
+                        or (
+                            is_whitelist and field.is_show_whitelist_pivot_view
+                        )
+                    )
+                )
+                self._generate_pivot_views_models(
+                    model_id,
+                    model_created_fields_pivot,
+                    model_id.m2o_module,
+                    dct_value_to_create,
+                )
+                lst_view_generated.append("pivot")
+
+            if model_id in o2m_models_view_calendar:
+                is_whitelist = all(
+                    [
+                        a.is_show_whitelist_calendar_view
+                        for b in model_id
+                        for a in b.field_id
+                    ]
+                )
+                # model_created_fields_calendar = list(
+                #     filter(
+                #         lambda x: x.name not in MAGIC_FIELDS
+                #                   and not x.is_hide_blacklist_calendar_view
+                #                   and (
+                #                           not is_whitelist
+                #                           or (is_whitelist and x.is_show_whitelist_calendar_view)
+                #                   ),
+                #         [a for a in model_id.field_id],
+                #     )
+                # )
+                model_created_fields_calendar = model_id.field_id.filtered(
+                    lambda field: field.name not in MAGIC_FIELDS
+                    and not field.is_hide_blacklist_calendar_view
+                    and (
+                        not is_whitelist
+                        or (
+                            is_whitelist
+                            and field.is_show_whitelist_calendar_view
+                        )
+                    )
+                )
+                has_start_date = any(
+                    [
+                        a.is_date_start_view
+                        for a in model_created_fields_calendar
+                    ]
+                )
+                if has_start_date:
+                    self._generate_calendar_views_models(
+                        model_id,
+                        model_created_fields_calendar,
+                        model_id.m2o_module,
+                        dct_value_to_create,
+                    )
+                    lst_view_generated.append("calendar")
+
+            if model_id in o2m_models_view_graph:
+                is_whitelist = all(
+                    [
+                        a.is_show_whitelist_graph_view
+                        for b in model_id
+                        for a in b.field_id
+                    ]
+                )
+                # model_created_fields_graph = list(
+                #     filter(
+                #         lambda x: x.name not in MAGIC_FIELDS
+                #                   and not x.is_hide_blacklist_graph_view
+                #                   and (
+                #                           not is_whitelist
+                #                           or (is_whitelist and x.is_show_whitelist_graph_view)
+                #                   ),
+                #         [a for a in model_id.field_id],
+                #     )
+                # )
+                model_created_fields_graph = model_id.field_id.filtered(
+                    lambda field: field.name not in MAGIC_FIELDS
+                    and not field.is_hide_blacklist_graph_view
+                    and (
+                        not is_whitelist
+                        or (
+                            is_whitelist and field.is_show_whitelist_graph_view
+                        )
+                    )
+                )
+                self._generate_graph_views_models(
+                    model_id,
+                    model_created_fields_graph,
+                    model_id.m2o_module,
+                    dct_value_to_create,
+                )
+                lst_view_generated.append("graph")
+
+            if model_id in o2m_models_view_timeline:
+                model_created_fields_timeline = model_id.field_id.filtered(
+                    lambda field: field.name not in MAGIC_FIELDS
+                    and field.ttype in ("date", "datetime")
+                    and (field.is_date_start_view or field.is_date_end_view)
+                )
+
+                if model_created_fields_timeline:
+                    self._generate_timeline_views_models(
+                        model_id,
+                        model_created_fields_timeline,
+                        model_id.m2o_module,
+                        dct_value_to_create,
+                    )
+                    lst_view_generated.append("timeline")
+
             # Menu and action_windows
             self._generate_menu(
                 model_id,
                 model_id.m2o_module,
                 lst_view_generated,
-                o2m_models_view_form,
+                lst_model_id,
             )
 
         # for model_id in o2m_models_view_form:
@@ -538,6 +820,733 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             {
                 "name": f"{model_name_str}_form",
                 "type": "form",
+                "model": model_name,
+                "arch": str_arch,
+                "m2o_model": model_created.id,
+            }
+        )
+
+        return view_value
+
+    def _generate_kanban_views_models(
+        self, model_created, model_created_fields, module, dct_value_to_create
+    ):
+        model_name = model_created.model
+        model_name_str = model_name.replace(".", "_")
+
+        lst_field_to_remove = ("active",)
+
+        has_sequence = False
+        for field_id in model_created_fields:
+            if field_id.code_generator_kanban_view_sequence >= 0:
+                has_sequence = True
+                break
+
+        if not has_sequence:
+            lst_order_field_id = [[], [], []]
+            # code_generator_kanban_view_sequence all -1, default value
+            # Move rec_name in beginning
+            # Move one2many at the end
+            for field_id in model_created_fields:
+                if field_id.name == model_created.rec_name:
+                    # TODO write this value
+                    lst_order_field_id[0].append(field_id.id)
+                    # field_id.code_generator_kanban_view_sequence = 0
+                elif field_id.ttype == "one2many":
+                    lst_order_field_id[2].append(field_id.id)
+                    # field_id.code_generator_kanban_view_sequence = 2
+                else:
+                    lst_order_field_id[1].append(field_id.id)
+                    # field_id.code_generator_kanban_view_sequence = 1
+            new_lst_order_field_id = (
+                lst_order_field_id[0]
+                + lst_order_field_id[1]
+                + lst_order_field_id[2]
+            )
+            # TODO this can slow, can we accumulate this data for the end?
+            # field_sorted_sequence_0 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[0]
+            # )
+            # field_sorted_sequence_1 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[1]
+            # )
+            # field_sorted_sequence_2 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[2]
+            # )
+            # field_sorted_sequence_0.write(
+            #     {"code_generator_form_simple_view_sequence": 0}
+            # )
+            # field_sorted_sequence_1.write(
+            #     {"code_generator_form_simple_view_sequence": 1}
+            # )
+            # field_sorted_sequence_2.write(
+            #     {"code_generator_form_simple_view_sequence": 2}
+            # )
+            # field_sorted_ids = (
+            #     field_sorted_sequence_0
+            #     + field_sorted_sequence_1
+            #     + field_sorted_sequence_2
+            # )
+            lst_field_sorted = self.env["ir.model.fields"].browse(
+                new_lst_order_field_id
+            )
+        else:
+            # Use kanban view sequence, or generic sequence
+            lst_field_sorted = model_created_fields.sorted(
+                lambda field: field.code_generator_kanban_view_sequence
+            )
+
+        # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
+        lst_field = []
+        lst_field_template = []
+        lst_item_kanban = []
+        for field_id in lst_field_sorted:
+            if field_id.name in lst_field_to_remove:
+                continue
+            # TODO validate code_generator_kanban_view_sequence is supported
+            # if a.code_generator_kanban_view_sequence >= 0
+            dct_value = {"name": field_id.name}
+            if field_id.force_widget:
+                dct_value["widget"] = field_id.force_widget
+            lst_field.append(E.field(dct_value))
+
+            if field_id.ttype == "boolean":
+                # TODO detect type success/danger or another type of boolean
+                dct_templates_value = E.li(
+                    {
+                        "class": "text-success float-right mb4",
+                        "t-if": f"record.{field_id.name}.raw_value",
+                    },
+                    E.i(
+                        {
+                            "class": "fa fa-circle",
+                            "role": "img",
+                            "aria-label": "Ok",
+                            "title": "Ok",
+                        }
+                    ),
+                )
+                lst_field_template.append(dct_templates_value)
+
+                dct_templates_value = E.li(
+                    {
+                        "class": "text-danger float-right mb4",
+                        "t-if": f"!record.{field_id.name}.raw_value",
+                    },
+                    E.i(
+                        {
+                            "class": "fa fa-circle",
+                            "role": "img",
+                            "aria-label": "Invalid",
+                            "title": "Invalid",
+                        }
+                    ),
+                )
+                lst_field_template.append(dct_templates_value)
+            else:
+                dct_templates_value = E.li(
+                    {"class": "mb4"},
+                    E.strong(E.field({"name": field_id.name})),
+                )
+                lst_field_template.append(dct_templates_value)
+
+        template_item = E.templates(
+            {},
+            E.t(
+                {"t-name": "kanban-box"},
+                E.div(
+                    {"t-attf-class": "oe_kanban_global_click"},
+                    E.div(
+                        {"class": "oe_kanban_details"},
+                        E.ul({}, *lst_field_template),
+                    ),
+                ),
+            ),
+        )
+        lst_item_kanban = lst_field + [template_item]
+        arch_xml = E.kanban(
+            {
+                "class": "o_kanban_mobile",
+            },
+            *lst_item_kanban,
+        )
+        str_arch = ET.tostring(arch_xml, pretty_print=True)
+        # ir_ui_view_value = {
+        #     "name": f"{model_name_str}_kanban",
+        #     "type": "kanban",
+        #     "model": model_name,
+        #     "arch": str_arch,
+        #     "m2o_model": model_created.id,
+        # }
+        # dct_value_to_create["ir.ui.view"].append(ir_ui_view_value)
+        view_value = self.env["ir.ui.view"].create(
+            {
+                "name": f"{model_name_str}_kanban",
+                "type": "kanban",
+                "model": model_name,
+                "arch": str_arch,
+                "m2o_model": model_created.id,
+            }
+        )
+
+        return view_value
+
+    def _generate_search_views_models(
+        self, model_created, model_created_fields, module, dct_value_to_create
+    ):
+        model_name = model_created.model
+        model_name_str = model_name.replace(".", "_")
+        model_name_display_str = model_name_str.replace("_", " ").capitalize()
+
+        lst_field_to_remove = ("active",)
+
+        has_sequence = False
+        for field_id in model_created_fields:
+            if field_id.code_generator_search_view_sequence >= 0:
+                has_sequence = True
+                break
+
+        if not has_sequence:
+            lst_order_field_id = [[], [], []]
+            # code_generator_search_view_sequence all -1, default value
+            # Move rec_name in beginning
+            # Move one2many at the end
+            for field_id in model_created_fields:
+                if field_id.name == model_created.rec_name:
+                    # TODO write this value
+                    lst_order_field_id[0].append(field_id.id)
+                    # field_id.code_generator_search_view_sequence = 0
+                elif field_id.ttype == "one2many":
+                    lst_order_field_id[2].append(field_id.id)
+                    # field_id.code_generator_search_view_sequence = 2
+                else:
+                    lst_order_field_id[1].append(field_id.id)
+                    # field_id.code_generator_search_view_sequence = 1
+            new_lst_order_field_id = (
+                lst_order_field_id[0]
+                + lst_order_field_id[1]
+                + lst_order_field_id[2]
+            )
+            # TODO this can slow, can we accumulate this data for the end?
+            # field_sorted_sequence_0 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[0]
+            # )
+            # field_sorted_sequence_1 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[1]
+            # )
+            # field_sorted_sequence_2 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[2]
+            # )
+            # field_sorted_sequence_0.write(
+            #     {"code_generator_form_simple_view_sequence": 0}
+            # )
+            # field_sorted_sequence_1.write(
+            #     {"code_generator_form_simple_view_sequence": 1}
+            # )
+            # field_sorted_sequence_2.write(
+            #     {"code_generator_form_simple_view_sequence": 2}
+            # )
+            # field_sorted_ids = (
+            #     field_sorted_sequence_0
+            #     + field_sorted_sequence_1
+            #     + field_sorted_sequence_2
+            # )
+            lst_field_sorted = self.env["ir.model.fields"].browse(
+                new_lst_order_field_id
+            )
+        else:
+            # Use search view sequence, or generic sequence
+            lst_field_sorted = model_created_fields.sorted(
+                lambda field: field.code_generator_search_view_sequence
+            )
+
+        # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
+        lst_field = []
+        lst_field_filter = []
+        lst_item_search = []
+        for field_id in lst_field_sorted:
+            if field_id.name in lst_field_to_remove:
+                # Add inactive
+                dct_templates_value = E.filter(
+                    {
+                        "name": "Inactive",
+                        "string": f"Inactive {model_name_display_str}",
+                        "domain": f"[('{field_id.name}','=',False)]",
+                    }
+                )
+                lst_field_filter.append(dct_templates_value)
+                continue
+            # TODO validate code_generator_search_view_sequence is supported
+            # if a.code_generator_search_view_sequence >= 0
+
+            if field_id.ttype == "boolean":
+                dct_templates_value = E.filter(
+                    {
+                        "name": field_id.name,
+                        "string": field_id.field_description,
+                        "domain": f"[('{field_id.name}','=',True)]",
+                    }
+                )
+                lst_field_filter.append(dct_templates_value)
+            else:
+                dct_templates_value = E.filter(
+                    {
+                        "name": field_id.name,
+                        "string": field_id.field_description,
+                        "domain": f"[('{field_id.name}','!=',False)]",
+                    }
+                )
+                lst_field_filter.append(dct_templates_value)
+
+        lst_item_search = lst_field + lst_field_filter
+        arch_xml = E.search(
+            {
+                "string": model_name_display_str,
+            },
+            *lst_item_search,
+        )
+        str_arch = ET.tostring(arch_xml, pretty_print=True)
+        # ir_ui_view_value = {
+        #     "name": f"{model_name_str}_search",
+        #     "type": "search",
+        #     "model": model_name,
+        #     "arch": str_arch,
+        #     "m2o_model": model_created.id,
+        # }
+        # dct_value_to_create["ir.ui.view"].append(ir_ui_view_value)
+        view_value = self.env["ir.ui.view"].create(
+            {
+                "name": f"{model_name_str}_search",
+                "type": "search",
+                "model": model_name,
+                "arch": str_arch,
+                "m2o_model": model_created.id,
+            }
+        )
+
+        return view_value
+
+    def _generate_pivot_views_models(
+        self, model_created, model_created_fields, module, dct_value_to_create
+    ):
+        model_name = model_created.model
+        model_name_str = model_name.replace(".", "_")
+        model_name_display_str = model_name_str.replace("_", " ").capitalize()
+
+        lst_field_to_remove = ("active",)
+
+        has_sequence = False
+        for field_id in model_created_fields:
+            if field_id.code_generator_pivot_view_sequence >= 0:
+                has_sequence = True
+                break
+
+        if not has_sequence:
+            lst_order_field_id = [[], [], []]
+            # code_generator_pivot_view_sequence all -1, default value
+            # Move rec_name in beginning
+            # Move one2many at the end
+            for field_id in model_created_fields:
+                if field_id.name == model_created.rec_name:
+                    # TODO write this value
+                    lst_order_field_id[0].append(field_id.id)
+                    # field_id.code_generator_pivot_view_sequence = 0
+                elif field_id.ttype == "one2many":
+                    lst_order_field_id[2].append(field_id.id)
+                    # field_id.code_generator_pivot_view_sequence = 2
+                else:
+                    lst_order_field_id[1].append(field_id.id)
+                    # field_id.code_generator_pivot_view_sequence = 1
+            new_lst_order_field_id = (
+                lst_order_field_id[0]
+                + lst_order_field_id[1]
+                + lst_order_field_id[2]
+            )
+            # TODO this can slow, can we accumulate this data for the end?
+            # field_sorted_sequence_0 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[0]
+            # )
+            # field_sorted_sequence_1 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[1]
+            # )
+            # field_sorted_sequence_2 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[2]
+            # )
+            # field_sorted_sequence_0.write(
+            #     {"code_generator_form_simple_view_sequence": 0}
+            # )
+            # field_sorted_sequence_1.write(
+            #     {"code_generator_form_simple_view_sequence": 1}
+            # )
+            # field_sorted_sequence_2.write(
+            #     {"code_generator_form_simple_view_sequence": 2}
+            # )
+            # field_sorted_ids = (
+            #     field_sorted_sequence_0
+            #     + field_sorted_sequence_1
+            #     + field_sorted_sequence_2
+            # )
+            lst_field_sorted = self.env["ir.model.fields"].browse(
+                new_lst_order_field_id
+            )
+        else:
+            # Use pivot view sequence, or generic sequence
+            lst_field_sorted = model_created_fields.sorted(
+                lambda field: field.code_generator_pivot_view_sequence
+            )
+
+        # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
+        lst_field = []
+        for field_id in lst_field_sorted:
+            if field_id.name in lst_field_to_remove:
+                continue
+            # TODO validate code_generator_pivot_view_sequence is supported
+            # if a.code_generator_pivot_view_sequence >= 0
+
+            # TODO detect field_type col, when it's a date?
+            if model_created.rec_name == field_id.name:
+                field_type = "row"
+            elif field_id.ttype in ("integer", "float"):
+                field_type = "measure"
+            else:
+                field_type = "row"
+
+            dct_templates_value = E.field(
+                {
+                    "name": field_id.name,
+                    "type": field_type,
+                }
+            )
+            lst_field.append(dct_templates_value)
+
+        lst_item_pivot = lst_field
+        arch_xml = E.pivot(
+            {
+                "string": model_name_display_str,
+            },
+            *lst_item_pivot,
+        )
+        str_arch = ET.tostring(arch_xml, pretty_print=True)
+        # ir_ui_view_value = {
+        #     "name": f"{model_name_str}_pivot",
+        #     "type": "pivot",
+        #     "model": model_name,
+        #     "arch": str_arch,
+        #     "m2o_model": model_created.id,
+        # }
+        # dct_value_to_create["ir.ui.view"].append(ir_ui_view_value)
+        view_value = self.env["ir.ui.view"].create(
+            {
+                "name": f"{model_name_str}_pivot",
+                "type": "pivot",
+                "model": model_name,
+                "arch": str_arch,
+                "m2o_model": model_created.id,
+            }
+        )
+
+        return view_value
+
+    def _generate_calendar_views_models(
+        self, model_created, model_created_fields, module, dct_value_to_create
+    ):
+        model_name = model_created.model
+        model_name_str = model_name.replace(".", "_")
+        model_name_display_str = model_name_str.replace("_", " ").capitalize()
+
+        lst_field_to_remove = ("active",)
+
+        has_sequence = False
+        for field_id in model_created_fields:
+            if field_id.code_generator_calendar_view_sequence >= 0:
+                has_sequence = True
+                break
+
+        if not has_sequence:
+            lst_order_field_id = [[], [], []]
+            # code_generator_calendar_view_sequence all -1, default value
+            # Move rec_name in beginning
+            # Move one2many at the end
+            for field_id in model_created_fields:
+                if field_id.name == model_created.rec_name:
+                    # TODO write this value
+                    lst_order_field_id[0].append(field_id.id)
+                    # field_id.code_generator_calendar_view_sequence = 0
+                elif field_id.ttype == "one2many":
+                    lst_order_field_id[2].append(field_id.id)
+                    # field_id.code_generator_calendar_view_sequence = 2
+                else:
+                    lst_order_field_id[1].append(field_id.id)
+                    # field_id.code_generator_calendar_view_sequence = 1
+            new_lst_order_field_id = (
+                lst_order_field_id[0]
+                + lst_order_field_id[1]
+                + lst_order_field_id[2]
+            )
+            # TODO this can slow, can we accumulate this data for the end?
+            # field_sorted_sequence_0 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[0]
+            # )
+            # field_sorted_sequence_1 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[1]
+            # )
+            # field_sorted_sequence_2 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[2]
+            # )
+            # field_sorted_sequence_0.write(
+            #     {"code_generator_form_simple_view_sequence": 0}
+            # )
+            # field_sorted_sequence_1.write(
+            #     {"code_generator_form_simple_view_sequence": 1}
+            # )
+            # field_sorted_sequence_2.write(
+            #     {"code_generator_form_simple_view_sequence": 2}
+            # )
+            # field_sorted_ids = (
+            #     field_sorted_sequence_0
+            #     + field_sorted_sequence_1
+            #     + field_sorted_sequence_2
+            # )
+            lst_field_sorted = self.env["ir.model.fields"].browse(
+                new_lst_order_field_id
+            )
+        else:
+            # Use calendar view sequence, or generic sequence
+            lst_field_sorted = model_created_fields.sorted(
+                lambda field: field.code_generator_calendar_view_sequence
+            )
+
+        # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
+        lst_field = []
+        date_start = None
+        for field_id in lst_field_sorted:
+            if field_id.name in lst_field_to_remove:
+                continue
+            # TODO validate code_generator_calendar_view_sequence is supported
+            # if a.code_generator_calendar_view_sequence >= 0
+
+            dct_value = {"name": field_id.name}
+            if field_id.force_widget:
+                dct_value["widget"] = field_id.force_widget
+
+            if field_id.is_date_start_view:
+                if date_start:
+                    _logger.warning(
+                        f"Double date_start in model {model_name}."
+                    )
+                date_start = field_id
+
+            dct_templates_value = E.field(dct_value)
+            lst_field.append(dct_templates_value)
+
+        if not date_start:
+            _logger.error(
+                f"Missing date_start in view calendar for model {model_name}."
+            )
+            return
+
+        lst_item_calendar = lst_field
+        arch_xml = E.calendar(
+            {
+                "string": model_name_display_str,
+                "date_start": date_start.name,
+                "color": model_created.rec_name,
+            },
+            *lst_item_calendar,
+        )
+        str_arch = ET.tostring(arch_xml, pretty_print=True)
+        # ir_ui_view_value = {
+        #     "name": f"{model_name_str}_calendar",
+        #     "type": "calendar",
+        #     "model": model_name,
+        #     "arch": str_arch,
+        #     "m2o_model": model_created.id,
+        # }
+        # dct_value_to_create["ir.ui.view"].append(ir_ui_view_value)
+        view_value = self.env["ir.ui.view"].create(
+            {
+                "name": f"{model_name_str}_calendar",
+                "type": "calendar",
+                "model": model_name,
+                "arch": str_arch,
+                "m2o_model": model_created.id,
+            }
+        )
+
+        return view_value
+
+    def _generate_graph_views_models(
+        self, model_created, model_created_fields, module, dct_value_to_create
+    ):
+        model_name = model_created.model
+        model_name_str = model_name.replace(".", "_")
+        model_name_display_str = model_name_str.replace("_", " ").capitalize()
+
+        lst_field_to_remove = ("active",)
+
+        has_sequence = False
+        for field_id in model_created_fields:
+            if field_id.code_generator_graph_view_sequence >= 0:
+                has_sequence = True
+                break
+
+        if not has_sequence:
+            lst_order_field_id = [[], [], []]
+            # code_generator_graph_view_sequence all -1, default value
+            # Move rec_name in beginning
+            # Move one2many at the end
+            for field_id in model_created_fields:
+                if field_id.name == model_created.rec_name:
+                    # TODO write this value
+                    lst_order_field_id[0].append(field_id.id)
+                    # field_id.code_generator_graph_view_sequence = 0
+                elif field_id.ttype == "one2many":
+                    lst_order_field_id[2].append(field_id.id)
+                    # field_id.code_generator_graph_view_sequence = 2
+                else:
+                    lst_order_field_id[1].append(field_id.id)
+                    # field_id.code_generator_graph_view_sequence = 1
+            new_lst_order_field_id = (
+                lst_order_field_id[0]
+                + lst_order_field_id[1]
+                + lst_order_field_id[2]
+            )
+            # TODO this can slow, can we accumulate this data for the end?
+            # field_sorted_sequence_0 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[0]
+            # )
+            # field_sorted_sequence_1 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[1]
+            # )
+            # field_sorted_sequence_2 = self.env["ir.model.fields"].browse(
+            #     lst_order_field_id[2]
+            # )
+            # field_sorted_sequence_0.write(
+            #     {"code_generator_form_simple_view_sequence": 0}
+            # )
+            # field_sorted_sequence_1.write(
+            #     {"code_generator_form_simple_view_sequence": 1}
+            # )
+            # field_sorted_sequence_2.write(
+            #     {"code_generator_form_simple_view_sequence": 2}
+            # )
+            # field_sorted_ids = (
+            #     field_sorted_sequence_0
+            #     + field_sorted_sequence_1
+            #     + field_sorted_sequence_2
+            # )
+            lst_field_sorted = self.env["ir.model.fields"].browse(
+                new_lst_order_field_id
+            )
+        else:
+            # Use graph view sequence, or generic sequence
+            lst_field_sorted = model_created_fields.sorted(
+                lambda field: field.code_generator_graph_view_sequence
+            )
+
+        # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
+        lst_field = []
+        for field_id in lst_field_sorted:
+            if field_id.name in lst_field_to_remove:
+                continue
+            # TODO validate code_generator_graph_view_sequence is supported
+            # if a.code_generator_graph_view_sequence >= 0
+
+            # TODO detect field_type col, when it's a date?
+            if model_created.rec_name == field_id.name:
+                field_type = "row"
+            elif field_id.ttype in ("integer", "float"):
+                field_type = "measure"
+            else:
+                field_type = "row"
+
+            dct_templates_value = E.field(
+                {
+                    "name": field_id.name,
+                    "type": field_type,
+                }
+            )
+            lst_field.append(dct_templates_value)
+
+        lst_item_graph = lst_field
+        arch_xml = E.graph(
+            {
+                "string": model_name_display_str,
+            },
+            *lst_item_graph,
+        )
+        str_arch = ET.tostring(arch_xml, pretty_print=True)
+        # ir_ui_view_value = {
+        #     "name": f"{model_name_str}_graph",
+        #     "type": "graph",
+        #     "model": model_name,
+        #     "arch": str_arch,
+        #     "m2o_model": model_created.id,
+        # }
+        # dct_value_to_create["ir.ui.view"].append(ir_ui_view_value)
+        view_value = self.env["ir.ui.view"].create(
+            {
+                "name": f"{model_name_str}_graph",
+                "type": "graph",
+                "model": model_name,
+                "arch": str_arch,
+                "m2o_model": model_created.id,
+            }
+        )
+
+        return view_value
+
+    def _generate_timeline_views_models(
+        self,
+        model_created,
+        model_created_fields,
+        module,
+        dct_value_to_create,
+    ):
+        model_name = model_created.model
+        model_name_str = model_name.replace(".", "_")
+        model_name_display_str = model_name_str.replace("_", " ").capitalize()
+
+        start_date = None
+        end_date = None
+        for field_id in model_created_fields:
+            if field_id.is_date_start_view and not start_date:
+                start_date = field_id
+            if field_id.is_date_end_view and not end_date:
+                end_date = field_id
+
+        if not start_date:
+            _logger.warning(
+                "Missing start date field, need word start in name."
+            )
+        if not end_date:
+            _logger.warning("Missing end date field, need word start in name.")
+        if not start_date or not end_date:
+            return
+
+        # lst_item_timeline = lst_field
+        arch_xml = E.timeline(
+            {
+                "string": model_name_display_str,
+                "date_start": start_date.name,
+                "date_stop": end_date.name,
+                "event_open_popup": "True",
+                "default_group_by": model_created.rec_name,
+            }
+        )
+        str_arch = ET.tostring(arch_xml, pretty_print=True)
+        # ir_ui_view_value = {
+        #     "name": f"{model_name_str}_timeline",
+        #     "type": "timeline",
+        #     "model": model_name,
+        #     "arch": str_arch,
+        #     "m2o_model": model_created.id,
+        # }
+        # dct_value_to_create["ir.ui.view"].append(ir_ui_view_value)
+        view_value = self.env["ir.ui.view"].create(
+            {
+                "name": f"{model_name_str}_timeline",
+                "type": "timeline",
                 "model": model_name,
                 "arch": str_arch,
                 "m2o_model": model_created.id,
@@ -1032,7 +2041,20 @@ pass''',
         except:
             pass
 
-        view_mode = ",".join(sorted(set(lst_view_generated), reverse=True))
+        # TODO change sequence of view mode
+        # Kanban first by default
+        if "kanban" in lst_view_generated:
+            lst_first_view_generated = ["kanban"]
+            lst_second_view_generated = lst_view_generated[:]
+            lst_second_view_generated.remove("kanban")
+        else:
+            lst_first_view_generated = []
+            lst_second_view_generated = lst_view_generated
+
+        view_mode = ",".join(
+            lst_first_view_generated
+            + sorted(set(lst_second_view_generated), reverse=True)
+        )
         view_type = (
             "form" if "form" in lst_view_generated else lst_view_generated[0]
         )

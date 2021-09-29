@@ -123,6 +123,69 @@ class CodeGeneratorDbColumn(models.Model):
         string="Hide in blacklist form view",
         help="Hide from view when field is blacklisted. View form only.",
     )
+    is_show_whitelist_kanban_view = fields.Boolean(
+        string="Show in whitelist kanban view",
+        help=(
+            "If a field in model is in whitelist, all is not will be hide. "
+            "View kanban only."
+        ),
+    )
+    is_hide_blacklist_kanban_view = fields.Boolean(
+        string="Hide in blacklist kanban view",
+        help="Hide from view when field is blacklisted. View kanban only.",
+    )
+    is_show_whitelist_search_view = fields.Boolean(
+        string="Show in whitelist search view",
+        help=(
+            "If a field in model is in whitelist, all is not will be hide. "
+            "View search only."
+        ),
+    )
+    is_hide_blacklist_search_view = fields.Boolean(
+        string="Hide in blacklist search view",
+        help="Hide from view when field is blacklisted. View search only.",
+    )
+    is_show_whitelist_pivot_view = fields.Boolean(
+        string="Show in whitelist pivot view",
+        help=(
+            "If a field in model is in whitelist, all is not will be hide. "
+            "View pivot only."
+        ),
+    )
+    is_hide_blacklist_pivot_view = fields.Boolean(
+        string="Hide in blacklist pivot view",
+        help="Hide from view when field is blacklisted. View pivot only.",
+    )
+    is_show_whitelist_graph_view = fields.Boolean(
+        string="Show in whitelist graph view",
+        help=(
+            "If a field in model is in whitelist, all is not will be hide. "
+            "View graph only."
+        ),
+    )
+    is_hide_blacklist_graph_view = fields.Boolean(
+        string="Hide in blacklist graph view",
+        help="Hide from view when field is blacklisted. View graph only.",
+    )
+    is_date_start_view = fields.Boolean(
+        string="Is date start timeline view",
+        help="View timeline only.",
+    )
+    is_date_end_view = fields.Boolean(
+        string="Is date end timeline view",
+        help="View timeline only.",
+    )
+    is_show_whitelist_calendar_view = fields.Boolean(
+        string="Show in whitelist calendar view",
+        help=(
+            "If a field in model is in whitelist, all is not will be hide. "
+            "View calendar only."
+        ),
+    )
+    is_hide_blacklist_calendar_view = fields.Boolean(
+        string="Hide in blacklist calendar view",
+        help="Hide from view when field is blacklisted. View calendar only.",
+    )
 
     relation_table_id = fields.Many2one(
         string="Depend table",
@@ -284,6 +347,18 @@ class CodeGeneratorDbColumn(models.Model):
         is_hide_blacklist_list_view=None,
         is_show_whitelist_form_view=None,
         is_hide_blacklist_form_view=None,
+        is_show_whitelist_kanban_view=None,
+        is_hide_blacklist_kanban_view=None,
+        is_show_whitelist_search_view=None,
+        is_hide_blacklist_search_view=None,
+        is_show_whitelist_pivot_view=None,
+        is_hide_blacklist_pivot_view=None,
+        is_show_whitelist_graph_view=None,
+        is_hide_blacklist_graph_view=None,
+        is_show_whitelist_calendar_view=None,
+        is_hide_blacklist_calendar_view=None,
+        is_date_start_view=None,
+        is_date_end_view=None,
         compute_data_function=None,
         add_one2many=False,
     ):
@@ -309,6 +384,18 @@ class CodeGeneratorDbColumn(models.Model):
         :param is_hide_blacklist_list_view:
         :param is_show_whitelist_form_view:
         :param is_hide_blacklist_form_view:
+        :param is_show_whitelist_kanban_view:
+        :param is_hide_blacklist_kanban_view:
+        :param is_show_whitelist_search_view:
+        :param is_hide_blacklist_search_view:
+        :param is_show_whitelist_pivot_view:
+        :param is_hide_blacklist_pivot_view:
+        :param is_show_whitelist_graph_view:
+        :param is_hide_blacklist_graph_view:
+        :param is_date_start_view:
+        :param is_date_end_view:
+        :param is_show_whitelist_calendar_view:
+        :param is_hide_blacklist_calendar_view:
         :param compute_data_function: function, in string, to run with data in argument and overwrite data
         :param add_one2many:
         :return:
@@ -368,6 +455,50 @@ class CodeGeneratorDbColumn(models.Model):
             column_id.is_show_whitelist_form_view = is_show_whitelist_form_view
         if is_hide_blacklist_form_view:
             column_id.is_hide_blacklist_form_view = is_hide_blacklist_form_view
+        if is_show_whitelist_kanban_view:
+            column_id.is_show_whitelist_kanban_view = (
+                is_show_whitelist_kanban_view
+            )
+        if is_hide_blacklist_kanban_view:
+            column_id.is_hide_blacklist_kanban_view = (
+                is_hide_blacklist_kanban_view
+            )
+        if is_show_whitelist_search_view:
+            column_id.is_show_whitelist_search_view = (
+                is_show_whitelist_search_view
+            )
+        if is_hide_blacklist_search_view:
+            column_id.is_hide_blacklist_search_view = (
+                is_hide_blacklist_search_view
+            )
+        if is_show_whitelist_pivot_view:
+            column_id.is_show_whitelist_pivot_view = (
+                is_show_whitelist_pivot_view
+            )
+        if is_hide_blacklist_pivot_view:
+            column_id.is_hide_blacklist_pivot_view = (
+                is_hide_blacklist_pivot_view
+            )
+        if is_show_whitelist_graph_view:
+            column_id.is_show_whitelist_graph_view = (
+                is_show_whitelist_graph_view
+            )
+        if is_hide_blacklist_graph_view:
+            column_id.is_hide_blacklist_graph_view = (
+                is_hide_blacklist_graph_view
+            )
+        if is_show_whitelist_calendar_view:
+            column_id.is_show_whitelist_calendar_view = (
+                is_show_whitelist_calendar_view
+            )
+        if is_hide_blacklist_calendar_view:
+            column_id.is_hide_blacklist_calendar_view = (
+                is_hide_blacklist_calendar_view
+            )
+        if is_date_start_view:
+            column_id.is_date_start_view = is_date_start_view
+        if is_date_end_view:
+            column_id.is_date_end_view = is_date_end_view
         if add_one2many:
             column_id.add_one2many = add_one2many
         if compute_data_function:

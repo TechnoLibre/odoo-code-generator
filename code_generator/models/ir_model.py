@@ -558,6 +558,69 @@ class IrModelFields(models.Model):
         string="Hide in blacklist form view",
         help="Hide from view when field is blacklisted. View form only.",
     )
+    is_show_whitelist_kanban_view = fields.Boolean(
+        string="Show in whitelist kanban view",
+        help=(
+            "If a field in model is in whitelist, all is not will be hide. "
+            "View kanban only."
+        ),
+    )
+    is_hide_blacklist_kanban_view = fields.Boolean(
+        string="Hide in blacklist kanban view",
+        help="Hide from view when field is blacklisted. View kanban only.",
+    )
+    is_show_whitelist_search_view = fields.Boolean(
+        string="Show in whitelist search view",
+        help=(
+            "If a field in model is in whitelist, all is not will be hide. "
+            "View search only."
+        ),
+    )
+    is_hide_blacklist_search_view = fields.Boolean(
+        string="Hide in blacklist search view",
+        help="Hide from view when field is blacklisted. View search only.",
+    )
+    is_show_whitelist_pivot_view = fields.Boolean(
+        string="Show in whitelist pivot view",
+        help=(
+            "If a field in model is in whitelist, all is not will be hide. "
+            "View pivot only."
+        ),
+    )
+    is_hide_blacklist_pivot_view = fields.Boolean(
+        string="Hide in blacklist pivot view",
+        help="Hide from view when field is blacklisted. View pivot only.",
+    )
+    is_show_whitelist_graph_view = fields.Boolean(
+        string="Show in whitelist graph view",
+        help=(
+            "If a field in model is in whitelist, all is not will be hide. "
+            "View graph only."
+        ),
+    )
+    is_hide_blacklist_graph_view = fields.Boolean(
+        string="Hide in blacklist graph view",
+        help="Hide from view when field is blacklisted. View graph only.",
+    )
+    is_date_start_view = fields.Boolean(
+        string="Show start date view",
+        help="View timeline only, start field.",
+    )
+    is_date_end_view = fields.Boolean(
+        string="Show end date view",
+        help="View timeline only, end field.",
+    )
+    is_show_whitelist_calendar_view = fields.Boolean(
+        string="Show in whitelist calendar view",
+        help=(
+            "If a field in model is in whitelist, all is not will be hide. "
+            "View calendar only."
+        ),
+    )
+    is_hide_blacklist_calendar_view = fields.Boolean(
+        string="Hide in blacklist calendar view",
+        help="Hide from view when field is blacklisted. View calendar only.",
+    )
     # This is used to choose order to show field in model
     code_generator_sequence = fields.Integer(
         string="Sequence Code Generator",
@@ -586,6 +649,43 @@ class IrModelFields(models.Model):
     code_generator_search_sequence = fields.Integer(
         string="Search sequence",
         help="Sequence to write this field in search from Code Generator.",
+        default=-1,
+    )
+
+    code_generator_kanban_view_sequence = fields.Integer(
+        string="Kanban view sequence",
+        help=(
+            "Sequence to write this field in kanban view from Code Generator."
+        ),
+        default=-1,
+    )
+
+    code_generator_calendar_view_sequence = fields.Integer(
+        string="calendar view sequence",
+        help=(
+            "Sequence to write this field in calendar view from Code"
+            " Generator."
+        ),
+        default=-1,
+    )
+
+    code_generator_search_view_sequence = fields.Integer(
+        string="search view sequence",
+        help=(
+            "Sequence to write this field in search view from Code Generator."
+        ),
+        default=-1,
+    )
+
+    code_generator_pivot_view_sequence = fields.Integer(
+        string="pivot view sequence",
+        help="Sequence to write this field in pivot view from Code Generator.",
+        default=-1,
+    )
+
+    code_generator_graph_view_sequence = fields.Integer(
+        string="graph view sequence",
+        help="Sequence to write this field in graph view from Code Generator.",
         default=-1,
     )
 

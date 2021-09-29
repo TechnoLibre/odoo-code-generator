@@ -451,6 +451,8 @@ class CodeGeneratorView(models.Model):
             ("pivot", "Pivot"),
             ("graph", "Graph"),
             ("search", "Search"),  # Special
+            ("kanban", "Kanban"),
+            ("timeline", "Timeline"),
             ("activity", "Activity"),
             ("calendar", "Calendar"),
         ],

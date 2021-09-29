@@ -129,7 +129,7 @@ class CodeGeneratorWriter(models.Model):
                     )
                 cw.emit(f'"ttype": "{field_id.ttype}",')
                 if field_id.ttype in ["many2one", "many2many", "one2many"]:
-                    cw.emit(f'"comodel_name": "{field_id.relation}",')
+                    # cw.emit(f'"comodel_name": "{field_id.relation}",')
                     cw.emit(f'"relation": "{field_id.relation}",')
                     if field_id.ttype == "one2many":
                         field_many2one_ids = self.env[

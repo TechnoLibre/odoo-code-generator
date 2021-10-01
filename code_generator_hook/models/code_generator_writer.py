@@ -903,9 +903,8 @@ class CodeGeneratorWriter(models.Model):
                                     )
                                     cw.emit()
                                     # inherit
-                                    if model_id and model_id.m2o_inherit_model:
+                                    if model_id and model_id.inherit_model_ids:
                                         cw.emit("# Model Inherit")
-                                        # TODO support multi dependencies
                                         if (
                                             module.template_module_id
                                             and module.template_module_id.dependencies_id
@@ -914,43 +913,24 @@ class CodeGeneratorWriter(models.Model):
                                                 module.template_module_id.dependencies_id.name
                                             )
                                             cw.emit(
-                                                "dependency_ids ="
-                                                ' env["ir.module.module"].search([("name",'
-                                                f' "=", "{dependency_name}")])'
+                                                f"code_generator_id.add_module_dependency('{dependency_name}')"
                                             )
-                                            cw.emit(
-                                                "for dependency in"
-                                                " dependency_ids:"
-                                            )
-                                            with cw.indent():
-                                                cw.emit("value = {")
-                                                with cw.indent():
-                                                    cw.emit(
-                                                        '"module_id":'
-                                                        " code_generator_id.id,"
-                                                    )
-                                                    cw.emit(
-                                                        '"depend_id":'
-                                                        " dependency.id,"
-                                                    )
-                                                    cw.emit(
-                                                        '"name":'
-                                                        " code_generator_id.display_name,"
-                                                    )
-                                                cw.emit("}")
-                                                cw.emit(
-                                                    'env["code.generator.module.dependency"].create(value)'
+                                        lst_dependency = [
+                                            a.depend_id.name
+                                            for a in model_id.inherit_model_ids
+                                        ]
+                                        if lst_dependency:
+                                            if len(lst_dependency) == 1:
+                                                result_depend = (
+                                                    f"'{lst_dependency[0]}'"
                                                 )
-                                        cw.emit(
-                                            "inherit_model ="
-                                            ' env["ir.model"].search([("model",'
-                                            ' "=",'
-                                            f' "{model_id.m2o_inherit_model.model}")])'
-                                        )
-                                        cw.emit(
-                                            f"{variable_model_model}.m2o_inherit_model"
-                                            " = inherit_model.id"
-                                        )
+                                            else:
+                                                result_depend = str(
+                                                    lst_dependency
+                                                )
+                                            cw.emit(
+                                                f"{variable_model_model}.add_model_inherit({result_depend})"
+                                            )
                                         cw.emit()
                                     if module.external_dependencies_id:
                                         cw.emit("# External dependencies")

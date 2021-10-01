@@ -60,10 +60,6 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
 
         self.code_generator_id.enable_generate_portal = True
 
-        model_portal_mixin = self.env["ir.model"].search(
-            [("model", "=", "portal.mixin")]
-        )
-
         o2m_models = (
             self.code_generator_id.o2m_models
             if self.all_model
@@ -83,13 +79,7 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
         )
 
         for model_id in o2m_models:
-            model_created_fields = model_id.field_id.filtered(
-                lambda field: field.name not in MAGIC_FIELDS
-            ).mapped("name")
-
-            if model_portal_mixin:
-                # TODO update it instead of overwrite it
-                model_id.m2o_inherit_model = model_portal_mixin.id
+            model_id.add_model_inherit("portal.mixin")
 
         return True
 

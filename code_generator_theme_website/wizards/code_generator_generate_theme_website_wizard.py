@@ -145,28 +145,9 @@ class CodeGeneratorGenerateThemeWebsiteWizard(models.TransientModel):
             return
 
         for code_generator in self.code_generator_id:
-            lst_dependency = ["website", "website_theme_install"]
-            lst_actual_dependency = [
-                a.depend_id.name for a in code_generator.dependencies_id
-            ]
-            for depend in lst_dependency:
-                # check duplicate
-                if depend in lst_actual_dependency:
-                    continue
-                module = self.env["ir.module.module"].search(
-                    [("name", "=", depend)]
-                )
-                if len(module) > 1:
-                    raise Exception(f"Duplicated dependencies: {depend}")
-                elif not len(module):
-                    raise Exception(f"Cannot found dependency: {depend}")
-
-                value = {
-                    "module_id": code_generator.id,
-                    "depend_id": module.id,
-                    "name": module.display_name,
-                }
-                self.env["code.generator.module.dependency"].create(value)
+            code_generator.add_module_dependency(
+                ["website_theme_install", "website"]
+            )
 
     def generate_theme_website_record(self, module_name):
         """

@@ -273,6 +273,14 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         for model_id in lst_model_id:
             lst_view_generated = []
 
+            # Support enable_activity
+            if model_id.enable_activity:
+                model_id.add_model_inherit(
+                    ["mail.thread", "mail.activity.mixin"]
+                )
+                # inherit_model_ids
+                lst_view_generated.append("activity")
+
             # Different view
             if model_id in o2m_models_view_list:
                 is_whitelist = all(
@@ -579,7 +587,15 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         return True
 
     def _add_dependencies(self):
-        pass
+        # Check if need to add mail dependency
+        for code_generator in self.code_generator_id:
+            need_mail_depend = any(
+                [a.enable_activity for a in code_generator.o2m_models]
+            )
+            if not need_mail_depend:
+                continue
+
+            code_generator.add_module_dependency("mail")
 
     def _update_model_field_tree_view(self, model_created_fields_list):
         return model_created_fields_list
@@ -643,14 +659,18 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             #     + field_sorted_sequence_1
             #     + field_sorted_sequence_2
             # )
-            lst_field_sorted = self.env["ir.model.fields"].browse(
-                new_lst_order_field_id
+            lst_field_sorted = (
+                self.env["ir.model.fields"]
+                .browse(new_lst_order_field_id)
+                .filtered(
+                    lambda field: not field.ignore_on_code_generator_writer
+                )
             )
         else:
             # Use tree view sequence, or generic sequence
-            lst_field_sorted = model_created_fields.sorted(
-                lambda field: field.code_generator_tree_view_sequence
-            )
+            lst_field_sorted = model_created_fields.filtered(
+                lambda field: not field.ignore_on_code_generator_writer
+            ).sorted(lambda field: field.code_generator_tree_view_sequence)
 
         # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
         lst_field = []
@@ -753,13 +773,18 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             #     + field_sorted_sequence_1
             #     + field_sorted_sequence_2
             # )
-            field_sorted_ids = self.env["ir.model.fields"].browse(
-                new_lst_order_field_id
+            field_sorted_ids = (
+                self.env["ir.model.fields"]
+                .browse(new_lst_order_field_id)
+                .filtered(
+                    lambda field: not field.ignore_on_code_generator_writer
+                )
             )
         else:
-            field_sorted_ids = sorted(
-                model_created_fields,
-                key=lambda x: x.code_generator_form_simple_view_sequence,
+            field_sorted_ids = model_created_fields.filtered(
+                lambda field: not field.ignore_on_code_generator_writer
+            ).sorted(
+                lambda x: x.code_generator_form_simple_view_sequence,
             )
 
         lst_button_box = []
@@ -801,11 +826,21 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             # lst_field.append(value)
             lst_item_sheet.append(E.group({}, E.field(value)))
 
+        lst_item_form = [E.sheet({}, *lst_item_sheet)]
+
+        if model_created.enable_activity:
+            xml_activity = E.div(
+                {"class": "oe_chatter"},
+                E.field({"name": "activity_ids", "widget": "mail_activity"}),
+                E.field({"name": "message_ids", "widget": "mail_thread"}),
+            )
+            lst_item_form.append(xml_activity)
+
         arch_xml = E.form(
             {
                 "string": "Titre",
             },
-            E.sheet({}, *lst_item_sheet),
+            *lst_item_form,
         )
         str_arch = ET.tostring(arch_xml, pretty_print=True)
         # ir_ui_view_value = {
@@ -816,6 +851,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         #     "m2o_model": model_created.id,
         # }
         # dct_value_to_create["ir.ui.view"].append(ir_ui_view_value)
+
         view_value = self.env["ir.ui.view"].create(
             {
                 "name": f"{model_name_str}_form",
@@ -887,14 +923,18 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             #     + field_sorted_sequence_1
             #     + field_sorted_sequence_2
             # )
-            lst_field_sorted = self.env["ir.model.fields"].browse(
-                new_lst_order_field_id
+            lst_field_sorted = (
+                self.env["ir.model.fields"]
+                .browse(new_lst_order_field_id)
+                .filtered(
+                    lambda field: not field.ignore_on_code_generator_writer
+                )
             )
         else:
             # Use kanban view sequence, or generic sequence
-            lst_field_sorted = model_created_fields.sorted(
-                lambda field: field.code_generator_kanban_view_sequence
-            )
+            lst_field_sorted = model_created_fields.filtered(
+                lambda field: not field.ignore_on_code_generator_writer
+            ).sorted(lambda field: field.code_generator_kanban_view_sequence)
 
         # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
         lst_field = []
@@ -1051,14 +1091,18 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             #     + field_sorted_sequence_1
             #     + field_sorted_sequence_2
             # )
-            lst_field_sorted = self.env["ir.model.fields"].browse(
-                new_lst_order_field_id
+            lst_field_sorted = (
+                self.env["ir.model.fields"]
+                .browse(new_lst_order_field_id)
+                .filtered(
+                    lambda field: not field.ignore_on_code_generator_writer
+                )
             )
         else:
             # Use search view sequence, or generic sequence
-            lst_field_sorted = model_created_fields.sorted(
-                lambda field: field.code_generator_search_view_sequence
-            )
+            lst_field_sorted = model_created_fields.filtered(
+                lambda field: not field.ignore_on_code_generator_writer
+            ).sorted(lambda field: field.code_generator_search_view_sequence)
 
         # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
         lst_field = []
@@ -1186,14 +1230,18 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             #     + field_sorted_sequence_1
             #     + field_sorted_sequence_2
             # )
-            lst_field_sorted = self.env["ir.model.fields"].browse(
-                new_lst_order_field_id
+            lst_field_sorted = (
+                self.env["ir.model.fields"]
+                .browse(new_lst_order_field_id)
+                .filtered(
+                    lambda field: not field.ignore_on_code_generator_writer
+                )
             )
         else:
             # Use pivot view sequence, or generic sequence
-            lst_field_sorted = model_created_fields.sorted(
-                lambda field: field.code_generator_pivot_view_sequence
-            )
+            lst_field_sorted = model_created_fields.filtered(
+                lambda field: not field.ignore_on_code_generator_writer
+            ).sorted(lambda field: field.code_generator_pivot_view_sequence)
 
         # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
         lst_field = []
@@ -1307,14 +1355,18 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             #     + field_sorted_sequence_1
             #     + field_sorted_sequence_2
             # )
-            lst_field_sorted = self.env["ir.model.fields"].browse(
-                new_lst_order_field_id
+            lst_field_sorted = (
+                self.env["ir.model.fields"]
+                .browse(new_lst_order_field_id)
+                .filtered(
+                    lambda field: not field.ignore_on_code_generator_writer
+                )
             )
         else:
             # Use calendar view sequence, or generic sequence
-            lst_field_sorted = model_created_fields.sorted(
-                lambda field: field.code_generator_calendar_view_sequence
-            )
+            lst_field_sorted = model_created_fields.filtered(
+                lambda field: not field.ignore_on_code_generator_writer
+            ).sorted(lambda field: field.code_generator_calendar_view_sequence)
 
         # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
         lst_field = []
@@ -1435,14 +1487,18 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             #     + field_sorted_sequence_1
             #     + field_sorted_sequence_2
             # )
-            lst_field_sorted = self.env["ir.model.fields"].browse(
-                new_lst_order_field_id
+            lst_field_sorted = (
+                self.env["ir.model.fields"]
+                .browse(new_lst_order_field_id)
+                .filtered(
+                    lambda field: not field.ignore_on_code_generator_writer
+                )
             )
         else:
             # Use graph view sequence, or generic sequence
-            lst_field_sorted = model_created_fields.sorted(
-                lambda field: field.code_generator_graph_view_sequence
-            )
+            lst_field_sorted = model_created_fields.filtered(
+                lambda field: not field.ignore_on_code_generator_writer
+            ).sorted(lambda field: field.code_generator_graph_view_sequence)
 
         # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
         lst_field = []

@@ -2,11 +2,14 @@
 
 import base64
 
+import logging
 import lxml
 import os
 from docutils.core import publish_string
 from odoo import models, fields, api, modules, tools
 from odoo.addons.base.models.ir_module import MyWriter
+
+_logger = logging.getLogger(__name__)
 
 
 class Module(models.Model):
@@ -224,6 +227,43 @@ class CodeGeneratorModule(models.Model):
             " generate new code."
         ),
     )
+
+    def add_module_dependency(self, module_name):
+        """
+
+        :param module_name: list or string
+        :return:
+        """
+        if type(module_name) is str:
+            lst_model_name = [module_name]
+        elif type(module_name) is list:
+            lst_model_name = module_name
+        else:
+            _logger.error(
+                "Wrong type of model_name in method add_model_inherit:"
+                f" {type(module_name)}"
+            )
+            return
+
+        dependency_ids = self.env["ir.module.module"].search(
+            [("name", "in", lst_model_name)]
+        )
+        for dependency in dependency_ids:
+            check_duplicate = self.env[
+                "code.generator.module.dependency"
+            ].search(
+                [
+                    ("module_id", "=", self.id),
+                    ("depend_id", "=", dependency.id),
+                ]
+            )
+            if not check_duplicate:
+                value = {
+                    "module_id": self.id,
+                    "depend_id": dependency.id,
+                    "name": self.display_name,
+                }
+                self.env["code.generator.module.dependency"].create(value)
 
     # clean_before_sync_code = fields.Boolean(string="Clean before sync", help="Clean before sync, all will be lost.")
 

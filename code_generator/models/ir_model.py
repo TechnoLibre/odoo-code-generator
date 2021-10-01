@@ -303,6 +303,10 @@ class IrModel(models.Model):
         )
     )
 
+    enable_activity = fields.Boolean(
+        help="Will add chatter and activity to this model in form view."
+    )
+
     @api.onchange("m2o_module")
     def _onchange_m2o_module(self):
         if self.m2o_module:
@@ -349,9 +353,9 @@ class IrModel(models.Model):
         ondelete="cascade",
     )
 
-    m2o_inherit_model = fields.Many2one(
-        "ir.model",
-        string="Inherit Model",
+    inherit_model_ids = fields.Many2many(
+        "code.generator.ir.model.dependency",
+        string="Inherit ir Model",
         help="Inherit Model",
         ondelete="cascade",
     )
@@ -383,6 +387,75 @@ class IrModel(models.Model):
         ),
     )
 
+    def add_model_inherit(self, model_name):
+        """
+
+        :param model_name: list or string
+        :return:
+        """
+        if type(model_name) is str:
+            lst_model_name = [model_name]
+        elif type(model_name) is list:
+            lst_model_name = model_name
+        else:
+            _logger.error(
+                "Wrong type of model_name in method add_model_inherit:"
+                f" {type(model_name)}"
+            )
+            return
+
+        inherit_model = self.env["ir.model"].search(
+            [("model", "in", lst_model_name)]
+        )
+        lst_create = [{"depend_id": a.id} for a in inherit_model]
+        depend_ids = self.env["code.generator.ir.model.dependency"].create(
+            lst_create
+        )
+        self.inherit_model_ids = depend_ids.ids
+
+        # Add missing field
+        actual_field_list = set(self.field_id.mapped("name"))
+        lst_dct_field = []
+        for ir_model_id in inherit_model:
+            diff_list = list(
+                set(ir_model_id.field_id.mapped("name")).difference(
+                    actual_field_list
+                )
+            )
+            lst_new_field = [
+                a for a in ir_model_id.field_id if a.name in diff_list
+            ]
+            for new_field_id in lst_new_field:
+                # TODO support ttype selection, who extract this information?
+                if new_field_id.ttype == "selection":
+                    continue
+                value_field_backup_format = {
+                    "name": new_field_id.name,
+                    "model": self.model,
+                    "field_description": new_field_id.field_description,
+                    "ttype": new_field_id.ttype,
+                    "model_id": self.id,
+                    "ignore_on_code_generator_writer": True,
+                }
+                tpl_relation = ("many2one", "many2many", "one2many")
+                tpl_relation_field = ("many2many", "one2many")
+                if new_field_id.ttype in tpl_relation:
+                    value_field_backup_format[
+                        "relation"
+                    ] = new_field_id.relation
+
+                if (
+                    new_field_id.ttype in tpl_relation_field
+                    and new_field_id.relation_field
+                ):
+                    value_field_backup_format[
+                        "relation_field"
+                    ] = new_field_id.relation_field
+
+                lst_dct_field.append(value_field_backup_format)
+        if lst_dct_field:
+            self.env["ir.model.fields"].create(lst_dct_field)
+
     @api.model
     def _instanciate(self, model_data):
         custommodelclass = super(IrModel, self)._instanciate(model_data)
@@ -399,12 +472,17 @@ class IrModel(models.Model):
                 custommodelclass._rec_name = model_data["rec_name"]
 
             if (
-                "m2o_inherit_model" in model_data
-                and model_data["m2o_inherit_model"]
+                "inherit_model_ids" in model_data
+                and model_data["inherit_model_ids"]
             ):
-                custommodelclass._inherit = self.browse(
-                    model_data["m2o_inherit_model"]
-                ).model
+                lst_inherit = [
+                    a.depend_id.model for a in model_data["inherit_model_ids"]
+                ]
+                if lst_inherit:
+                    if len(lst_inherit) == 1:
+                        custommodelclass._inherit = lst_inherit[0]
+                    else:
+                        custommodelclass._inherit = lst_inherit
 
             if (
                 "m2o_inherit_py_class" in model_data
@@ -489,6 +567,20 @@ class IrModel(models.Model):
 #         self._run_safe_eval()
 #
 #         return result
+
+
+class IrModelDependency(models.Model):
+    _name = "code.generator.ir.model.dependency"
+    _description = "Code Generator ir model Dependency"
+
+    depend_id = fields.Many2one("ir.model", "Dependency", ondelete="cascade")
+    name = fields.Char(compute="compute_name")
+
+    @api.depends("depend_id")
+    def compute_name(self):
+        for rec in self:
+            if rec.depend_id:
+                rec.name = rec.depend_id.model
 
 
 class IrModelUpdatedFields(models.Model):
@@ -692,6 +784,10 @@ class IrModelFields(models.Model):
     code_generator_compute = fields.Char(
         string="Compute Code Generator",
         help="Compute method to code_generator_writer.",
+    )
+
+    ignore_on_code_generator_writer = fields.Boolean(
+        help="Enable this to ignore it when write code."
     )
 
     @api.constrains("name", "state")

@@ -1035,7 +1035,7 @@ class CodeGeneratorWriter(models.Model):
                                     f"Cannot identify model {value}."
                                 )
                             else:
-                                self.model_id.m2o_inherit_model = model_id.id
+                                self.model_id.add_model_inherit(model_id.model)
                         elif node.targets[0].id == "_sql_constraints":
                             lst_value = self._fill_search_field(node.value)
                             constraint_ids = module.env[
@@ -2852,8 +2852,15 @@ class CodeGeneratorWriter(models.Model):
             _foreign_keys = []
             """
             cw.emit(f"_name = '{model.model}'")
-            if model.m2o_inherit_model.model:
-                cw.emit(f"_inherit = '{model.m2o_inherit_model.model}'")
+
+            lst_inherit = [a.depend_id.model for a in model.inherit_model_ids]
+            if lst_inherit:
+                if len(lst_inherit) == 1:
+                    str_inherit = f"'{lst_inherit[0]}'"
+                else:
+                    str_inherit = f"""["{'", "'.join(lst_inherit)}"]"""
+                cw.emit(f"_inherit = {str_inherit}")
+
             if model.description:
                 new_description = model.description.replace("'", "\\'")
                 cw.emit(f"_description = '{new_description}'")
@@ -3129,13 +3136,18 @@ class CodeGeneratorWriter(models.Model):
             lambda field: field.name not in MAGIC_FIELDS
         ).sorted(key=lambda r: r.code_generator_sequence)
 
-        if model.m2o_inherit_model:
-            father = self.env["ir.model"].browse(model.m2o_inherit_model.id)
-            fatherfieldnames = father.field_id.filtered(
-                lambda field: field.name not in MAGIC_FIELDS
-            ).mapped("name")
+        if model.inherit_model_ids:
+            father_ids = self.env["ir.model"].browse(
+                [a.depend_id.id for a in model.inherit_model_ids]
+            )
+            set_unique_field = set()
+            for father_id in father_ids:
+                fatherfieldnames = father_id.field_id.filtered(
+                    lambda field: field.name not in MAGIC_FIELDS
+                ).mapped("name")
+                set_unique_field.update(fatherfieldnames)
             f2exports = f2exports.filtered(
-                lambda field: field.name not in fatherfieldnames
+                lambda field: field.name not in list(set_unique_field)
             )
 
         for f2export in f2exports:

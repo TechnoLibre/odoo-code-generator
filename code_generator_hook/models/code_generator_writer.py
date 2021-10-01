@@ -1016,10 +1016,10 @@ class CodeGeneratorWriter(models.Model):
                                                 ' description",'
                                             )
                                             cw.emit('#"ttype": "many2one",')
-                                            cw.emit(
-                                                '#"comodel_name":'
-                                                ' "model.name",'
-                                            )
+                                            # cw.emit(
+                                            #     '#"comodel_name":'
+                                            #     ' "model.name",'
+                                            # )
                                             cw.emit(
                                                 '#"relation": "model.name",'
                                             )

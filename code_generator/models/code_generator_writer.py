@@ -1346,7 +1346,8 @@ class CodeGeneratorWriter(models.Model):
                     static_description_icon_code_generator_path,
                     base64.b64decode(module.icon_child_image),
                 )
-        elif module.icon_image or True:
+        else:
+            # elif module.icon_image:
 
             # TODO use this when fix loading picture, now temporary disabled and force use icon from menu
             # self.code_generator_data.write_file_binary(static_description_icon_path,
@@ -1418,8 +1419,8 @@ class CodeGeneratorWriter(models.Model):
                     static_description_icon_path, content
                 )
                 module.icon_real_image = base64.b64encode(content)
-        else:
-            static_description_icon_path = ""
+        # else:
+        #     static_description_icon_path = ""
 
         return static_description_icon_path
 

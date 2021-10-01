@@ -290,11 +290,18 @@ class CodeGeneratorWriter(models.Model):
                                     no_sequence += 1
 
                 lst_body_xml = []
-                # Detect
-                lst_form_xml = mydoc.getElementsByTagName("form")
-                lst_search_xml = mydoc.getElementsByTagName("search")
-                lst_tree_xml = mydoc.getElementsByTagName("tree")
-                lst_content = lst_form_xml + lst_search_xml + lst_tree_xml
+                lst_tag_support = list(
+                    dict(
+                        self._module.env["code.generator.view"]
+                        ._fields["view_type"]
+                        .selection
+                    ).keys()
+                )
+                lst_content = [
+                    b
+                    for a in lst_tag_support
+                    for b in mydoc.getElementsByTagName(a)
+                ]
                 if not lst_content:
                     _logger.warning("Cannot find <form>.")
                 elif len(lst_content) > 1:
@@ -335,7 +342,7 @@ class CodeGeneratorWriter(models.Model):
                     if body_xml.nodeType is Node.TEXT_NODE:
                         data = body_xml.data.strip()
                         if data:
-                            _logger.warning("Not supported.")
+                            _logger.warning(f"Not supported : {data}.")
                     elif body_xml.nodeType is Node.ELEMENT_NODE:
                         status = self._extract_child_xml(
                             body_xml,
@@ -424,7 +431,16 @@ class CodeGeneratorWriter(models.Model):
             if parent:
                 dct_attributes["parent_id"] = parent.id
 
-            if node.nodeName in ("group", "div"):
+            if node.nodeName in (
+                "group",
+                "div",
+                "templates",
+                "t",
+                "ul",
+                "li",
+                "strong",
+                "i",
+            ):
                 if lst_node:
                     # Check cached of nodes
                     # maybe help node
@@ -461,7 +477,7 @@ class CodeGeneratorWriter(models.Model):
                 for key, value in node.attributes.items():
                     if key == "icon":
                         dct_attributes["icon"] = value
-            elif node.nodeName == "field":
+            elif node.nodeName in ("field", "filter"):
                 for key, value in node.attributes.items():
                     if key == "password":
                         dct_attributes["password"] = value
@@ -470,6 +486,9 @@ class CodeGeneratorWriter(models.Model):
             elif node.nodeName == "separator":
                 # Accumulate nodes
                 return True
+            elif node.nodeName == "templates":
+                _logger.warning(f"Node template is not supported, ignore it.")
+                return
             else:
                 _logger.warning(f"Unknown this case '{node.nodeName}'.")
                 return
@@ -493,7 +512,7 @@ class CodeGeneratorWriter(models.Model):
                     if child.nodeType is Node.TEXT_NODE:
                         data = child.data.strip()
                         if data:
-                            _logger.warning("Not supported.")
+                            _logger.warning(f"Not supported : {data}.")
                     elif child.nodeType is Node.ELEMENT_NODE:
                         self._extract_child_xml(
                             child,

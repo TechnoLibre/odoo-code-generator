@@ -307,6 +307,28 @@ class IrModel(models.Model):
         help="Will add chatter and activity to this model in form view."
     )
 
+    diagram_node_object = fields.Char(help="Diagram model name for node.")
+
+    diagram_node_xpos_field = fields.Char(
+        help="Diagram node field name for xpos."
+    )
+
+    diagram_node_ypos_field = fields.Char(
+        help="Diagram node field name for ypos."
+    )
+
+    diagram_arrow_object = fields.Char(
+        help="Diagram arrow model name for arrow."
+    )
+
+    diagram_arrow_src_field = fields.Char(
+        help="Diagram arrow field name for source."
+    )
+
+    diagram_arrow_dst_field = fields.Char(
+        help="Diagram arrow field name for destination."
+    )
+
     @api.onchange("m2o_module")
     def _onchange_m2o_module(self):
         if self.m2o_module:

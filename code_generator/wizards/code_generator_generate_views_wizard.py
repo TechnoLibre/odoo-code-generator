@@ -139,6 +139,11 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         relation="selected_model_timeline_view_ids_ir_model",
     )
 
+    selected_model_diagram_view_ids = fields.Many2many(
+        comodel_name="ir.model",
+        relation="selected_model_diagram_view_ids_ir_model",
+    )
+
     selected_model_graph_view_ids = fields.Many2many(
         comodel_name="ir.model",
         relation="selected_model_graph_view_ids_ir_model",
@@ -253,6 +258,18 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             self.code_generator_id.o2m_models
             if self.all_model
             else self.selected_model_timeline_view_ids
+        )
+        o2m_models_view_diagram = (
+            self.code_generator_id.o2m_models.filtered(
+                lambda model: model.diagram_node_object
+                and model.diagram_arrow_object
+                and model.diagram_node_xpos_field
+                and model.diagram_node_ypos_field
+                and model.diagram_arrow_src_field
+                and model.diagram_arrow_dst_field
+            )
+            if self.all_model
+            else self.selected_model_diagram_view_ids
         )
         # Get unique list order by name of all model to generate
         lst_model = sorted(
@@ -562,12 +579,23 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                     )
                     lst_view_generated.append("timeline")
 
+            if model_id in o2m_models_view_diagram:
+                lst_view_generated.append("diagram")
+
             # Menu and action_windows
             self._generate_menu(
                 model_id,
                 model_id.m2o_module,
                 lst_view_generated,
                 lst_model_id,
+            )
+
+        # Need form to be created before create diagram
+        for model_id in o2m_models_view_diagram:
+            self._generate_diagram_views_models(
+                model_id,
+                model_id.m2o_module,
+                dct_value_to_create,
             )
 
         # for model_id in o2m_models_view_form:
@@ -859,6 +887,16 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 "model": model_name,
                 "arch": str_arch,
                 "m2o_model": model_created.id,
+            }
+        )
+
+        model_data_value = self.env["ir.model.data"].create(
+            {
+                "name": f"{model_name_str}_view_form",
+                "model": "ir.ui.view",
+                "module": module.name,
+                "res_id": view_value.id,
+                "noupdate": True,  # If it's False, target record (res_id) will be removed while module update
             }
         )
 
@@ -1603,6 +1641,128 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             {
                 "name": f"{model_name_str}_timeline",
                 "type": "timeline",
+                "model": model_name,
+                "arch": str_arch,
+                "m2o_model": model_created.id,
+            }
+        )
+
+        return view_value
+
+    def _generate_diagram_views_models(
+        self,
+        model_created,
+        module,
+        dct_value_to_create,
+    ):
+        model_name = model_created.model
+        model_name_str = model_name.replace(".", "_")
+        model_name_display_str = model_name_str.replace("_", " ").capitalize()
+
+        if (
+            not model_created.diagram_node_object
+            or not model_created.diagram_node_xpos_field
+            or not model_created.diagram_node_ypos_field
+            or not model_created.diagram_arrow_object
+            or not model_created.diagram_arrow_src_field
+            or not model_created.diagram_arrow_dst_field
+        ):
+            _logger.error(
+                "Cannot create diagram view, missing field in model, check"
+                " diagram_*"
+            )
+            return
+
+        model_node = module.env["ir.model"].search(
+            [("model", "=", model_created.diagram_node_object)], limit=1
+        )
+        if not model_node:
+            _logger.error(
+                f"Diagram model {model_created.diagram_node_object} doesn't"
+                " exist."
+            )
+            return
+        model_arrow = module.env["ir.model"].search(
+            [("model", "=", model_created.diagram_arrow_object)], limit=1
+        )
+        if not model_arrow:
+            _logger.error(
+                f"Diagram model {model_created.diagram_arrow_object} doesn't"
+                " exist."
+            )
+            return
+
+        lst_field_node = [E.field({"name": model_node.rec_name})]
+        lst_field_arrow = [
+            E.field({"name": model_created.diagram_arrow_src_field}),
+            E.field({"name": model_created.diagram_arrow_dst_field}),
+            E.field({"name": model_arrow.rec_name}),
+        ]
+
+        # Take first
+        node_form_view = module.env["ir.ui.view"].search(
+            [
+                ("model", "=", model_created.diagram_node_object),
+                ("type", "=", "form"),
+            ],
+            limit=1,
+        )
+        node_xml_id = module.env["ir.model.data"].search(
+            [("model", "=", "ir.ui.view"), ("res_id", "=", node_form_view.id)]
+        )
+        arrow_form_view = module.env["ir.ui.view"].search(
+            [
+                ("model", "=", model_created.diagram_arrow_object),
+                ("type", "=", "form"),
+            ],
+            limit=1,
+        )
+        arrow_xml_id = module.env["ir.model.data"].search(
+            [("model", "=", "ir.ui.view"), ("res_id", "=", arrow_form_view.id)]
+        )
+
+        arch_xml = E.diagram(
+            {},
+            E.node(
+                {
+                    "object": model_created.diagram_node_object,
+                    "xpos": model_created.diagram_node_xpos_field,
+                    "ypos": model_created.diagram_node_ypos_field,
+                    "shape": "rectangle:True",
+                    # "bgcolor":"",
+                    "form_view_ref": node_xml_id.name,
+                },
+                *lst_field_node,
+            ),
+            E.arrow(
+                {
+                    "object": model_created.diagram_arrow_object,
+                    "source": model_created.diagram_arrow_src_field,
+                    "destination": model_created.diagram_arrow_dst_field,
+                    "label": f"['{model_arrow.rec_name}']",
+                    "form_view_ref": arrow_xml_id.name,
+                },
+                *lst_field_arrow,
+            ),
+            E.label(
+                {
+                    "string": (
+                        "Caution, all modification is live. Diagram model:"
+                        f" {model_created.model}, node model:"
+                        f" {model_created.diagram_node_object} and arrow"
+                        f" model: {model_created.diagram_arrow_object}"
+                    ),
+                    "for": "",
+                }
+            ),
+        )
+
+        str_arch = ET.tostring(arch_xml, pretty_print=True)
+        # dct_value_to_create["ir.ui.view"].append(ir_ui_view_value)
+        view_value = self.env["ir.ui.view"].create(
+            {
+                "name": f"{model_name_str}_diagram",
+                "type": "diagram",
                 "model": model_name,
                 "arch": str_arch,
                 "m2o_model": model_created.id,

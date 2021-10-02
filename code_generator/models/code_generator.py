@@ -495,6 +495,7 @@ class CodeGeneratorView(models.Model):
             ("timeline", "Timeline"),
             ("activity", "Activity"),
             ("calendar", "Calendar"),
+            ("diagram", "Diagram"),
         ],
         default="form",
         help="Choose view type to generate.",

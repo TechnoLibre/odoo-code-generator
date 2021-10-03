@@ -2,6 +2,9 @@ from odoo import _, models, fields, api
 from odoo.models import MAGIC_COLUMNS
 from lxml.builder import E
 from lxml import etree as ET
+import logging
+
+_logger = logging.getLogger(__name__)
 
 MAGIC_FIELDS = MAGIC_COLUMNS + [
     "display_name",
@@ -465,21 +468,110 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
 
             lst_field = _get_field_by_user(model)
             lst_card_body = []
+            lst_card_body_begin = []
+            lst_card_body_end = []
             for field in lst_field:
+                if field.ignore_on_code_generator_writer:
+                    continue
                 # E.div({'t-if': 'project.partner_id', 'class': 'col-12 col-md-6 mb-2 mb-md-0'},
-                card_body = E.div(
-                    {"class": "col-12 col-md-6 mb-2 mb-md-0"},
-                    f"{field.field_description}-",
-                    E.span(
-                        {
-                            "t-field": (
-                                f"{_fmt_underscores(model.model)}.{field.name}"
-                            )
-                        }
-                    ),
-                )
-                lst_card_body.append(card_body)
 
+                str_field_data = (
+                    f"{_fmt_underscores(model.model)}.{field.name}"
+                )
+                if field.ttype == "one2many":
+                    if field.force_widget:
+                        _logger.warning(
+                            "Cannot support `force_widget` in portal."
+                        )
+
+                    lst_field_name_xml = []
+                    lst_field_variable_xml = []
+                    lst_field_to_compute = _get_field_by_user(
+                        field.relation_field_id.model_id
+                    )
+                    for no_id, field_id in enumerate(lst_field_to_compute):
+                        if field_id.force_widget:
+                            _logger.warning(
+                                "Cannot support `force_widget` in portal."
+                            )
+                        if (
+                            field_id.ignore_on_code_generator_writer
+                            or field_id.ttype in ("many2many", "one2many")
+                        ):
+                            continue
+                        # TODO ignore "many2many", "one2many"
+                        # TODO add class="text-right" when force_widget with time
+
+                        field_id_value_name = (
+                            f"{field.relation_field_id.name}.{field_id.name}"
+                        )
+                        if field_id.ttype == "many2one":
+                            field_id_value_name += ".name"
+
+                        if field_id.ttype == "html":
+                            t_field_id_show_data = "t-raw"
+                        else:
+                            t_field_id_show_data = "t-esc"
+
+                        column_xml = E.th({}, field_id.field_description)
+                        lst_field_name_xml.append(column_xml)
+                        data_column_xml = E.td(
+                            {},
+                            E.t({t_field_id_show_data: field_id_value_name}),
+                        )
+                        lst_field_variable_xml.append(data_column_xml)
+
+                    card_body = E.div(
+                        {"class": "container", "t-if": str_field_data},
+                        # <hr class="mt-4 mb-1"/>
+                        E.hr({"class": "mt-4 mb-1"}),
+                        # <h5 class="mt-2 mb-2">Timesheets</h5>
+                        E.h5(
+                            {"class": "mt-2 mb-2"},
+                            field.field_description,
+                        ),
+                        # <table class="table table-sm">
+                        E.table(
+                            {"class": "table table-sm"},
+                            # <thead>
+                            E.thead(
+                                {},
+                                # <tr>
+                                E.tr(
+                                    {},
+                                    *lst_field_name_xml,
+                                    # <tr t-as="timesheet" t-foreach="task.timesheet_ids">
+                                    E.tr(
+                                        {
+                                            "t-foreach": f"{_fmt_underscores(model.model)}.{field.name}",
+                                            "t-as": field.relation_field_id.name,
+                                        },
+                                        *lst_field_variable_xml,
+                                    ),
+                                ),
+                            ),
+                        ),
+                    )
+                    lst_card_body_end.append(card_body)
+                elif field.ttype == "many2many":
+                    pass
+                else:
+                    if field.ttype in ("many2one",):
+                        str_field_data += ".name"
+
+                    if field.ttype == "html":
+                        t_show_data = "t-raw"
+                    else:
+                        t_show_data = "t-field"
+
+                    card_body = E.div(
+                        {"class": "col-12 col-md-6 mb-2 mb-md-0"},
+                        E.b({}, f"{field.field_description}:"),
+                        E.span({t_show_data: str_field_data}),
+                    )
+                    lst_card_body_begin.append(card_body)
+
+            lst_card_body = lst_card_body_begin + lst_card_body_end
             # <t t-call="portal.portal_layout">
             root = E.t(
                 {"t-call": "portal.portal_layout"},

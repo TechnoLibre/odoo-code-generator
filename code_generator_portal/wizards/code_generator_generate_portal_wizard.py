@@ -27,13 +27,20 @@ def _fmt_title(word):
     return word.replace(".", " ").title()
 
 
-def _get_field_by_user(model):
+def _get_field_by_user(model, keep_name=False):
     lst_field = []
-    lst_magic_fields = MAGIC_FIELDS + ["name"]
+    lst_first_field = []
+    if keep_name:
+        lst_magic_fields = MAGIC_FIELDS
+    else:
+        lst_magic_fields = MAGIC_FIELDS + ["name"]
     for field in model.field_id:
         if field.name not in lst_magic_fields:
-            lst_field.append(field)
-    return lst_field
+            if field.name == "name":
+                lst_first_field.append(field)
+            else:
+                lst_field.append(field)
+    return lst_first_field + lst_field
 
 
 class CodeGeneratorGeneratePortalWizard(models.TransientModel):
@@ -487,7 +494,7 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                     lst_field_name_xml = []
                     lst_field_variable_xml = []
                     lst_field_to_compute = _get_field_by_user(
-                        field.relation_field_id.model_id
+                        field.relation_field_id.model_id, keep_name=True
                     )
                     for no_id, field_id in enumerate(lst_field_to_compute):
                         if field_id.force_widget:
@@ -505,20 +512,36 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                         field_id_value_name = (
                             f"{field.relation_field_id.name}.{field_id.name}"
                         )
-                        if field_id.ttype == "many2one":
-                            field_id_value_name += ".name"
 
                         if field_id.ttype == "html":
                             t_field_id_show_data = "t-raw"
                         else:
                             t_field_id_show_data = "t-esc"
 
+                        if field_id.ttype == "many2one":
+                            # TODO ignore link when it's the same page? field_id.relation == field.model_id.model
+                            #  and same id... No, need some Javascript, cannot do that here
+                            field_id_value_xml = E.a(
+                                {
+                                    "t-attf-href": f"/my/{_fmt_underscores(field_id.relation)}/#{{{field.relation_field_id.name}.{field_id.name}.id}}",
+                                    "t-field": f"{field_id_value_name}.name",
+                                }
+                            )
+                        elif field_id.name == "name":
+                            field_id_value_xml = E.a(
+                                {
+                                    "t-attf-href": f"/my/{_fmt_underscores(field_id.model_id.model)}/#{{{field.relation_field_id.name}.id}}",
+                                    "t-field": f"{field_id_value_name}",
+                                }
+                            )
+                        else:
+                            field_id_value_xml = E.t(
+                                {t_field_id_show_data: field_id_value_name}
+                            )
+
                         column_xml = E.th({}, field_id.field_description)
                         lst_field_name_xml.append(column_xml)
-                        data_column_xml = E.td(
-                            {},
-                            E.t({t_field_id_show_data: field_id_value_name}),
-                        )
+                        data_column_xml = E.td({}, field_id_value_xml)
                         lst_field_variable_xml.append(data_column_xml)
 
                     card_body = E.div(
@@ -541,14 +564,14 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                                     {},
                                     *lst_field_name_xml,
                                     # <tr t-as="timesheet" t-foreach="task.timesheet_ids">
-                                    E.tr(
-                                        {
-                                            "t-foreach": f"{_fmt_underscores(model.model)}.{field.name}",
-                                            "t-as": field.relation_field_id.name,
-                                        },
-                                        *lst_field_variable_xml,
-                                    ),
                                 ),
+                            ),
+                            E.tr(
+                                {
+                                    "t-foreach": f"{_fmt_underscores(model.model)}.{field.name}",
+                                    "t-as": field.relation_field_id.name,
+                                },
+                                *lst_field_variable_xml,
                             ),
                         ),
                     )
@@ -557,17 +580,23 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                     pass
                 else:
                     if field.ttype in ("many2one",):
-                        str_field_data += ".name"
-
-                    if field.ttype == "html":
-                        t_show_data = "t-raw"
+                        xml_field_data = E.a(
+                            {
+                                "t-attf-href": f"/my/{_fmt_underscores(field.relation)}/#{{{str_field_data}.id}}",
+                                "t-field": f"{str_field_data}.name",
+                            }
+                        )
                     else:
-                        t_show_data = "t-field"
+                        if field.ttype == "html":
+                            t_show_data = "t-raw"
+                        else:
+                            t_show_data = "t-field"
+                        xml_field_data = E.span({t_show_data: str_field_data})
 
                     card_body = E.div(
                         {"class": "col-12 col-md-6 mb-2 mb-md-0"},
                         E.b({}, f"{field.field_description}:"),
-                        E.span({t_show_data: str_field_data}),
+                        xml_field_data,
                     )
                     lst_card_body_begin.append(card_body)
 

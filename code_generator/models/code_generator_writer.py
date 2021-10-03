@@ -2278,11 +2278,12 @@ class CodeGeneratorWriter(models.Model):
                 new_content += "\n"
         return new_content
 
-    def _set_model_xmlview_file(self, model, model_model):
+    def _set_model_xmlview_file(self, model, model_model, module):
         """
         Function to set the model xml files
         :param model:
         :param model_model:
+        :param module:
         :return:
         """
 
@@ -2292,8 +2293,10 @@ class CodeGeneratorWriter(models.Model):
             return
 
         dct_replace = {}
+        dct_replace_template = {}
         lst_id = []
         lst_item_xml = []
+        lst_item_template = []
 
         #
         # Views
@@ -2384,12 +2387,14 @@ class CodeGeneratorWriter(models.Model):
                     template_value["inherit_id"] = view.inherit_id.key
 
                 uid = str(uuid.uuid1())
-                dct_replace[uid] = self._setup_xml_indent(
+                dct_replace_template[uid] = self._setup_xml_indent(
                     view.arch, indent=2, is_end=True
                 )
                 info = E.template(template_value, uid)
-                lst_item_xml.append(ET.Comment("end line"))
-                lst_item_xml.append(info)
+                # lst_item_xml.append(ET.Comment("end line"))
+                # lst_item_xml.append(info)
+                lst_item_template.append(ET.Comment("end line"))
+                lst_item_template.append(info)
 
             else:
                 _logger.error(
@@ -2711,6 +2716,31 @@ class CodeGeneratorWriter(models.Model):
         self.code_generator_data.write_file_str(
             xml_file_path, str_content, data_file=True
         )
+
+        if dct_replace_template:
+            root_template = E.odoo({}, *lst_item_template)
+            content_template = XML_VERSION_HEADER.encode("utf-8") + ET.tostring(
+                root_template, pretty_print=True
+            )
+            str_content_template = content_template.decode()
+
+            str_content_template = str_content_template.replace(
+                "  <!--end line-->\n", "\n"
+            )
+            for key, value in dct_replace_template.items():
+                str_content_template = str_content_template.replace(key, value)
+            str_content_template = self._change_xml_2_to_4_spaces(
+                str_content_template
+            )[:-1]
+
+            views_path = self.code_generator_data.views_path
+            xml_file_path = os.path.join(
+                views_path,
+                f"{module.name}_templates.xml",
+            )
+            self.code_generator_data.write_file_str(
+                xml_file_path, str_content_template, data_file=True
+            )
 
     def _set_model_xmlreport_file(self, model, model_model):
         """
@@ -3409,7 +3439,7 @@ class CodeGeneratorWriter(models.Model):
             if not module.nomenclator_only:
                 # Wizard
                 self._set_model_py_file(module, model, model_model)
-                self._set_model_xmlview_file(model, model_model)
+                self._set_model_xmlview_file(model, model_model, module)
 
                 # Report
                 self._set_model_xmlreport_file(model, model_model)

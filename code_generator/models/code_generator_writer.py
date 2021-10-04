@@ -303,10 +303,12 @@ class CodeGeneratorWriter(models.Model):
                     for b in mydoc.getElementsByTagName(a)
                 ]
                 if not lst_content:
-                    _logger.warning("Cannot find <form>.")
+                    _logger.warning(
+                        f"Cannot find a xml type from list: {lst_tag_support}."
+                    )
                 elif len(lst_content) > 1:
                     _logger.warning(
-                        "Cannot support multiple <form>/<tree>/<search."
+                        f"Cannot support multiple {lst_tag_support}."
                     )
                 else:
                     form_xml = lst_content[0]
@@ -322,13 +324,15 @@ class CodeGeneratorWriter(models.Model):
                                 or child_form == sheet_xml
                             ):
                                 continue
-                            if has_body_sheet:
-                                _logger.warning(
-                                    "How can find body xml outside of his"
-                                    " sheet?"
-                                )
-                            else:
-                                lst_body_xml.append(child_form)
+                            # if has_body_sheet:
+                            #     _logger.warning(
+                            #         "How can find body xml outside of his"
+                            #         " sheet?"
+                            #     )
+                            # else:
+                            #     lst_body_xml.append(child_form)
+                            # TODO everything can be in body? check when add oe_chatter
+                            lst_body_xml.append(child_form)
 
                 if lst_sheet_xml:
                     # TODO validate this, test with and without <sheet>
@@ -535,7 +539,15 @@ class CodeGeneratorWriter(models.Model):
             self.dct_model = {}
             self.py_filename = ""
             if not module.template_module_path_generated_extension:
+                _logger.warning(
+                    f"The variable template_module_path_generated_extension is"
+                    f" empty."
+                )
                 return
+            if not self.model_id:
+                _logger.warning(f"Cannot found module {model_model}.")
+                return
+
             relative_path_generated_module = (
                 module.template_module_path_generated_extension.replace(
                     "'", ""
@@ -1046,15 +1058,20 @@ class CodeGeneratorWriter(models.Model):
                             self.model_id.description = value
                         elif node.targets[0].id == "_inherit":
                             value = self._fill_search_field(node.value)
-                            model_id = module.env["ir.model"].search(
-                                [("model", "=", value)]
-                            )
+                            if type(value) is list:
+                                model_id = module.env["ir.model"].search(
+                                    [("model", "in", value)]
+                                )
+                            else:
+                                model_id = module.env["ir.model"].search(
+                                    [("model", "=", value)]
+                                )
                             if not model_id:
                                 _logger.warning(
                                     f"Cannot identify model {value}."
                                 )
                             else:
-                                self.model_id.add_model_inherit(model_id.model)
+                                self.model_id.add_model_inherit(model_id)
                         elif node.targets[0].id == "_sql_constraints":
                             lst_value = self._fill_search_field(node.value)
                             constraint_ids = module.env[

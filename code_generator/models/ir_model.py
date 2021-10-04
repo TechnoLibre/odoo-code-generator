@@ -416,30 +416,43 @@ class IrModel(models.Model):
         :param model_name: list or string
         :return:
         """
+        lst_model_id = []
+        if type(model_name) is str:
+            lst_model_name = [model_name]
+        elif type(model_name) is list:
+            lst_model_name = model_name
+        elif isinstance(model_name, models.Model):
+            lst_model_name = []
+            lst_model_id = model_name
+        else:
+            _logger.error(
+                "Wrong type of model_name in method add_model_inherit:"
+                f" {type(model_name)}"
+            )
+            return
         for ir_model in self:
-            if type(model_name) is str:
-                lst_model_name = [model_name]
-            elif type(model_name) is list:
-                lst_model_name = model_name
-            else:
-                _logger.error(
-                    "Wrong type of model_name in method add_model_inherit:"
-                    f" {type(model_name)}"
-                )
-                return
-
             inherit_model = None
-            for model_name in lst_model_name:
-                check_inherit_model = self.env["ir.model"].search(
-                    [("model", "=", model_name)]
-                )
-                if check_inherit_model.id not in [
-                    a.depend_id.id for a in ir_model.inherit_model_ids
-                ]:
-                    if not inherit_model:
-                        inherit_model = check_inherit_model
-                    else:
-                        inherit_model += check_inherit_model
+            if lst_model_id:
+                for check_inherit_model in lst_model_id:
+                    if check_inherit_model.id not in [
+                        a.depend_id.id for a in ir_model.inherit_model_ids
+                    ]:
+                        if not inherit_model:
+                            inherit_model = check_inherit_model
+                        else:
+                            inherit_model += check_inherit_model
+            else:
+                for model_name in lst_model_name:
+                    check_inherit_model = self.env["ir.model"].search(
+                        [("model", "=", model_name)]
+                    )
+                    if check_inherit_model.id not in [
+                        a.depend_id.id for a in ir_model.inherit_model_ids
+                    ]:
+                        if not inherit_model:
+                            inherit_model = check_inherit_model
+                        else:
+                            inherit_model += check_inherit_model
 
             if not inherit_model:
                 return

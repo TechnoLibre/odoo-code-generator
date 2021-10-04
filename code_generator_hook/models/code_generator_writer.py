@@ -87,13 +87,36 @@ class CodeGeneratorWriter(models.Model):
             if lst_ignored_field:
                 lst_ignored_field += MAGIC_FIELDS
             else:
-                lst_ignored_field = MAGIC_FIELDS
+                lst_ignored_field = MAGIC_FIELDS[:]
             if "name" in dct_field_ast.keys():
-                lst_ignored_field.remove("name")
-            lst_search = [
-                ("model", "=", model_model),
-                ("name", "not in", lst_ignored_field),
-            ]
+                try:
+                    lst_ignored_field.remove("name")
+                except Exception as e:
+                    print(e)
+            if dct_field_ast:
+                lst_search = [
+                    ("model", "=", model_model),
+                    ("name", "in", list(dct_field_ast.keys())),
+                ]
+            else:
+                # Add inherit field to ignore it, this can be wrong...
+                # sometime, it wants to override inherit field
+                inherit_model_ids = (
+                    self.env["ir.model"]
+                    .search([("model", "=", model_model)])
+                    .inherit_model_ids
+                )
+                lst_field_inherit = [
+                    b.name
+                    for a in inherit_model_ids
+                    for b in a.depend_id.field_id
+                ]
+                lst_ignored_field += lst_field_inherit
+                lst_ignored_field = list(set(lst_ignored_field))
+                lst_search = [
+                    ("model", "=", model_model),
+                    ("name", "not in", lst_ignored_field),
+                ]
             f2exports = self.env["ir.model.fields"].search(lst_search)
 
         dct_var_id_view = {}
@@ -132,13 +155,22 @@ class CodeGeneratorWriter(models.Model):
                     # cw.emit(f'"comodel_name": "{field_id.relation}",')
                     cw.emit(f'"relation": "{field_id.relation}",')
                     if field_id.ttype == "one2many":
+                        # field_many2one_ids = self.env[
+                        #     "ir.model.fields"
+                        # ].search(
+                        #     [
+                        #         ("model", "=", field_id.relation),
+                        #         ("ttype", "=", "many2one"),
+                        #         ("name", "not in", MAGIC_FIELDS),
+                        #     ]
+                        # )
                         field_many2one_ids = self.env[
                             "ir.model.fields"
                         ].search(
                             [
                                 ("model", "=", field_id.relation),
                                 ("ttype", "=", "many2one"),
-                                ("name", "not in", MAGIC_FIELDS),
+                                ("name", "=", field_id.relation_field),
                             ]
                         )
                         if len(field_many2one_ids) == 1:
@@ -177,7 +209,13 @@ class CodeGeneratorWriter(models.Model):
                 if field_id.required:
                     cw.emit(f'"required": {field_id.required},')
                 if field_id.help:
-                    cw.emit(f'"help": "{field_id.help}",')
+                    if "\n" in field_id.help:
+                        cw.emit_raw(
+                            f'{" " * cw.cur_indent}"help":'
+                            f' "{field_id.help}",\n'
+                        )
+                    else:
+                        cw.emit(f'"help": "{field_id.help}",')
             # If need a variable, uncomment next line
             # cw.emit(f'{var_id_view} = env["ir.model.fields"].create({var_value_field_name})')
             cw.emit(f'env["ir.model.fields"].create({var_value_field_name})')
@@ -191,11 +229,11 @@ class CodeGeneratorWriter(models.Model):
                 'field_x_name = env["ir.model.fields"].search([("model_id",'
                 f' "=", {var_model_model}.id), ("name", "=", "x_name")])'
             )
+            cw.emit(f'{var_model_model}.rec_name = "name"')
             if has_field_name:
                 cw.emit("field_x_name.unlink()")
             else:
                 cw.emit('field_x_name.name = "name"')
-            cw.emit(f'{var_model_model}.rec_name = "name"')
 
     def _write_sync_view_component(self, view_item_ids, cw, parent=None):
         for view_item_id in view_item_ids:
@@ -544,12 +582,16 @@ class CodeGeneratorWriter(models.Model):
                         with cw.indent():
                             cw.emit()
                             cw.emit("# The path of the actual file")
-                            if module.template_module_path_generated_extension:
+                            if (
+                                module.template_module_path_generated_extension
+                                and module.template_module_path_generated_extension
+                                != "."
+                            ):
                                 cw.emit(
                                     "path_module_generate ="
                                     " os.path.normpath(os.path.join(os.path.dirname"
                                     "(__file__), '..',"
-                                    f" {module.template_module_path_generated_extension}))"
+                                    f" '{module.template_module_path_generated_extension}'))"
                                 )
                             else:
                                 cw.emit(
@@ -649,6 +691,8 @@ class CodeGeneratorWriter(models.Model):
                                 cw.emit('"enable_sync_code": True,')
                                 if (
                                     module.template_module_path_generated_extension
+                                    and module.template_module_path_generated_extension
+                                    != "."
                                 ):
                                     cw.emit(
                                         '"path_sync_code":'
@@ -845,7 +889,7 @@ class CodeGeneratorWriter(models.Model):
                                     cw.emit("value = {")
                                     with cw.indent():
                                         cw.emit(f'"name": "{model_name}",')
-                                        if model_id and model_id.description:
+                                        if model_id and model_id.description and model_id.description != model_name:
                                             cw.emit(
                                                 '"description":'
                                                 f' "{model_id.description}",'
@@ -875,28 +919,44 @@ class CodeGeneratorWriter(models.Model):
                                             module.template_module_id
                                             and module.template_module_id.dependencies_id
                                         ):
-                                            dependency_name = (
-                                                module.template_module_id.dependencies_id.name
-                                            )
-                                            cw.emit(
-                                                f"code_generator_id.add_module_dependency('{dependency_name}')"
-                                            )
+                                            if (
+                                                len(
+                                                    module.template_module_id.dependencies_id
+                                                )
+                                                == 1
+                                            ):
+                                                dependency_name = (
+                                                    module.template_module_id.dependencies_id.name
+                                                )
+                                                cw.emit(
+                                                    f"code_generator_id.add_module_dependency('{dependency_name}')"
+                                                )
+                                            else:
+                                                cw.emit(
+                                                    "lst_depend_module ="
+                                                    f" {str([a.name for a in module.template_module_id.dependencies_id])}"
+                                                )
+                                                cw.emit(
+                                                    f"code_generator_id.add_module_dependency(lst_depend_module)"
+                                                )
+
                                         lst_dependency = [
-                                            a.depend_id.name
+                                            a.name
                                             for a in model_id.inherit_model_ids
                                         ]
                                         if lst_dependency:
                                             if len(lst_dependency) == 1:
-                                                result_depend = (
-                                                    f"'{lst_dependency[0]}'"
+                                                cw.emit(
+                                                    f"{variable_model_model}.add_model_inherit('{lst_dependency[0]}')"
                                                 )
                                             else:
-                                                result_depend = str(
-                                                    lst_dependency
+                                                cw.emit(
+                                                    "lst_depend_model ="
+                                                    f" {str(lst_dependency)}"
                                                 )
-                                            cw.emit(
-                                                f"{variable_model_model}.add_model_inherit({result_depend})"
-                                            )
+                                                cw.emit(
+                                                    f"{variable_model_model}.add_model_inherit(lst_depend_model)"
+                                                )
                                         cw.emit()
                                     if module.external_dependencies_id:
                                         cw.emit("# External dependencies")
@@ -1050,7 +1110,7 @@ class CodeGeneratorWriter(models.Model):
                                     # cw.emit(f"env[\"{model_model}\"].create(value)")
                                     # cw.emit()
                             # Generate code
-                            code_ids = (
+                            code_import_ids = (
                                 self.env["code.generator.model.code.import"]
                                 .search(
                                     [
@@ -1060,12 +1120,12 @@ class CodeGeneratorWriter(models.Model):
                                 )
                                 .sorted(lambda code: code.sequence)
                             )
-                            if code_ids:
+                            if code_import_ids:
                                 cw.emit("# Generate code")
                                 cw.emit("if True:")
                                 with cw.indent():
                                     cw.emit("# Generate code header")
-                                    for code_id in code_ids:
+                                    for code_id in code_import_ids:
                                         with cw.block(
                                             before="value =", delim=("{", "}")
                                         ):
@@ -1105,7 +1165,6 @@ class CodeGeneratorWriter(models.Model):
                                             'env["code.generator.model.code.import"].create(value)'
                                         )
                                         cw.emit()
-                                    cw.emit("# Generate code model")
                                     code_ids = (
                                         self.env["code.generator.model.code"]
                                         .search(
@@ -1117,66 +1176,77 @@ class CodeGeneratorWriter(models.Model):
                                         .sorted(lambda code: code.sequence)
                                     )
 
-                                    with cw.block(
-                                        before="lst_value =", delim=("[", "]")
-                                    ):
-                                        for code_id in code_ids:
-                                            with cw.block(delim=("{", "}")):
-                                                str_line = f"\"code\": '''"
-                                                lst_line = code_id.code.split(
-                                                    "\n"
-                                                )
-                                                cw.emit(str_line + lst_line[0])
-                                                for line in lst_line[1:-1]:
-                                                    # str_line += line
-                                                    cw.emit_raw(line + "\n")
-                                                    # str_line = ""
-                                                cw.emit_raw(
-                                                    f"{lst_line[-1]}''',\n"
-                                                )
-                                                cw.emit(
-                                                    '"name":'
-                                                    f' "{code_id.name}",'
-                                                )
-                                                if code_id.decorator:
+                                    if code_ids:
+                                        cw.emit("# Generate code model")
+                                        with cw.block(
+                                            before="lst_value =",
+                                            delim=("[", "]"),
+                                        ):
+                                            for code_id in code_ids:
+                                                with cw.block(
+                                                    delim=("{", "}")
+                                                ):
+                                                    str_line = f"\"code\": '''"
+                                                    lst_line = (
+                                                        code_id.code.split(
+                                                            "\n"
+                                                        )
+                                                    )
                                                     cw.emit(
-                                                        '"decorator":'
-                                                        f' "{code_id.decorator}",'
+                                                        str_line + lst_line[0]
                                                     )
-                                                if code_id.param:
+                                                    for line in lst_line[1:-1]:
+                                                        # str_line += line
+                                                        cw.emit_raw(
+                                                            line + "\n"
+                                                        )
+                                                        # str_line = ""
+                                                    cw.emit_raw(
+                                                        f"{lst_line[-1]}''',\n"
+                                                    )
                                                     cw.emit(
-                                                        '"param":'
-                                                        f' "{code_id.param}",'
+                                                        '"name":'
+                                                        f' "{code_id.name}",'
                                                     )
-                                                if code_id.returns:
+                                                    if code_id.decorator:
+                                                        cw.emit(
+                                                            '"decorator":'
+                                                            f' "{code_id.decorator}",'
+                                                        )
+                                                    if code_id.param:
+                                                        cw.emit(
+                                                            '"param":'
+                                                            f' "{code_id.param}",'
+                                                        )
+                                                    if code_id.returns:
+                                                        cw.emit(
+                                                            '"returns":'
+                                                            f' "{code_id.returns}",'
+                                                        )
                                                     cw.emit(
-                                                        '"returns":'
-                                                        f' "{code_id.returns}",'
+                                                        '"sequence":'
+                                                        f" {code_id.sequence},"
                                                     )
-                                                cw.emit(
-                                                    '"sequence":'
-                                                    f" {code_id.sequence},"
-                                                )
-                                                cw.emit(
-                                                    '"m2o_module":'
-                                                    " code_generator_id.id,"
-                                                )
-                                                model_name = (
-                                                    model_model.replace(
-                                                        ".", "_"
+                                                    cw.emit(
+                                                        '"m2o_module":'
+                                                        " code_generator_id.id,"
                                                     )
-                                                )
-                                                var_model_name = (
-                                                    f"model_{model_name}"
-                                                )
-                                                cw.emit(
-                                                    '"m2o_model":'
-                                                    f" {var_model_name}.id,"
-                                                )
-                                            cw.emit(",")
-                                    cw.emit(
-                                        'env["code.generator.model.code"].create(lst_value)'
-                                    )
+                                                    model_name = (
+                                                        model_model.replace(
+                                                            ".", "_"
+                                                        )
+                                                    )
+                                                    var_model_name = (
+                                                        f"model_{model_name}"
+                                                    )
+                                                    cw.emit(
+                                                        '"m2o_model":'
+                                                        f" {var_model_name}.id,"
+                                                    )
+                                                cw.emit(",")
+                                        cw.emit(
+                                            'env["code.generator.model.code"].create(lst_value)'
+                                        )
                             # Support constraint
                             constraint_ids = self.env[
                                 "ir.model.constraint"

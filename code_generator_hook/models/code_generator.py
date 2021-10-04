@@ -105,4 +105,5 @@ class CodeGeneratorModule(models.Model):
     template_module_path_generated_extension = fields.Char(
         string="Path of os.path value to generated path module",
         help="Add parameters of os.path directory where module is generated.",
+        default=".",
     )

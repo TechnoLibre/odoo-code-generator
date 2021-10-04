@@ -228,42 +228,52 @@ class CodeGeneratorModule(models.Model):
         ),
     )
 
-    def add_module_dependency(self, module_name):
+    @api.multi
+    def add_module_dependency_template(self, module_name):
+        self.add_module_dependency(
+            module_name,
+            model_dependency="code.generator.module.template.dependency",
+        )
+
+    @api.multi
+    def add_module_dependency(
+        self, module_name, model_dependency="code.generator.module.dependency"
+    ):
         """
 
         :param module_name: list or string
+        :param model_dependency: string model name to operate
         :return:
         """
-        if type(module_name) is str:
-            lst_model_name = [module_name]
-        elif type(module_name) is list:
-            lst_model_name = module_name
-        else:
-            _logger.error(
-                "Wrong type of model_name in method add_model_inherit:"
-                f" {type(module_name)}"
-            )
-            return
+        for cg in self:
+            if type(module_name) is str:
+                lst_model_name = [module_name]
+            elif type(module_name) is list:
+                lst_model_name = module_name
+            else:
+                _logger.error(
+                    "Wrong type of model_name in method add_model_inherit:"
+                    f" {type(module_name)}"
+                )
+                return
 
-        dependency_ids = self.env["ir.module.module"].search(
-            [("name", "in", lst_model_name)]
-        )
-        for dependency in dependency_ids:
-            check_duplicate = self.env[
-                "code.generator.module.dependency"
-            ].search(
-                [
-                    ("module_id", "=", self.id),
-                    ("depend_id", "=", dependency.id),
-                ]
+            dependency_ids = self.env["ir.module.module"].search(
+                [("name", "in", lst_model_name)]
             )
-            if not check_duplicate:
-                value = {
-                    "module_id": self.id,
-                    "depend_id": dependency.id,
-                    "name": self.display_name,
-                }
-                self.env["code.generator.module.dependency"].create(value)
+            for dependency in dependency_ids:
+                check_duplicate = self.env[model_dependency].search(
+                    [
+                        ("module_id", "=", cg.id),
+                        ("depend_id", "=", dependency.id),
+                    ]
+                )
+                if not check_duplicate:
+                    value = {
+                        "module_id": cg.id,
+                        "depend_id": dependency.id,
+                        "name": dependency.display_name,
+                    }
+                    self.env[model_dependency].create(value)
 
     # clean_before_sync_code = fields.Boolean(string="Clean before sync", help="Clean before sync, all will be lost.")
 

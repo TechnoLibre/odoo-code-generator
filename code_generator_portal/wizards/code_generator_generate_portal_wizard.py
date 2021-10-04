@@ -88,8 +88,7 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
             o2m_models, self.code_generator_id.name
         )
 
-        for model_id in o2m_models:
-            model_id.add_model_inherit("portal.mixin")
+        o2m_models.add_model_inherit("portal.mixin")
 
         return True
 
@@ -98,29 +97,7 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
         if not self.enable_generate_all and not self.enable_generate_portal:
             return
 
-        for code_generator in self.code_generator_id:
-            lst_dependency = ["portal"]
-            lst_actual_dependency = [
-                a.depend_id.name for a in code_generator.dependencies_id
-            ]
-            for depend in lst_dependency:
-                # check duplicate
-                if depend in lst_actual_dependency:
-                    continue
-                module = self.env["ir.module.module"].search(
-                    [("name", "=", depend)]
-                )
-                if len(module) > 1:
-                    raise Exception(f"Duplicated dependencies: {depend}")
-                elif not len(module):
-                    raise Exception(f"Cannot found dependency: {depend}")
-
-                value = {
-                    "module_id": code_generator.id,
-                    "depend_id": module.id,
-                    "name": module.display_name,
-                }
-                self.env["code.generator.module.dependency"].create(value)
+        self.code_generator_id.add_module_dependency("portal")
 
     def generate_portal_menu_entry(self, o2m_models, module_name):
         # TODO need to find another solution than linked with the model, need to link on portal

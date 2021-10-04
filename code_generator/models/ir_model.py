@@ -409,74 +409,89 @@ class IrModel(models.Model):
         ),
     )
 
+    @api.multi
     def add_model_inherit(self, model_name):
         """
 
         :param model_name: list or string
         :return:
         """
-        if type(model_name) is str:
-            lst_model_name = [model_name]
-        elif type(model_name) is list:
-            lst_model_name = model_name
-        else:
-            _logger.error(
-                "Wrong type of model_name in method add_model_inherit:"
-                f" {type(model_name)}"
-            )
-            return
-
-        inherit_model = self.env["ir.model"].search(
-            [("model", "in", lst_model_name)]
-        )
-        lst_create = [{"depend_id": a.id} for a in inherit_model]
-        depend_ids = self.env["code.generator.ir.model.dependency"].create(
-            lst_create
-        )
-        self.inherit_model_ids = depend_ids.ids
-
-        # Add missing field
-        actual_field_list = set(self.field_id.mapped("name"))
-        lst_dct_field = []
-        for ir_model_id in inherit_model:
-            diff_list = list(
-                set(ir_model_id.field_id.mapped("name")).difference(
-                    actual_field_list
+        for ir_model in self:
+            if type(model_name) is str:
+                lst_model_name = [model_name]
+            elif type(model_name) is list:
+                lst_model_name = model_name
+            else:
+                _logger.error(
+                    "Wrong type of model_name in method add_model_inherit:"
+                    f" {type(model_name)}"
                 )
+                return
+
+            inherit_model = None
+            for model_name in lst_model_name:
+                check_inherit_model = self.env["ir.model"].search(
+                    [("model", "=", model_name)]
+                )
+                if check_inherit_model.id not in [
+                    a.depend_id.id for a in ir_model.inherit_model_ids
+                ]:
+                    if not inherit_model:
+                        inherit_model = check_inherit_model
+                    else:
+                        inherit_model += check_inherit_model
+
+            if not inherit_model:
+                return
+
+            lst_create = [{"depend_id": a.id} for a in inherit_model]
+            depend_ids = self.env["code.generator.ir.model.dependency"].create(
+                lst_create
             )
-            lst_new_field = [
-                a for a in ir_model_id.field_id if a.name in diff_list
-            ]
-            for new_field_id in lst_new_field:
-                # TODO support ttype selection, who extract this information?
-                if new_field_id.ttype == "selection":
-                    continue
-                value_field_backup_format = {
-                    "name": new_field_id.name,
-                    "model": self.model,
-                    "field_description": new_field_id.field_description,
-                    "ttype": new_field_id.ttype,
-                    "model_id": self.id,
-                    "ignore_on_code_generator_writer": True,
-                }
-                tpl_relation = ("many2one", "many2many", "one2many")
-                tpl_relation_field = ("many2many", "one2many")
-                if new_field_id.ttype in tpl_relation:
-                    value_field_backup_format[
-                        "relation"
-                    ] = new_field_id.relation
+            ir_model.inherit_model_ids = depend_ids.ids
 
-                if (
-                    new_field_id.ttype in tpl_relation_field
-                    and new_field_id.relation_field
-                ):
-                    value_field_backup_format[
-                        "relation_field"
-                    ] = new_field_id.relation_field
+            # Add missing field
+            actual_field_list = set(ir_model.field_id.mapped("name"))
+            lst_dct_field = []
+            for ir_model_id in inherit_model:
+                diff_list = list(
+                    set(ir_model_id.field_id.mapped("name")).difference(
+                        actual_field_list
+                    )
+                )
+                lst_new_field = [
+                    a for a in ir_model_id.field_id if a.name in diff_list
+                ]
+                for new_field_id in lst_new_field:
+                    # TODO support ttype selection, who extract this information?
+                    if new_field_id.ttype == "selection":
+                        continue
+                    value_field_backup_format = {
+                        "name": new_field_id.name,
+                        "model": ir_model.model,
+                        "field_description": new_field_id.field_description,
+                        "ttype": new_field_id.ttype,
+                        "model_id": ir_model.id,
+                        "ignore_on_code_generator_writer": True,
+                    }
+                    tpl_relation = ("many2one", "many2many", "one2many")
+                    tpl_relation_field = ("many2many", "one2many")
+                    if new_field_id.ttype in tpl_relation:
+                        value_field_backup_format[
+                            "relation"
+                        ] = new_field_id.relation
 
-                lst_dct_field.append(value_field_backup_format)
-        if lst_dct_field:
-            self.env["ir.model.fields"].create(lst_dct_field)
+                    if (
+                        new_field_id.ttype in tpl_relation_field
+                        and new_field_id.relation_field
+                    ):
+                        value_field_backup_format[
+                            "relation_field"
+                        ] = new_field_id.relation_field
+
+                    lst_dct_field.append(value_field_backup_format)
+            if lst_dct_field:
+                self.env["ir.model.fields"].create(lst_dct_field)
 
     @api.model
     def _instanciate(self, model_data):
@@ -597,6 +612,13 @@ class IrModelDependency(models.Model):
 
     depend_id = fields.Many2one("ir.model", "Dependency", ondelete="cascade")
     name = fields.Char(compute="compute_name")
+
+    ir_model_ids = fields.One2many(
+        comodel_name="ir.model",
+        inverse_name="inherit_model_ids",
+        string="Ir model",
+        help="Origin model with dependency",
+    )
 
     @api.depends("depend_id")
     def compute_name(self):

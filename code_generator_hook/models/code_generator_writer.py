@@ -799,24 +799,8 @@ class CodeGeneratorWriter(models.Model):
                                     ) in module.dependencies_template_id:
                                         cw.emit(f'"{depend.depend_id.name}",')
                                 cw.emit(
-                                    "lst_dependencies ="
-                                    ' env["ir.module.module"].search([("name",'
-                                    ' "in", lst_depend)])'
+                                    "code_generator_id.add_module_dependency(lst_depend)"
                                 )
-                                cw.emit("for depend in lst_dependencies:")
-                                with cw.indent():
-                                    with cw.block(
-                                        before="value =", delim=("{", "}")
-                                    ):
-                                        cw.emit(
-                                            '"module_id":'
-                                            " code_generator_id.id,"
-                                        )
-                                        cw.emit('"depend_id": depend.id,')
-                                        cw.emit('"name": depend.display_name,')
-                                    cw.emit(
-                                        'env["code.generator.module.dependency"].create(value)'
-                                    )
                                 cw.emit()
                                 if is_generator_demo:
                                     with cw.block(
@@ -829,26 +813,8 @@ class CodeGeneratorWriter(models.Model):
                                                 f'"{depend.depend_id.name}",'
                                             )
                                     cw.emit(
-                                        "lst_dependencies ="
-                                        ' env["ir.module.module"].search([("name",'
-                                        ' "in", lst_depend)])'
+                                        "code_generator_id.add_module_dependency_template(lst_depend)"
                                     )
-                                    cw.emit("for depend in lst_dependencies:")
-                                    with cw.indent():
-                                        with cw.block(
-                                            before="value =", delim=("{", "}")
-                                        ):
-                                            cw.emit(
-                                                '"module_id":'
-                                                " code_generator_id.id,"
-                                            )
-                                            cw.emit('"depend_id": depend.id,')
-                                            cw.emit(
-                                                '"name": depend.display_name,'
-                                            )
-                                        cw.emit(
-                                            'env["code.generator.module.template.dependency"].create(value)'
-                                        )
                                     cw.emit()
 
                             lst_view_item_code_generator = []

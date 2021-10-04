@@ -2719,9 +2719,9 @@ class CodeGeneratorWriter(models.Model):
 
         if dct_replace_template:
             root_template = E.odoo({}, *lst_item_template)
-            content_template = XML_VERSION_HEADER.encode("utf-8") + ET.tostring(
-                root_template, pretty_print=True
-            )
+            content_template = XML_VERSION_HEADER.encode(
+                "utf-8"
+            ) + ET.tostring(root_template, pretty_print=True)
             str_content_template = content_template.decode()
 
             str_content_template = str_content_template.replace(
@@ -2903,7 +2903,10 @@ class CodeGeneratorWriter(models.Model):
             """
             cw.emit(f"_name = '{model.model}'")
 
-            lst_inherit = [a.depend_id.model for a in model.inherit_model_ids]
+            # Force unique inherit
+            lst_inherit = sorted(
+                list(set([a.depend_id.model for a in model.inherit_model_ids]))
+            )
             if lst_inherit:
                 if len(lst_inherit) == 1:
                     str_inherit = f"'{lst_inherit[0]}'"

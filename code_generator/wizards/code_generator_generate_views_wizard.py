@@ -2283,25 +2283,28 @@ pass''',
         if module.application and is_generic_menu:
             # Compute menu name
             menu_name = model_name_str
-            application_name, sub_model_name = model_name.split(
-                ".", maxsplit=1
-            )
-            if model_created.menu_label:
-                menu_name = model_created.menu_label
-            elif (
-                not model_created.menu_name_keep_application
-                and sub_model_name
-                and menu_name.lower().startswith(application_name.lower())
-            ):
-                menu_name = (
-                    sub_model_name.capitalize()
-                    .replace(".", " ")
-                    .replace("_", " ")
+            if "." in model_name:
+                application_name, sub_model_name = model_name.split(
+                    ".", maxsplit=1
                 )
+                if model_created.menu_label:
+                    menu_name = model_created.menu_label
+                elif (
+                    not model_created.menu_name_keep_application
+                    and sub_model_name
+                    and menu_name.lower().startswith(application_name.lower())
+                ):
+                    menu_name = (
+                        sub_model_name.capitalize()
+                        .replace(".", " ")
+                        .replace("_", " ")
+                    )
+                else:
+                    menu_name = f"{application_name} {sub_model_name.replace('.', ' ')}".capitalize().replace(
+                        "_", " "
+                    )
             else:
-                menu_name = f"{application_name} {sub_model_name.replace('.', ' ')}".capitalize().replace(
-                    "_", " "
-                )
+                menu_name = model_name
             # Create action
             v = {
                 "name": menu_name,

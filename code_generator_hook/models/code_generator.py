@@ -95,6 +95,11 @@ class CodeGeneratorModule(models.Model):
         help="Read generated code to fill the generator with fields.",
     )
 
+    disable_fix_code_generator_sequence = fields.Boolean(
+        string="Disable fix sequence",
+        help="Don't force sequence of model in view, if True, always auto mode.",
+    )
+
     ignore_fields = fields.Char(
         string="Ignored field",
         help=(

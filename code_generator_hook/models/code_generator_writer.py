@@ -145,7 +145,7 @@ class CodeGeneratorWriter(models.Model):
                 cw.emit(
                     f'"field_description": "{field_id.field_description}",'
                 )
-                if ast_attr:
+                if ast_attr and not module.disable_fix_code_generator_sequence:
                     cw.emit(
                         '"code_generator_sequence":'
                         f' {ast_attr.get("sequence")},'

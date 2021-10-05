@@ -75,6 +75,7 @@ class CodeGeneratorWriter(models.Model):
             self.model_id = module.env["ir.model"].search(
                 [("model", "=", model_model)]
             )
+            self.dct_field = defaultdict(dict)
             model_name = model_model.replace(".", "_")
             self.var_model_name = f"model_{model_name}"
             self.var_model = model_model
@@ -212,6 +213,33 @@ class CodeGeneratorWriter(models.Model):
                 mydoc = minidom.parseString(view_id.arch_base.encode())
 
                 lst_view_item_id = []
+
+                # Search timeline
+                lst_timeline_xml = mydoc.getElementsByTagName("timeline")
+                if lst_timeline_xml:
+                    for timeline_xml in lst_timeline_xml:
+                        if "date_start" in timeline_xml.attributes.keys():
+                            field_name = (
+                                timeline_xml.attributes["date_start"]
+                                .childNodes[0]
+                                .data
+                            )
+                            for field_id in self.model_id.field_id:
+                                if field_id.name == field_name:
+                                    self.dct_field[field_name][
+                                        "is_date_start_view"
+                                    ] = True
+                        if "date_stop" in timeline_xml.attributes.keys():
+                            field_name = (
+                                timeline_xml.attributes["date_stop"]
+                                .childNodes[0]
+                                .data
+                            )
+                            for field_id in self.model_id.field_id:
+                                if field_id.name == field_name:
+                                    self.dct_field[field_name][
+                                        "is_date_end_view"
+                                    ] = True
 
                 # Search oe_chatter activity message_ids or message_follower_ids
                 lst_div_xml = mydoc.getElementsByTagName("div")

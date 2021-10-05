@@ -71,6 +71,7 @@ class CodeGeneratorWriter(models.Model):
         var_model_model,
         lst_keep_f2exports,
         module_file_sync,
+        view_file_sync,
         lst_force_f2exports=None,
     ):
         if module_file_sync and module_file_sync.is_enabled:
@@ -150,6 +151,14 @@ class CodeGeneratorWriter(models.Model):
                         '"code_generator_sequence":'
                         f' {ast_attr.get("sequence")},'
                     )
+                if view_file_sync:
+                    dct_field = view_file_sync.dct_field.get(field_id.name)
+                    if dct_field and dct_field.get("is_date_start_view"):
+                        cw.emit(f'"is_date_start_view": True,')
+                if view_file_sync:
+                    dct_field = view_file_sync.dct_field.get(field_id.name)
+                    if dct_field and dct_field.get("is_date_end_view"):
+                        cw.emit(f'"is_date_end_view": True,')
                 cw.emit(f'"ttype": "{field_id.ttype}",')
                 if field_id.ttype in ["many2one", "many2many", "one2many"]:
                     # cw.emit(f'"comodel_name": "{field_id.relation}",')
@@ -1017,6 +1026,7 @@ class CodeGeneratorWriter(models.Model):
                                             variable_model_model,
                                             lst_keep_f2exports,
                                             module_file_sync,
+                                            view_file_sync,
                                         )
                                     else:
                                         cw.emit("value_field_boolean = {")
@@ -1101,6 +1111,7 @@ class CodeGeneratorWriter(models.Model):
                                                 cw,
                                                 variable_model_model,
                                                 lst_keep_f2exports,
+                                                None,
                                                 None,
                                                 lst_force_f2exports=[field_id],
                                             )

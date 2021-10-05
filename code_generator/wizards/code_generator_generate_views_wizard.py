@@ -859,8 +859,22 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         if model_created.enable_activity:
             xml_activity = E.div(
                 {"class": "oe_chatter"},
+                E.field(
+                    {
+                        "name": "message_follower_ids",
+                        "widget": "mail_followers",
+                        # "help": "",
+                        # "groups": "base.group_user",
+                    }
+                ),
                 E.field({"name": "activity_ids", "widget": "mail_activity"}),
-                E.field({"name": "message_ids", "widget": "mail_thread"}),
+                E.field(
+                    {
+                        "name": "message_ids",
+                        "widget": "mail_thread",
+                        "options": "{'post_refresh': 'recipients'}",
+                    }
+                ),
             )
             lst_item_form.append(xml_activity)
 

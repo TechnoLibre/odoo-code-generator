@@ -72,6 +72,9 @@ class CodeGeneratorWriter(models.Model):
                 [("model", "=", model_model)]
             )
             self.code_generator_id = None
+            self.model_id = module.env["ir.model"].search(
+                [("model", "=", model_model)]
+            )
             model_name = model_model.replace(".", "_")
             self.var_model_name = f"model_{model_name}"
             self.var_model = model_model
@@ -209,6 +212,29 @@ class CodeGeneratorWriter(models.Model):
                 mydoc = minidom.parseString(view_id.arch_base.encode())
 
                 lst_view_item_id = []
+
+                # Search oe_chatter activity message_ids or message_follower_ids
+                lst_div_xml = mydoc.getElementsByTagName("div")
+                if lst_div_xml:
+                    for div_xml in lst_div_xml:
+                        if (
+                            "class",
+                            "oe_chatter",
+                        ) in div_xml.attributes.items():
+                            for child_div in div_xml.childNodes:
+                                if child_div.nodeType is Node.ELEMENT_NODE:
+                                    lst_value = dict(
+                                        child_div.attributes.items()
+                                    ).values()
+                                    if (
+                                        "activity_ids" in lst_value
+                                        or "message_ids" in lst_value
+                                        or "message_follower_ids" in lst_value
+                                    ):
+                                        # self.model_id.write(
+                                        #     {"enable_activity": True}
+                                        # )
+                                        self.model_id.enable_activity = True
 
                 # Sheet
                 lst_sheet_xml = mydoc.getElementsByTagName("sheet")

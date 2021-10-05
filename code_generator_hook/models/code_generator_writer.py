@@ -889,7 +889,12 @@ class CodeGeneratorWriter(models.Model):
                                     cw.emit("value = {")
                                     with cw.indent():
                                         cw.emit(f'"name": "{model_name}",')
-                                        if model_id and model_id.description and model_id.description != model_name:
+                                        if (
+                                            model_id
+                                            and model_id.description
+                                            and model_id.description
+                                            != model_name
+                                        ):
                                             cw.emit(
                                                 '"description":'
                                                 f' "{model_id.description}",'
@@ -905,6 +910,8 @@ class CodeGeneratorWriter(models.Model):
                                                 '"menu_name_keep_application":'
                                                 " True,"
                                             )
+                                        if model_id.enable_activity:
+                                            cw.emit('"enable_activity": True,')
                                         cw.emit('"nomenclator": True,')
                                     cw.emit("}")
                                     cw.emit(

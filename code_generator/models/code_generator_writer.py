@@ -684,7 +684,6 @@ class CodeGeneratorWriter(models.Model):
             lst_py_file = glob.glob(path_generated_module)
             if not lst_py_file:
                 return
-            class_model_ast = None
             for py_file in lst_py_file:
                 filename = py_file.split("/")[-1]
                 if filename == "__init__.py":
@@ -696,12 +695,10 @@ class CodeGeneratorWriter(models.Model):
                     class_model_ast = self.search_class_model(f_ast)
                     if class_model_ast:
                         self.py_filename = filename
-                        break
-            if class_model_ast:
-                self.search_field(class_model_ast)
-                # Fill method
-                self.search_import(lst_lines)
-                self.search_method(class_model_ast, lst_lines, module)
+                        self.search_field(class_model_ast)
+                        # Fill method
+                        self.search_import(lst_lines)
+                        self.search_method(class_model_ast, lst_lines, module)
             self.is_enabled = True
 
         def search_class_model(self, f_ast):
@@ -1087,14 +1084,23 @@ class CodeGeneratorWriter(models.Model):
                 )
 
             str_code = "\n".join(lst_line[:i])
+            str_code = str_code.strip()
             d = {
                 "m2o_model": self.model_id.id,
                 "m2o_module": self.module.id,
-                "code": str_code.strip(),
+                "code": str_code,
                 "name": "header",
                 "is_templated": True,
             }
-            self.module.env["code.generator.model.code.import"].create(d)
+            if not self.module.env["code.generator.model.code.import"].search(
+                [
+                    ("m2o_model", "=", self.model_id.id),
+                    ("m2o_module", "=", self.module.id),
+                    ("code", "=", str_code),
+                ],
+                limit=1,
+            ):
+                self.module.env["code.generator.model.code.import"].create(d)
 
         def search_method(self, class_model_ast, lst_line, module):
             sequence = -1

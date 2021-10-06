@@ -1132,18 +1132,37 @@ class CodeGeneratorWriter(models.Model):
                                 self.env["code.generator.model.code.import"]
                                 .search(
                                     [
+                                        ("m2o_model", "=", model_id.id),
                                         ("m2o_module", "=", module.id),
                                         ("is_templated", "=", True),
                                     ]
                                 )
                                 .sorted(lambda code: code.sequence)
                             )
-                            if code_import_ids:
+                            # Valide before writing
+                            dct_code_id = {}
+                            for code_id in code_import_ids:
+                                if code_id.code in dct_code_id.keys():
+                                    _logger.warning(
+                                        "Find duplicate code for model"
+                                        " code.generator.model.code.import"
+                                        f" : {code_id.code}"
+                                    )
+                                else:
+                                    dct_code_id[code_id.code] = code_id
+                            if (
+                                len(dct_code_id) == 1
+                                and list(dct_code_id.keys())[0]
+                                == "from odoo import _, api, models, fields"
+                            ):
+                                # No need to write with these default value
+                                dct_code_id = {}
+                            if dct_code_id:
                                 cw.emit("# Generate code")
                                 cw.emit("if True:")
                                 with cw.indent():
                                     cw.emit("# Generate code header")
-                                    for code_id in code_import_ids:
+                                    for code_id in dct_code_id.value():
                                         with cw.block(
                                             before="value =", delim=("{", "}")
                                         ):

@@ -566,6 +566,7 @@ class CodeGeneratorWriter(models.Model):
             method_name,
             has_second_arg,
         ):
+            lst_inherit_module_name_added = []
             if hook_show:
                 cw.emit()
                 cw.emit()
@@ -930,17 +931,28 @@ class CodeGeneratorWriter(models.Model):
                                     cw.emit()
                                     # inherit
                                     if model_id and model_id.inherit_model_ids:
-                                        cw.emit("# Model Inherit")
                                         if (
                                             module.template_module_id
                                             and module.template_module_id.dependencies_id
                                         ):
-                                            if (
-                                                len(
-                                                    module.template_module_id.dependencies_id
+                                            lst_module_depend = list(
+                                                set(
+                                                    [
+                                                        a.name
+                                                        for a in module.template_module_id.dependencies_id
+                                                    ]
+                                                ).difference(
+                                                    set(
+                                                        lst_inherit_module_name_added
+                                                    )
                                                 )
-                                                == 1
-                                            ):
+                                            )
+                                        if lst_module_depend:
+                                            lst_inherit_module_name_added += (
+                                                lst_module_depend
+                                            )
+                                            cw.emit("# Module dependency")
+                                            if len(lst_module_depend) == 1:
                                                 dependency_name = (
                                                     module.template_module_id.dependencies_id.name
                                                 )
@@ -950,17 +962,19 @@ class CodeGeneratorWriter(models.Model):
                                             else:
                                                 cw.emit(
                                                     "lst_depend_module ="
-                                                    f" {str([a.name for a in module.template_module_id.dependencies_id])}"
+                                                    f" {str(lst_module_depend)}"
                                                 )
                                                 cw.emit(
                                                     f"code_generator_id.add_module_dependency(lst_depend_module)"
                                                 )
+                                            cw.emit()
 
                                         lst_dependency = [
                                             a.name
                                             for a in model_id.inherit_model_ids
                                         ]
                                         if lst_dependency:
+                                            cw.emit("# Model inherit")
                                             if len(lst_dependency) == 1:
                                                 cw.emit(
                                                     f"{variable_model_model}.add_model_inherit('{lst_dependency[0]}')"

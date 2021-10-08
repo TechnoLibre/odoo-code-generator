@@ -1208,101 +1208,53 @@ class CodeGeneratorWriter(models.Model):
                                     # cw.emit("}")
                                     # cw.emit(f"env[\"{model_model}\"].create(value)")
                                     # cw.emit()
-                            # Generate code
-                            code_import_ids = (
-                                self.env["code.generator.model.code.import"]
-                                .search(
-                                    [
-                                        ("m2o_model", "=", model_id.id),
-                                        ("m2o_module", "=", module.id),
-                                        ("is_templated", "=", True),
-                                    ]
-                                )
-                                .sorted(lambda code: code.sequence)
-                            )
-                            # Valide before writing
-                            dct_code_id = {}
-                            for code_id in code_import_ids:
-                                if code_id.code in dct_code_id.keys():
-                                    _logger.warning(
-                                        "Find duplicate code for model"
-                                        " code.generator.model.code.import"
-                                        f" : {code_id.code}"
-                                    )
-                                else:
-                                    dct_code_id[code_id.code] = code_id
-                            if (
-                                len(dct_code_id) == 1
-                                and list(dct_code_id.keys())[0]
-                                == "from odoo import _, api, models, fields"
-                            ):
-                                # No need to write with these default value
-                                dct_code_id = {}
-                            if dct_code_id:
-                                cw.emit("# Generate code")
-                                cw.emit("if True:")
-                                with cw.indent():
-                                    cw.emit("# Generate code header")
-                                    for code_id in dct_code_id.value():
-                                        with cw.block(
-                                            before="value =", delim=("{", "}")
-                                        ):
-                                            str_line = f"\"code\": '''"
-                                            lst_line = code_id.code.split("\n")
-                                            cw.emit(str_line + lst_line[0])
-                                            for line in lst_line[1:-1]:
-                                                # str_line += line
-                                                cw.emit_raw(line + "\n")
-                                                # str_line = ""
-                                            cw.emit_raw(
-                                                f"{lst_line[-1]}''',\n"
-                                            )
-                                            cw.emit(
-                                                f'"name": "{code_id.name}",'
-                                            )
-                                            if code_id.sequence:
-                                                cw.emit(
-                                                    '"sequence":'
-                                                    f" {code_id.sequence},"
-                                                )
-                                            cw.emit(
-                                                '"m2o_module":'
-                                                " code_generator_id.id,"
-                                            )
-                                            model_name = model_model.replace(
-                                                ".", "_"
-                                            )
-                                            var_model_name = (
-                                                f"model_{model_name}"
-                                            )
-                                            cw.emit(
-                                                '"m2o_model":'
-                                                f" {var_model_name}.id,"
-                                            )
-                                        cw.emit(
-                                            'env["code.generator.model.code.import"].create(value)'
-                                        )
-                                        cw.emit()
-                                    code_ids = (
-                                        self.env["code.generator.model.code"]
+                                    # Generate code
+                                    code_import_ids = (
+                                        self.env[
+                                            "code.generator.model.code.import"
+                                        ]
                                         .search(
                                             [
+                                                (
+                                                    "m2o_model",
+                                                    "=",
+                                                    model_id.id,
+                                                ),
                                                 ("m2o_module", "=", module.id),
                                                 ("is_templated", "=", True),
                                             ]
                                         )
                                         .sorted(lambda code: code.sequence)
                                     )
-
-                                    if code_ids:
-                                        cw.emit("# Generate code model")
-                                        with cw.block(
-                                            before="lst_value =",
-                                            delim=("[", "]"),
-                                        ):
-                                            for code_id in code_ids:
+                                    # Valide before writing
+                                    dct_code_id = {}
+                                    for code_id in code_import_ids:
+                                        if code_id.code in dct_code_id.keys():
+                                            _logger.warning(
+                                                "Find duplicate code for"
+                                                " model"
+                                                " code.generator.model.code.import"
+                                                f" : {code_id.code}"
+                                            )
+                                        else:
+                                            dct_code_id[code_id.code] = code_id
+                                    if (
+                                        len(dct_code_id) == 1
+                                        and list(dct_code_id.keys())[0]
+                                        == "from odoo import _, api, models,"
+                                        " fields"
+                                    ):
+                                        # No need to write with these default value
+                                        dct_code_id = {}
+                                    if dct_code_id:
+                                        cw.emit("# Generate code")
+                                        cw.emit("if True:")
+                                        with cw.indent():
+                                            cw.emit("# Generate code header")
+                                            for code_id in dct_code_id.value():
                                                 with cw.block(
-                                                    delim=("{", "}")
+                                                    before="value =",
+                                                    delim=("{", "}"),
                                                 ):
                                                     str_line = f"\"code\": '''"
                                                     lst_line = (
@@ -1326,25 +1278,11 @@ class CodeGeneratorWriter(models.Model):
                                                         '"name":'
                                                         f' "{code_id.name}",'
                                                     )
-                                                    if code_id.decorator:
+                                                    if code_id.sequence:
                                                         cw.emit(
-                                                            '"decorator":'
-                                                            f' "{code_id.decorator}",'
+                                                            '"sequence":'
+                                                            f" {code_id.sequence},"
                                                         )
-                                                    if code_id.param:
-                                                        cw.emit(
-                                                            '"param":'
-                                                            f' "{code_id.param}",'
-                                                        )
-                                                    if code_id.returns:
-                                                        cw.emit(
-                                                            '"returns":'
-                                                            f' "{code_id.returns}",'
-                                                        )
-                                                    cw.emit(
-                                                        '"sequence":'
-                                                        f" {code_id.sequence},"
-                                                    )
                                                     cw.emit(
                                                         '"m2o_module":'
                                                         " code_generator_id.id,"
@@ -1361,10 +1299,109 @@ class CodeGeneratorWriter(models.Model):
                                                         '"m2o_model":'
                                                         f" {var_model_name}.id,"
                                                     )
-                                                cw.emit(",")
-                                        cw.emit(
-                                            'env["code.generator.model.code"].create(lst_value)'
-                                        )
+                                                cw.emit(
+                                                    'env["code.generator.model.code.import"].create(value)'
+                                                )
+                                                cw.emit()
+                                            code_ids = (
+                                                self.env[
+                                                    "code.generator.model.code"
+                                                ]
+                                                .search(
+                                                    [
+                                                        (
+                                                            "m2o_module",
+                                                            "=",
+                                                            module.id,
+                                                        ),
+                                                        (
+                                                            "is_templated",
+                                                            "=",
+                                                            True,
+                                                        ),
+                                                    ]
+                                                )
+                                                .sorted(
+                                                    lambda code: code.sequence
+                                                )
+                                            )
+
+                                            if code_ids:
+                                                cw.emit(
+                                                    "# Generate code model"
+                                                )
+                                                with cw.block(
+                                                    before="lst_value =",
+                                                    delim=("[", "]"),
+                                                ):
+                                                    for code_id in code_ids:
+                                                        with cw.block(
+                                                            delim=("{", "}")
+                                                        ):
+                                                            str_line = (
+                                                                f"\"code\": '''"
+                                                            )
+                                                            lst_line = code_id.code.split(
+                                                                "\n"
+                                                            )
+                                                            cw.emit(
+                                                                str_line
+                                                                + lst_line[0]
+                                                            )
+                                                            for (
+                                                                line
+                                                            ) in lst_line[
+                                                                1:-1
+                                                            ]:
+                                                                # str_line += line
+                                                                cw.emit_raw(
+                                                                    line + "\n"
+                                                                )
+                                                                # str_line = ""
+                                                            cw.emit_raw(
+                                                                f"{lst_line[-1]}''',\n"
+                                                            )
+                                                            cw.emit(
+                                                                '"name":'
+                                                                f' "{code_id.name}",'
+                                                            )
+                                                            if (
+                                                                code_id.decorator
+                                                            ):
+                                                                cw.emit(
+                                                                    '"decorator":'
+                                                                    f' "{code_id.decorator}",'
+                                                                )
+                                                            if code_id.param:
+                                                                cw.emit(
+                                                                    '"param":'
+                                                                    f' "{code_id.param}",'
+                                                                )
+                                                            if code_id.returns:
+                                                                cw.emit(
+                                                                    '"returns":'
+                                                                    f' "{code_id.returns}",'
+                                                                )
+                                                            cw.emit(
+                                                                '"sequence":'
+                                                                f" {code_id.sequence},"
+                                                            )
+                                                            cw.emit(
+                                                                '"m2o_module":'
+                                                                " code_generator_id.id,"
+                                                            )
+                                                            model_name = model_model.replace(
+                                                                ".", "_"
+                                                            )
+                                                            var_model_name = f"model_{model_name}"
+                                                            cw.emit(
+                                                                '"m2o_model":'
+                                                                f" {var_model_name}.id,"
+                                                            )
+                                                        cw.emit(",")
+                                                cw.emit(
+                                                    'env["code.generator.model.code"].create(lst_value)'
+                                                )
                             # Support constraint
                             constraint_ids = self.env[
                                 "ir.model.constraint"

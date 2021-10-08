@@ -578,6 +578,32 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                     lst_card_body_begin.append(card_body)
 
             lst_card_body = lst_card_body_begin + lst_card_body_end
+            lst_message_xml = []
+            if model.enable_activity:
+                msg_xml = E.div(
+                    {"class": "mt32"},
+                    E.h4(
+                        {}, E.strong({}, "Message and communication history")
+                    ),
+                    E.t(
+                        {"t-call": "portal.message_thread"},
+                        E.t(
+                            {
+                                "t-set": "object",
+                                "t-value": _fmt_underscores(model.model),
+                            }
+                        ),
+                        E.t(
+                            {
+                                "t-set": "token",
+                                "t-value": f"{_fmt_underscores(model.model)}.access_token",
+                            }
+                        ),
+                        E.t({"t-set": "pid", "t-value": "pid"}),
+                        E.t({"t-set": "hask", "t-value": "hash"}),
+                    ),
+                )
+                lst_message_xml.append(msg_xml)
             # <t t-call="portal.portal_layout">
             root = E.t(
                 {"t-call": "portal.portal_layout"},
@@ -696,6 +722,7 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                     #                             E.address({'t-field': 'project.user_id',
                     #                                        't-options': '{"widget": "contact", "fields": ["name", "email", "phone"]}'}))))))
                 ),
+                *lst_message_xml,
             )
 
             content = ET.tostring(root, pretty_print=True)

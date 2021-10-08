@@ -241,6 +241,139 @@ class CodeGeneratorWriter(models.Model):
                                         "is_date_end_view"
                                     ] = True
 
+                # Search diagram
+                lst_diagram_xml = mydoc.getElementsByTagName("diagram")
+                if lst_diagram_xml:
+                    nb_iter = 0
+                    for diagram_xml in lst_diagram_xml:
+                        nb_iter += 1
+                        if nb_iter > 1:
+                            _logger.warning(
+                                "Cannot support multiple diagram in the same"
+                                " file."
+                            )
+                            continue
+                        # Search 1 node, 1 arrow and maybe 1 label
+                        find_node = False
+                        find_arrow = False
+                        find_label = False
+                        for child_div in diagram_xml.childNodes:
+                            if child_div.nodeType is Node.ELEMENT_NODE:
+                                dct_att = dict(child_div.attributes.items())
+                                if child_div.nodeName == "node":
+                                    find_node = True
+                                    node_object = dct_att.get("object")
+                                    node_xpos = dct_att.get("xpos")
+                                    node_ypos = dct_att.get("ypos")
+                                    node_shape = dct_att.get("shape")
+                                    node_form_view_ref = dct_att.get(
+                                        "form_view_ref"
+                                    )
+                                    if not node_object:
+                                        _logger.warning(
+                                            "Missing diagram node object for"
+                                            f" model {self.var_model}"
+                                        )
+                                        find_node = False
+                                    if not node_xpos:
+                                        _logger.warning(
+                                            "Missing diagram node xpos for"
+                                            f" model {self.var_model}"
+                                        )
+                                        find_node = False
+                                    if not node_ypos:
+                                        _logger.warning(
+                                            "Missing diagram node ypos for"
+                                            f" model {self.var_model}"
+                                        )
+                                        find_node = False
+                                    if not node_shape:
+                                        _logger.warning(
+                                            "Missing diagram node shape for"
+                                            f" model {self.var_model}"
+                                        )
+                                        find_node = False
+                                    if not node_form_view_ref:
+                                        _logger.warning(
+                                            "Missing diagram node"
+                                            " form_view_ref for model"
+                                            f" {self.var_model}"
+                                        )
+                                        find_node = False
+                                if child_div.nodeName == "arrow":
+                                    find_arrow = True
+                                    arrow_object = dct_att.get("object")
+                                    arrow_source = dct_att.get("source")
+                                    arrow_destination = dct_att.get(
+                                        "destination"
+                                    )
+                                    arrow_label = dct_att.get("label")
+                                    arrow_form_view_ref = dct_att.get(
+                                        "form_view_ref"
+                                    )
+                                    if not arrow_object:
+                                        _logger.warning(
+                                            "Missing diagram arrow object for"
+                                            f" model {self.var_model}"
+                                        )
+                                        find_arrow = False
+                                    if not arrow_source:
+                                        _logger.warning(
+                                            "Missing diagram arrow source for"
+                                            f" model {self.var_model}"
+                                        )
+                                        find_arrow = False
+                                    if not arrow_destination:
+                                        _logger.warning(
+                                            "Missing diagram arrow"
+                                            " destination for model"
+                                            f" {self.var_model}"
+                                        )
+                                        find_arrow = False
+                                    if not arrow_label:
+                                        _logger.warning(
+                                            "Missing diagram arrow label for"
+                                            f" model {self.var_model}"
+                                        )
+                                        find_arrow = False
+                                    if not arrow_form_view_ref:
+                                        _logger.warning(
+                                            "Missing diagram arrow"
+                                            " form_view_ref for model"
+                                            f" {self.var_model}"
+                                        )
+                                        find_arrow = False
+                                if child_div.nodeName == "label":
+                                    find_label = True
+                                    diagram_label_string = dct_att.get(
+                                        "string"
+                                    )
+                                    if not diagram_label_string:
+                                        _logger.warning(
+                                            "Missing diagram label string"
+                                            f" for model {self.var_model}"
+                                        )
+                                        find_label = False
+                        if find_node and find_arrow:
+                            self.model_id.diagram_node_object = node_object
+                            self.model_id.diagram_node_xpos_field = node_xpos
+                            self.model_id.diagram_node_ypos_field = node_ypos
+                            self.model_id.diagram_node_shape_field = node_shape
+                            self.model_id.diagram_node_form_view_ref = (
+                                node_form_view_ref
+                            )
+                            self.model_id.diagram_arrow_object = arrow_object
+                            self.model_id.diagram_arrow_src_field = (
+                                arrow_source
+                            )
+                            self.model_id.diagram_arrow_dst_field = (
+                                arrow_destination
+                            )
+                            if find_label:
+                                self.model_id.diagram_label_string = (
+                                    diagram_label_string
+                                )
+
                 # Search oe_chatter activity message_ids or message_follower_ids
                 lst_div_xml = mydoc.getElementsByTagName("div")
                 if lst_div_xml:

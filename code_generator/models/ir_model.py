@@ -317,6 +317,17 @@ class IrModel(models.Model):
         help="Diagram node field name for ypos."
     )
 
+    diagram_node_shape_field = fields.Char(
+        help="Diagram node field shape.", default="rectangle:True"
+    )
+
+    diagram_node_form_view_ref = fields.Char(
+        help=(
+            "Diagram node field, reference view xml id. If empty, will take"
+            " default form."
+        ),
+    )
+
     diagram_arrow_object = fields.Char(
         help="Diagram arrow model name for arrow."
     )
@@ -327,6 +338,22 @@ class IrModel(models.Model):
 
     diagram_arrow_dst_field = fields.Char(
         help="Diagram arrow field name for destination."
+    )
+
+    diagram_arrow_label = fields.Char(
+        help="Diagram label, data to show when draw a line.",
+        default="['name']",
+    )
+
+    diagram_arrow_form_view_ref = fields.Char(
+        help=(
+            "Diagram arrow field, reference view xml id. If empty, will take"
+            " default form."
+        ),
+    )
+
+    diagram_label_string = fields.Char(
+        help="Sentence to show at top of diagram.",
     )
 
     @api.onchange("m2o_module")

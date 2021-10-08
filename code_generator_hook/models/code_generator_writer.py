@@ -922,6 +922,71 @@ class CodeGeneratorWriter(models.Model):
                                             )
                                         if model_id.enable_activity:
                                             cw.emit('"enable_activity": True,')
+                                        if (
+                                            model_id.diagram_node_object
+                                            and model_id.diagram_node_xpos_field
+                                            and model_id.diagram_node_ypos_field
+                                            and model_id.diagram_arrow_object
+                                            and model_id.diagram_arrow_src_field
+                                            and model_id.diagram_arrow_dst_field
+                                        ):
+                                            cw.emit(
+                                                '"diagram_node_object":'
+                                                f' "{model_id.diagram_node_object}",'
+                                            )
+                                            cw.emit(
+                                                '"diagram_node_xpos_field":'
+                                                f' "{model_id.diagram_node_xpos_field}",'
+                                            )
+                                            cw.emit(
+                                                '"diagram_node_ypos_field":'
+                                                f' "{model_id.diagram_node_ypos_field}",'
+                                            )
+                                            if (
+                                                model_id.diagram_node_shape_field
+                                            ):
+                                                cw.emit(
+                                                    '"diagram_node_shape_field":'
+                                                    f' "{model_id.diagram_node_shape_field}",'
+                                                )
+                                            if (
+                                                model_id.diagram_node_form_view_ref
+                                            ):
+                                                # TODO validate it exist and add variable to link name if changed
+                                                cw.emit(
+                                                    '"diagram_node_form_view_ref":'
+                                                    f' "{model_id.diagram_node_form_view_ref}",'
+                                                )
+                                            cw.emit(
+                                                '"diagram_arrow_object":'
+                                                f' "{model_id.diagram_arrow_object}",'
+                                            )
+                                            cw.emit(
+                                                '"diagram_arrow_src_field":'
+                                                f' "{model_id.diagram_arrow_src_field}",'
+                                            )
+                                            cw.emit(
+                                                '"diagram_arrow_dst_field":'
+                                                f' "{model_id.diagram_arrow_dst_field}",'
+                                            )
+                                            if model_id.diagram_arrow_label:
+                                                cw.emit(
+                                                    '"diagram_arrow_label":'
+                                                    f' "{model_id.diagram_arrow_label}",'
+                                                )
+                                            if (
+                                                model_id.diagram_arrow_form_view_ref
+                                            ):
+                                                # TODO validate it exist and add variable to link name if changed
+                                                cw.emit(
+                                                    '"diagram_arrow_form_view_ref":'
+                                                    f' "{model_id.diagram_arrow_form_view_ref}",'
+                                                )
+                                            if model_id.diagram_label_string:
+                                                cw.emit(
+                                                    '"diagram_label_string":'
+                                                    f' "{model_id.diagram_label_string}",'
+                                                )
                                         cw.emit('"nomenclator": True,')
                                     cw.emit("}")
                                     cw.emit(
@@ -935,15 +1000,17 @@ class CodeGeneratorWriter(models.Model):
                                             module.template_module_id
                                             and module.template_module_id.dependencies_id
                                         ):
-                                            lst_module_depend = list(
-                                                set(
-                                                    [
-                                                        a.name
-                                                        for a in module.template_module_id.dependencies_id
-                                                    ]
-                                                ).difference(
+                                            lst_module_depend = sorted(
+                                                list(
                                                     set(
-                                                        lst_inherit_module_name_added
+                                                        [
+                                                            a.name
+                                                            for a in module.template_module_id.dependencies_id
+                                                        ]
+                                                    ).difference(
+                                                        set(
+                                                            lst_inherit_module_name_added
+                                                        )
                                                     )
                                                 )
                                             )
@@ -1110,7 +1177,7 @@ class CodeGeneratorWriter(models.Model):
                                         cw.emit("")
                                         cw.emit(
                                             "# Added one2many field, many2many"
-                                            " need to be creat before add"
+                                            " need to be create before add"
                                             " one2many"
                                         )
                                         for (

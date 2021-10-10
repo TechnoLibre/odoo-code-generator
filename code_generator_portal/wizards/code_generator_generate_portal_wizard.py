@@ -170,7 +170,13 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                     "class": "breadcrumb-item active",
                 },
                 # <t t-esc="project.name"/>
-                E.t({"t-esc": f"{_fmt_underscores(model.model)}.name"}),
+                E.t(
+                    {
+                        "t-esc": (
+                            f"{_fmt_underscores(model.model)}.{model.rec_name}"
+                        )
+                    }
+                ),
             )
             lst_menu_xml.append(menu_xml)
 
@@ -355,7 +361,7 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                                     # <span t-field="project.name"/>
                                     E.span(
                                         {
-                                            "t-field": f"{_fmt_underscores(model.model)}.name"
+                                            "t-field": f"{_fmt_underscores(model.model)}.{model.rec_name}"
                                         }
                                     ),
                                 ),
@@ -459,6 +465,35 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                     continue
                 # E.div({'t-if': 'project.partner_id', 'class': 'col-12 col-md-6 mb-2 mb-md-0'},
 
+                # TODO this fix missing association relation and relation_id (to create) to replace related_field_data_model
+                # if field.relation and not field.relation_table:
+                if field.relation:
+                    related_field_data_model = self.env["ir.model"].search(
+                        [("model", "=", field.relation)]
+                    )
+                else:
+                    related_field_data_model = None
+
+                # TODO this fix missing association relation_field with relation_field_id
+                if field.relation_field and not field.relation_field_id:
+                    if not field.relation:
+                        _logger.error(
+                            "Missing in a record for ir.model.fields the"
+                            " field relation, but relation_field contains"
+                            f" '{field.relation_field}' ."
+                        )
+                    else:
+                        field.relation_field_id = (
+                            self.env["ir.model.fields"]
+                            .search(
+                                [
+                                    ("model", "=", field.relation),
+                                    ("name", "=", field.relation_field),
+                                ]
+                            )
+                            .id
+                        )
+
                 str_field_data = (
                     f"{_fmt_underscores(model.model)}.{field.name}"
                 )
@@ -474,6 +509,13 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                         field.relation_field_id.model_id, keep_name=True
                     )
                     for no_id, field_id in enumerate(lst_field_to_compute):
+                        if field_id.relation:
+                            related_field_id_data_model = self.env[
+                                "ir.model"
+                            ].search([("model", "=", field_id.relation)])
+                        else:
+                            related_field_id_data_model = None
+
                         if field_id.force_widget:
                             _logger.warning(
                                 "Cannot support `force_widget` in portal."
@@ -501,7 +543,7 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                             field_id_value_xml = E.a(
                                 {
                                     "t-attf-href": f"/my/{_fmt_underscores(field_id.relation)}/#{{{field.relation_field_id.name}.{field_id.name}.id}}",
-                                    "t-field": f"{field_id_value_name}.name",
+                                    "t-field": f"{field_id_value_name}.{related_field_id_data_model.rec_name}",
                                 }
                             )
                         elif field_id.name == "name":
@@ -560,7 +602,7 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                         xml_field_data = E.a(
                             {
                                 "t-attf-href": f"/my/{_fmt_underscores(field.relation)}/#{{{str_field_data}.id}}",
-                                "t-field": f"{str_field_data}.name",
+                                "t-field": f"{str_field_data}.{related_field_data_model.rec_name}",
                             }
                         )
                     else:
@@ -644,9 +686,7 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                             # <span t-field="project.name"/>
                             E.span(
                                 {
-                                    "t-field": (
-                                        f"{_fmt_underscores(model.model)}.name"
-                                    )
+                                    "t-field": f"{_fmt_underscores(model.model)}.{model.rec_name}"
                                 }
                             )
                             # TODO need binding variable

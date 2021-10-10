@@ -786,6 +786,7 @@ class CodeGeneratorDbTable(models.Model):
                             "ttype": "one2many",
                             "relation": table_id.model_name,
                             "relation_field": column_id.field_name,
+                            "relation_field_id": column_id.id,
                             # "comodel_name": update_info.model_name,
                             # "inverse_name": update_info.new_field_name,
                         }

@@ -884,11 +884,14 @@ class CodeGeneratorWriter(models.Model):
                                     model_id = self.env["ir.model"].search(
                                         [("model", "=", model_model)]
                                     )
+                                    if "." in model_model:
+                                        (
+                                            application_name,
+                                            _,
+                                        ) = model_model.split(".", maxsplit=1)
+                                    else:
+                                        application_name = model_model
                                     model_name = model_model.replace(".", "_")
-                                    (
-                                        application_name,
-                                        model_short_name,
-                                    ) = model_model.split(".", maxsplit=1)
                                     title_model_model = model_name.replace(
                                         "_", " "
                                     ).title()

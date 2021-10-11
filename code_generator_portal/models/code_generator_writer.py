@@ -288,9 +288,9 @@ class CodeGeneratorWriter(models.Model):
                         cw.emit("step=self._items_per_page")
                 with cw.indent():
                     cw.emit(")")
-                    cw.emit(
-                        "# content according to pager and archive selected"
-                    )
+                    # cw.emit(
+                    #     "# content according to pager and archive selected"
+                    # )
                     # MATHBEN NOT IN PROJECT, BUT TASK
                     # cw.emit("if groupby == 'project':")
                     # with cw.indent():

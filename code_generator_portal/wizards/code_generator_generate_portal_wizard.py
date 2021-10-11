@@ -90,6 +90,9 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
 
         o2m_models.add_model_inherit("portal.mixin")
 
+        # Add portal code
+        self._add_portal_python_code(o2m_models)
+
         return True
 
     def _add_dependencies(self):
@@ -98,6 +101,51 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
             return
 
         self.code_generator_id.add_module_dependency("portal")
+
+    @staticmethod
+    def _get_l_map(fn, collection):
+        """
+        Util function to get a list of a map operation
+        :param fn:
+        :param collection:
+        :return:
+        """
+
+        return list(map(fn, collection))
+
+    def _get_class_name(self, model):
+        """
+        Util function to get a model class name representation from a model name (code.generator -> CodeGenerator)
+        :param model:
+        :return:
+        """
+
+        # TODO move this method in ir.model
+        result = []
+        bypoint = model.split(".")
+        for byp in bypoint:
+            result += byp.split("_")
+        return "".join(self._get_l_map(lambda e: e.capitalize(), result))
+
+    def _add_portal_python_code(self, o2m_models):
+        lst_code = []
+        for model_id in o2m_models:
+            var_name = model_id.model.replace(".", "_")
+            method_name = "_compute_access_url"
+            str_code = f"""super({self._get_class_name(model_id.model)}, self)._compute_access_url()
+for {var_name} in self:
+    {var_name}.access_url = '/my/{var_name}/%s' % {var_name}.id
+            """
+            dct_code = {
+                "code": str_code,
+                "name": method_name,
+                "param": "self",
+                # "sequence": 1,
+                "m2o_module": self.code_generator_id.id,
+                "m2o_model": model_id.id,
+            }
+            lst_code.append(dct_code)
+        self.env["code.generator.model.code"].create(lst_code)
 
     def generate_portal_menu_entry(self, o2m_models, module_name):
         # TODO need to find another solution than linked with the model, need to link on portal
@@ -662,7 +710,7 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                             {
                                 "t-set": "backend_url",
                                 "t-value": (
-                                    f"'/web#return_label=Website&model={module_name}.{model.model}&id=%s&view_type=form'"
+                                    f"'/web#return_label=Website&model={model.model}&id=%s&view_type=form'"
                                     f" % ({_fmt_underscores(model.model)}.id)"
                                 ),
                             }

@@ -703,10 +703,19 @@ class IrModelUpdatedFields(models.Model):
                 self.name = False
 
 
+FORCE_WIDGET_TYPES = [
+    ("link_button", "Link button"),
+    ("image", "Image"),
+    # ("contact", "Contact"),
+    ("float_time", "Float time"),
+]
+
+
 class IrModelFields(models.Model):
     _inherit = "ir.model.fields"
 
-    force_widget = fields.Char(
+    force_widget = fields.Selection(
+        FORCE_WIDGET_TYPES,
         string="Force widget",
         help="Use this widget for this field when create views.",
     )

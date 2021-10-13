@@ -548,7 +548,8 @@ for {var_name} in self:
                 if field.ttype == "one2many":
                     if field.force_widget:
                         _logger.warning(
-                            "Cannot support `force_widget` in portal."
+                            "Cannot support `force_widget` in portal from"
+                            f" one2many for field {field.name}."
                         )
 
                     lst_field_name_xml = []
@@ -564,10 +565,6 @@ for {var_name} in self:
                         else:
                             related_field_id_data_model = None
 
-                        if field_id.force_widget:
-                            _logger.warning(
-                                "Cannot support `force_widget` in portal."
-                            )
                         if (
                             field_id.ignore_on_code_generator_writer
                             or field_id.ttype in ("many2many", "one2many")
@@ -601,6 +598,45 @@ for {var_name} in self:
                                     "t-field": f"{field_id_value_name}",
                                 }
                             )
+                        elif field_id.force_widget:
+                            if field_id.force_widget == "image":
+                                field_id_value_xml = E.img(
+                                    {
+                                        "t-if": field_id_value_name,
+                                        "t-att-src": f"image_data_uri({field_id_value_name})",
+                                        "alt": field_id.name,
+                                        "class": (
+                                            "img img-fluid d-block mx-auto"
+                                        ),
+                                    }
+                                )
+                            elif field_id.force_widget == "link_button":
+                                field_id_value_xml = E.a(
+                                    {
+                                        "target": "_blank",
+                                        "t-attf-href": "{{"
+                                        + field_id_value_name
+                                        + "}}",
+                                        "t-field": field_id_value_name,
+                                    }
+                                )
+                            elif field_id.force_widget == "float_time":
+                                field_id_value_xml = E.span(
+                                    {
+                                        "t-field": field_id_value_name,
+                                        "t-options": (
+                                            '{"widget": "duration", "unit":'
+                                            ' "hour", "round": "minute"}'
+                                        ),
+                                    }
+                                )
+                            else:
+                                _logger.warning(
+                                    "Cannot support `force_widget`"
+                                    f" {field_id.force_widget} in portal"
+                                    " inside one2many for field"
+                                    f" {field_id.name}."
+                                )
                         else:
                             field_id_value_xml = E.t(
                                 {t_field_id_show_data: field_id_value_name}
@@ -644,7 +680,7 @@ for {var_name} in self:
                     )
                     lst_card_body_end.append(card_body)
                 elif field.ttype == "many2many":
-                    pass
+                    _logger.warning("Cannot support `many2many` in portal.")
                 else:
                     if field.ttype in ("many2one",):
                         xml_field_data = E.a(
@@ -653,6 +689,44 @@ for {var_name} in self:
                                 "t-field": f"{str_field_data}.{related_field_data_model.rec_name}",
                             }
                         )
+                    elif field.force_widget:
+                        if field.force_widget == "image":
+                            xml_field_data = E.img(
+                                {
+                                    "t-if": str_field_data,
+                                    "t-att-src": (
+                                        f"image_data_uri({str_field_data})"
+                                    ),
+                                    "alt": field.name,
+                                    "class": "img img-fluid d-block mx-auto",
+                                }
+                            )
+                        elif field.force_widget == "link_button":
+                            xml_field_data = E.a(
+                                {
+                                    "target": "_blank",
+                                    "t-attf-href": "{{"
+                                    + str_field_data
+                                    + "}}",
+                                    "t-field": str_field_data,
+                                }
+                            )
+                        elif field.force_widget == "float_time":
+                            xml_field_data = E.span(
+                                {
+                                    "t-field": str_field_data,
+                                    "t-options": (
+                                        '{"widget": "duration", "unit":'
+                                        ' "hour", "round": "minute"}'
+                                    ),
+                                }
+                            )
+                        else:
+                            _logger.warning(
+                                "Cannot support `force_widget`"
+                                f" {field.force_widget} in portal for field"
+                                f" {field.name}."
+                            )
                     else:
                         if field.ttype == "html":
                             t_show_data = "t-raw"

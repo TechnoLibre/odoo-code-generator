@@ -847,7 +847,10 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             lst_value.append(value)
 
             if field_id.force_widget:
-                value["widget"] = field_id.force_widget
+                if field_id.force_widget != "link_button":
+                    # TODO add a configuration to force edible mode, if not editable, choose widget = link button
+                    # special case, link button is readonly in form,
+                    value["widget"] = field_id.force_widget
             elif key in field_id.ttype:
                 value["widget"] = "geo_edit_map"
                 # value["attrs"] = "{'invisible': [('type', '!=', '"f"{model[len(key):]}')]""}"

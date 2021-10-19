@@ -1290,14 +1290,14 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 .browse(new_lst_order_field_id)
                 .filtered(
                     lambda field: not field.ignore_on_code_generator_writer
-                    and field.ttype not in ("many2many", "one2many")
+                    and field.ttype not in ("many2many", "one2many", "binary")
                 )
             )
         else:
             # Use pivot view sequence, or generic sequence
             lst_field_sorted = model_created_fields.filtered(
                 lambda field: not field.ignore_on_code_generator_writer
-                and field.ttype not in ("many2many", "one2many")
+                and field.ttype not in ("many2many", "one2many", "binary")
             ).sorted(lambda field: field.code_generator_pivot_view_sequence)
 
         # lst_field = [E.field({"name": a.name}) for a in model_created_fields]

@@ -623,8 +623,9 @@ class CodeGeneratorWriter(models.Model):
                                 cw.emit(
                                     "categ_id ="
                                     ' env["ir.module.category"].search([("name",'
-                                    ' "=", '
-                                    f'"{module.template_module_id.category_id.display_name}")])'
+                                    ' "=",'
+                                    f' "{module.template_module_id.category_id.display_name}")],'
+                                    " limit=1)"
                                 )
                             cw.emit("value = {")
                             with cw.indent():

@@ -3637,6 +3637,7 @@ class CodeGeneratorWriter(models.Model):
         if module.template_model_name:
             lst_model = module.template_model_name.split(";")
             for model in lst_model:
+                model = model.strip()
                 if model:
                     module.module_file_sync[model] = self.ExtractorModule(
                         module, model

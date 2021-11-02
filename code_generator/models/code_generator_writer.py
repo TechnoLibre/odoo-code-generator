@@ -1240,6 +1240,10 @@ class CodeGeneratorWriter(models.Model):
 
             str_code = "\n".join(lst_line[:i])
             str_code = str_code.strip()
+            if "'''" in str_code:
+                str_code = str_code.replace("'''", "\\'''")
+            if "\\n" in str_code:
+                str_code = str_code.replace("\\n", "\\\\n")
             d = {
                 "m2o_model": self.model_id.id,
                 "m2o_module": self.module.id,
@@ -1348,6 +1352,8 @@ class CodeGeneratorWriter(models.Model):
                     # codes = "\n".join(lst_line[no_line_min - 1:no_line_max])
                     if "'''" in codes:
                         codes = codes.replace("'''", "\\'''")
+                    if "\\n" in codes:
+                        codes = codes.replace("\\n", "\\\\n")
                     d["code"] = codes.strip()
                     self.module.env["code.generator.model.code"].create(d)
 

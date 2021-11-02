@@ -1049,168 +1049,64 @@ class CodeGeneratorWriter(models.Model):
                             )
                     set_lineno.add(i_lineno)
 
-            if hasattr(item, "body"):
-                lst_body = getattr(item, "body")
-                if lst_body:
-                    if type(lst_body) is list:
-                        for body in lst_body:
-                            if body:
-                                self._get_recursive_lineno(
-                                    body, set_lineno, lst_line
-                                )
-                    elif type(lst_body) in (
-                        ast.Compare,
-                        ast.Call,
-                        ast.Str,
-                        ast.Attribute,
-                        ast.JoinedStr,
-                        ast.BinOp,
-                        ast.NameConstant,
-                    ):
-                        self._get_recursive_lineno(
-                            lst_body, set_lineno, lst_line
-                        )
-                    else:
-                        _logger.warning(
-                            "From get recursive body unknown type"
-                            f" {type(lst_body)}."
-                        )
-
-            if hasattr(item, "finalbody"):
-                lst_final_body = getattr(item, "finalbody")
-                if lst_final_body:
-                    if type(lst_final_body) is list:
-                        for final_body in lst_final_body:
-                            if final_body:
-                                self._get_recursive_lineno(
-                                    final_body, set_lineno, lst_line
-                                )
-                    elif type(lst_final_body) is ast.Compare:
-                        self._get_recursive_lineno(
-                            lst_final_body, set_lineno, lst_line
-                        )
-                    else:
-                        _logger.warning(
-                            "From get recursive finalbody unknown type"
-                            f" {type(lst_final_body)}."
-                        )
-
-            if hasattr(item, "orelse"):
-                lst_orelse = getattr(item, "orelse")
-                if lst_orelse:
-                    if type(lst_orelse) is list:
-                        for orelse in lst_orelse:
-                            if orelse:
-                                self._get_recursive_lineno(
-                                    orelse, set_lineno, lst_line
-                                )
-                    elif type(lst_orelse) in (
-                        ast.Name,
-                        ast.Call,
-                        ast.BinOp,
-                        ast.Attribute,
-                        ast.Str,
-                    ):
-                        self._get_recursive_lineno(
-                            lst_orelse, set_lineno, lst_line
-                        )
-                    else:
-                        _logger.warning(
-                            "From get recursive orelse unknown type"
-                            f" {type(lst_orelse)}."
-                        )
-
-            if hasattr(item, "handlers"):
-                lst_handlers = getattr(item, "handlers")
-                if lst_handlers:
-                    if type(lst_handlers) is list:
-                        for handlers in lst_handlers:
-                            if handlers:
-                                self._get_recursive_lineno(
-                                    handlers, set_lineno, lst_line
-                                )
-                    elif type(lst_handlers) is ast.arguments:
-                        self._get_recursive_lineno(
-                            lst_handlers, set_lineno, lst_line
-                        )
-                    else:
-                        _logger.warning(
-                            "From get recursive handlers unknown type"
-                            f" {type(lst_handlers)}."
-                        )
-
-            if hasattr(item, "test"):
-                test = getattr(item, "test")
-                if test:
-                    self._get_recursive_lineno(test, set_lineno, lst_line)
-
-            if hasattr(item, "right"):
-                right = getattr(item, "right")
-                if right:
-                    self._get_recursive_lineno(right, set_lineno, lst_line)
-
-            if hasattr(item, "left"):
-                left = getattr(item, "left")
-                if left:
-                    self._get_recursive_lineno(left, set_lineno, lst_line)
-
-            if hasattr(item, "value"):
-                value = getattr(item, "value")
-                if value:
-                    self._get_recursive_lineno(value, set_lineno, lst_line)
-
-            if hasattr(item, "exc"):
-                exc = getattr(item, "exc")
-                if exc:
-                    self._get_recursive_lineno(exc, set_lineno, lst_line)
-
-            if hasattr(item, "ctx"):
-                ctx = getattr(item, "ctx")
-                if ctx:
-                    self._get_recursive_lineno(ctx, set_lineno, lst_line)
-
-            if hasattr(item, "func"):
-                func = getattr(item, "func")
-                if func:
-                    self._get_recursive_lineno(func, set_lineno, lst_line)
-
-            if hasattr(item, "args"):
-                lst_args = getattr(item, "args")
-                if lst_args:
-                    if type(lst_args) is list:
-                        for args in lst_args:
-                            if args:
-                                self._get_recursive_lineno(
-                                    args, set_lineno, lst_line
-                                )
-                    elif type(lst_args) is ast.arguments:
-                        self._get_recursive_lineno(
-                            lst_args, set_lineno, lst_line
-                        )
-                    else:
-                        _logger.warning(
-                            "From get recursive args unknown type"
-                            f" {type(lst_args)}."
-                        )
-
-            if hasattr(item, "elts"):
-                lst_elts = getattr(item, "elts")
-                if lst_elts:
-                    if type(lst_elts) is list:
-                        for elts in lst_elts:
-                            if elts:
-                                self._get_recursive_lineno(
-                                    elts, set_lineno, lst_line
-                                )
-                    elif type(lst_elts) is ast.arguments:
-                        self._get_recursive_lineno(
-                            lst_elts, set_lineno, lst_line
-                        )
-                    else:
-                        _logger.warning(
-                            "From get recursive elts unknown type"
-                            f" {type(lst_elts)}."
-                        )
+            # Do recursive search, search last line of code
+            lst_attr = [
+                "body",
+                "finalbody",
+                "orelse",
+                "handlers",
+                "test",
+                "right",
+                "left",
+                "value",
+                "exc",
+                "ctx",
+                "func",
+                "args",
+                "elts",
+            ]
+            for attr in lst_attr:
+                if not hasattr(item, attr):
+                    continue
+                lst_attr_item = getattr(item, attr)
+                if not lst_attr_item:
+                    continue
+                if type(lst_attr_item) is list:
+                    for attr_item in lst_attr_item:
+                        if attr_item:
+                            self._get_recursive_lineno(
+                                attr_item, set_lineno, lst_line
+                            )
+                elif type(lst_attr_item) in (
+                    ast.Compare,
+                    ast.Call,
+                    ast.Str,
+                    ast.Attribute,
+                    ast.JoinedStr,
+                    ast.BinOp,
+                    ast.NameConstant,
+                    ast.Name,
+                    ast.arguments,
+                    ast.Load,
+                    ast.List,
+                    ast.IfExp,
+                    ast.Subscript,
+                    ast.UnaryOp,
+                    ast.BoolOp,
+                    ast.Dict,
+                    ast.Tuple,
+                    bool,
+                ):
+                    # Check type, but in fact, can accept all type.
+                    # This check is only to understand what style of code we read
+                    self._get_recursive_lineno(
+                        lst_attr_item, set_lineno, lst_line
+                    )
+                else:
+                    _logger.warning(
+                        f"From get recursive {attr} unknown type"
+                        f" {type(lst_attr_item)}."
+                    )
 
         def _get_min_max_no_line(self, node, lst_line):
             # hint node.name == ""

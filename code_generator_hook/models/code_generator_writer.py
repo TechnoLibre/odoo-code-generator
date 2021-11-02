@@ -151,6 +151,10 @@ class CodeGeneratorWriter(models.Model):
                         '"code_generator_sequence":'
                         f' {ast_attr.get("sequence")},'
                     )
+                if ast_attr and "force_widget" in ast_attr.keys():
+                    cw.emit(
+                        f'"force_widget": "{ast_attr.get("force_widget")}",'
+                    )
                 if view_file_sync:
                     dct_field = view_file_sync.dct_field.get(field_id.name)
                     if dct_field and dct_field.get("is_date_start_view"):

@@ -76,6 +76,7 @@ class CodeGeneratorWriter(models.Model):
                 [("model", "=", model_model)]
             )
             self.dct_field = defaultdict(dict)
+            self.module_attr = defaultdict(dict)
             model_name = model_model.replace(".", "_")
             self.var_model_name = f"model_{model_name}"
             self.var_model = model_model
@@ -672,6 +673,12 @@ class CodeGeneratorWriter(models.Model):
                 for key, value in node.attributes.items():
                     if key == "password":
                         dct_attributes["password"] = value
+                    if key == "widget":
+                        field_name = dict(node.attributes.items()).get("name")
+                        # TODO update dict instead of overwrite it
+                        self.module_attr[self.var_model][field_name] = {
+                            "force_widget": value
+                        }
                     if key == "placeholder":
                         dct_attributes["placeholder"] = value
             elif node.nodeName == "separator":
@@ -715,9 +722,10 @@ class CodeGeneratorWriter(models.Model):
                         child_sequence += 1
 
     class ExtractorModule:
-        def __init__(self, module, model_model):
+        def __init__(self, module, model_model, view_file_sync_model):
             self.is_enabled = False
             self.working_directory = module.path_sync_code
+            self.view_file_sync_model = view_file_sync_model
             self.module = module
             self.model = model_model
             self.model_id = module.env["ir.model"].search(
@@ -911,6 +919,25 @@ class CodeGeneratorWriter(models.Model):
                         # Waste to stock None value
                         if value is not None:
                             d[keyword.arg] = value
+                    if (
+                        self.view_file_sync_model
+                        and self.view_file_sync_model.module_attr
+                    ):
+                        dct_module_attr = (
+                            self.view_file_sync_model.module_attr.get(
+                                self.model
+                            )
+                        )
+                        if dct_module_attr:
+                            dct_field_module_attr = dct_module_attr.get(
+                                var_name
+                            )
+                            if dct_field_module_attr:
+                                for (
+                                    attr_key,
+                                    attr_value,
+                                ) in dct_field_module_attr.items():
+                                    d[attr_key] = attr_value
 
                     dct_field[var_name] = d
 
@@ -3565,11 +3592,11 @@ class CodeGeneratorWriter(models.Model):
             for model in lst_model:
                 model = model.strip()
                 if model:
-                    module.module_file_sync[model] = self.ExtractorModule(
-                        module, model
-                    )
                     module.view_file_sync[model] = self.ExtractorView(
                         module, model
+                    )
+                    module.module_file_sync[model] = self.ExtractorModule(
+                        module, model, module.view_file_sync[model]
                     )
 
         for model in module.o2m_models:

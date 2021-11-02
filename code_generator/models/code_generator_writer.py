@@ -3453,6 +3453,24 @@ class CodeGeneratorWriter(models.Model):
             if f2export.index:
                 dct_field_attribute["index"] = True
 
+            if f2export.track_visibility:
+                if f2export.track_visibility in ("onchange", "always"):
+                    dct_field_attribute[
+                        "track_visibility"
+                    ] = f2export.track_visibility
+                    # TODO is it the good place for this?
+                    # lst_depend_model = [
+                    #     "mail.thread",
+                    #     "mail.activity.mixin",
+                    # ]
+                    # f2export.model_id.add_model_inherit(lst_depend_model)
+                else:
+                    _logger.warning(
+                        "Cannot support track_visibility value"
+                        f" {f2export.track_visibility}, only support"
+                        " 'onchange' and 'always'."
+                    )
+
             if f2export.default:
                 # TODO support default = None
                 # TODO validate with type for boolean

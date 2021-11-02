@@ -213,6 +213,11 @@ class CodeGeneratorWriter(models.Model):
                         cw.emit(f'"default": "{field_default}",')
                     else:
                         cw.emit(f'"default": {field_default},')
+                if ast_attr and "track_visibility" in ast_attr.keys():
+                    cw.emit(
+                        '"track_visibility":'
+                        f' "{ast_attr.get("track_visibility")}",'
+                    )
                 # field_id.compute always output False, use ast research instead
                 compute = ast_attr.get("compute") if ast_attr else None
                 if compute:
@@ -928,7 +933,16 @@ class CodeGeneratorWriter(models.Model):
                                                 '"menu_name_keep_application":'
                                                 " True,"
                                             )
-                                        if model_id.enable_activity:
+                                        # TODO wrong place for this code, add it in inherit_model_ids when evaluate code
+                                        field_id_track = (
+                                            model_id.field_id.filtered(
+                                                lambda x: x.track_visibility
+                                            )
+                                        )
+                                        if (
+                                            model_id.enable_activity
+                                            or field_id_track
+                                        ):
                                             cw.emit('"enable_activity": True,')
                                         if (
                                             model_id.diagram_node_object
@@ -1048,6 +1062,21 @@ class CodeGeneratorWriter(models.Model):
                                             a.name
                                             for a in model_id.inherit_model_ids
                                         ]
+                                        if field_id_track:
+                                            if (
+                                                "mail.thread"
+                                                not in lst_dependency
+                                            ):
+                                                lst_dependency.append(
+                                                    "mail.thread"
+                                                )
+                                            if (
+                                                "mail.activity.mixin"
+                                                not in lst_dependency
+                                            ):
+                                                lst_dependency.append(
+                                                    "mail.activity.mixin"
+                                                )
                                         if lst_dependency:
                                             cw.emit("# Model inherit")
                                             if len(lst_dependency) == 1:

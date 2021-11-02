@@ -1058,7 +1058,15 @@ class CodeGeneratorWriter(models.Model):
                                 self._get_recursive_lineno(
                                     body, set_lineno, lst_line
                                 )
-                    elif type(lst_body) is ast.Compare:
+                    elif type(lst_body) in (
+                        ast.Compare,
+                        ast.Call,
+                        ast.Str,
+                        ast.Attribute,
+                        ast.JoinedStr,
+                        ast.BinOp,
+                        ast.NameConstant,
+                    ):
                         self._get_recursive_lineno(
                             lst_body, set_lineno, lst_line
                         )
@@ -1096,8 +1104,16 @@ class CodeGeneratorWriter(models.Model):
                                 self._get_recursive_lineno(
                                     orelse, set_lineno, lst_line
                                 )
-                    # elif type(lst_body) is ast.Compare:
-                    #     self._get_recursive_lineno(lst_body, set_lineno, lst_line)
+                    elif type(lst_orelse) in (
+                        ast.Name,
+                        ast.Call,
+                        ast.BinOp,
+                        ast.Attribute,
+                        ast.Str,
+                    ):
+                        self._get_recursive_lineno(
+                            lst_orelse, set_lineno, lst_line
+                        )
                     else:
                         _logger.warning(
                             "From get recursive orelse unknown type"
@@ -1199,7 +1215,13 @@ class CodeGeneratorWriter(models.Model):
         def _get_min_max_no_line(self, node, lst_line):
             # hint node.name == ""
             set_lineno = set()
-            for body in node.body:
+            lst_body = []
+            if len(node.body) > 1:
+                lst_body.append(node.body[0])
+                lst_body.append(node.body[-1])
+            else:
+                lst_body.append(node.body[0])
+            for body in lst_body:
                 self._get_recursive_lineno(body, set_lineno, lst_line)
             return min(set_lineno), max(set_lineno)
 
@@ -1324,6 +1346,8 @@ class CodeGeneratorWriter(models.Model):
                             str_line = line
                         codes += f"{str_line}\n"
                     # codes = "\n".join(lst_line[no_line_min - 1:no_line_max])
+                    if "'''" in codes:
+                        codes = codes.replace("'''", "\\'''")
                     d["code"] = codes.strip()
                     self.module.env["code.generator.model.code"].create(d)
 

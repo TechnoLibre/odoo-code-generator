@@ -1255,7 +1255,9 @@ class CodeGeneratorWriter(models.Model):
                                         cw.emit("if True:")
                                         with cw.indent():
                                             cw.emit("# Generate code header")
-                                            for code_id in dct_code_id.value():
+                                            for (
+                                                code_id
+                                            ) in dct_code_id.values():
                                                 with cw.block(
                                                     before="value =",
                                                     delim=("{", "}"),

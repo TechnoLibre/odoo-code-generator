@@ -146,15 +146,39 @@ class CodeGeneratorWriter(models.Model):
                 cw.emit(
                     f'"field_description": "{field_id.field_description}",'
                 )
-                if ast_attr and not module.disable_fix_code_generator_sequence:
-                    cw.emit(
-                        '"code_generator_sequence":'
-                        f' {ast_attr.get("sequence")},'
-                    )
-                if ast_attr and "force_widget" in ast_attr.keys():
-                    cw.emit(
-                        f'"force_widget": "{ast_attr.get("force_widget")}",'
-                    )
+                if ast_attr:
+                    if not module.disable_fix_code_generator_sequence:
+                        code_generator_sequence = ast_attr.get(
+                            "code_generator_sequence"
+                        )
+                        code_generator_form_simple_view_sequence = (
+                            ast_attr.get(
+                                "code_generator_form_simple_view_sequence"
+                            )
+                        )
+                        code_generator_tree_view_sequence = ast_attr.get(
+                            "code_generator_tree_view_sequence"
+                        )
+                        if code_generator_sequence:
+                            cw.emit(
+                                '"code_generator_sequence":'
+                                f" {code_generator_sequence},"
+                            )
+                        if code_generator_form_simple_view_sequence:
+                            cw.emit(
+                                '"code_generator_form_simple_view_sequence":'
+                                f" {code_generator_form_simple_view_sequence},"
+                            )
+                        if code_generator_tree_view_sequence:
+                            cw.emit(
+                                '"code_generator_tree_view_sequence":'
+                                f" {code_generator_tree_view_sequence},"
+                            )
+                    if "force_widget" in ast_attr.keys():
+                        cw.emit(
+                            '"force_widget":'
+                            f' "{ast_attr.get("force_widget")}",'
+                        )
                 if view_file_sync:
                     dct_field = view_file_sync.dct_field.get(field_id.name)
                     if dct_field and dct_field.get("is_date_start_view"):

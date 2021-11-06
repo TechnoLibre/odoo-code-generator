@@ -75,6 +75,7 @@ class CodeGeneratorWriter(models.Model):
             self.model_id = module.env["ir.model"].search(
                 [("model", "=", model_model)]
             )
+            self.dct_model = defaultdict(dict)
             self.dct_field = defaultdict(dict)
             self.module_attr = defaultdict(dict)
             model_name = model_model.replace(".", "_")
@@ -214,6 +215,44 @@ class CodeGeneratorWriter(models.Model):
                 mydoc = minidom.parseString(view_id.arch_base.encode())
 
                 lst_view_item_id = []
+
+                # Search form
+                lst_form_xml = mydoc.getElementsByTagName("form")
+                if lst_form_xml:
+                    sequence_form = 10
+                    lst_form_field_xml = mydoc.getElementsByTagName("field")
+                    for field_xml in lst_form_field_xml:
+                        field_name = dict(field_xml.attributes.items()).get(
+                            "name"
+                        )
+                        if field_name in self.dct_model[view_id.model]:
+                            self.dct_model[view_id.model][field_name][
+                                "code_generator_form_simple_view_sequence"
+                            ] = sequence_form
+                        else:
+                            self.dct_model[view_id.model][field_name] = {
+                                "code_generator_form_simple_view_sequence": sequence_form
+                            }
+                        sequence_form += 1
+
+                # Search tree
+                lst_tree_xml = mydoc.getElementsByTagName("tree")
+                if lst_tree_xml:
+                    sequence_tree = 10
+                    lst_tree_field_xml = mydoc.getElementsByTagName("field")
+                    for field_xml in lst_tree_field_xml:
+                        field_name = dict(field_xml.attributes.items()).get(
+                            "name"
+                        )
+                        if field_name in self.dct_model[view_id.model]:
+                            self.dct_model[view_id.model][field_name][
+                                "code_generator_tree_view_sequence"
+                            ] = sequence_tree
+                        else:
+                            self.dct_model[view_id.model][field_name] = {
+                                "code_generator_tree_view_sequence": sequence_tree
+                            }
+                        sequence_tree += 1
 
                 # Search timeline
                 lst_timeline_xml = mydoc.getElementsByTagName("timeline")
@@ -731,7 +770,7 @@ class CodeGeneratorWriter(models.Model):
             self.model_id = module.env["ir.model"].search(
                 [("model", "=", model_model)], limit=1
             )
-            self.dct_model = {}
+            self.dct_model = view_file_sync_model.dct_model
             self.py_filename = ""
             if not module.template_module_path_generated_extension:
                 _logger.warning(
@@ -897,8 +936,13 @@ class CodeGeneratorWriter(models.Model):
             return result
 
         def search_field(self, class_model_ast):
-            dct_field = {}
-            self.dct_model[self.model] = dct_field
+            if self.dct_model[self.model]:
+                dct_field = self.dct_model[self.model]
+            else:
+                dct_field = {}
+                self.dct_model[self.model] = dct_field
+            lst_var_name_check = []
+
             sequence = -1
             for node in class_model_ast.body:
                 sequence += 1
@@ -910,7 +954,7 @@ class CodeGeneratorWriter(models.Model):
                     var_name = node.targets[0].id
                     d = {
                         "type": node.value.func.attr,
-                        "sequence": sequence,
+                        "code_generator_sequence": sequence,
                     }
                     for keyword in node.value.keywords:
                         value = self._fill_search_field(
@@ -939,7 +983,17 @@ class CodeGeneratorWriter(models.Model):
                                 ) in dct_field_module_attr.items():
                                     d[attr_key] = attr_value
 
-                    dct_field[var_name] = d
+                    if var_name in dct_field:
+                        dct_field[var_name].update(d)
+                    else:
+                        dct_field[var_name] = d
+                    lst_var_name_check.append(var_name)
+            # Remove item not from this list
+            lst_var_name_to_delete = list(
+                set(dct_field.keys()).difference(set(lst_var_name_check))
+            )
+            for var_name_to_delete in lst_var_name_to_delete:
+                del dct_field[var_name_to_delete]
 
         def _extract_decorator(self, decorator_list):
             str_decorator = ""

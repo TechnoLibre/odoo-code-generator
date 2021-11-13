@@ -53,15 +53,19 @@ class CodeGeneratorWriter(models.Model):
     _name = "code.generator.writer"
     _description = "Code Generator Writer"
 
-    code_generator_ids = fields.Many2many(comodel_name="code.generator.module")
+    basename = fields.Char(string="Base name")
+
+    code_generator_ids = fields.Many2many(
+        string="Code Generator",
+        comodel_name="code.generator.module",
+    )
 
     list_path_file = fields.Char(
-        string="List path file", help="Value are separated by ;"
+        string="List path file",
+        help="Value are separated by ;",
     )
 
     rootdir = fields.Char(string="Root dir")
-
-    basename = fields.Char(string="Base name")
 
     @staticmethod
     def _fmt_underscores(word):
@@ -2203,21 +2207,24 @@ class CodeGeneratorWriter(models.Model):
                     dct_field_attribute["domain"] = f2export.domain
 
                 if f2export.ttype == "many2many":
-                    # A relation who begin with x_ is an automated relation, ignore it
-                    ignored_relation = (
-                        False
-                        if not f2export.relation_table
-                        else f2export.relation_table.startswith("x_")
-                    )
-                    if not ignored_relation:
-                        if f2export.relation_table:
-                            dct_field_attribute[
-                                "relation"
-                            ] = f2export.relation_table
-                        if f2export.column1:
-                            dct_field_attribute["column1"] = f2export.column1
-                        if f2export.column2:
-                            dct_field_attribute["column2"] = f2export.column2
+                    # elif f2export.relation_table.startswith("x_"):
+                    #     # TODO why ignore relation when start name with x_? Is it about x_name?
+                    #     # A relation who begin with x_ is an automated relation, ignore it
+                    #     ignored_relation = True
+                    if (
+                        f2export.relation_table
+                        and f"{f2export.model.replace('.','_')}_id"
+                        != f2export.column1
+                        and f"{f2export.relation.replace('.','_')}_id"
+                        != f2export.column2
+                        and f"{f2export.model.replace('.','_')}_{f2export.relation.replace('.','_')}"
+                        != f2export.relation_table
+                    ):
+                        dct_field_attribute[
+                            "relation"
+                        ] = f2export.relation_table
+                        dct_field_attribute["column1"] = f2export.column1
+                        dct_field_attribute["column2"] = f2export.column2
 
             if (
                 f2export.ttype == "char" or f2export.ttype == "reference"

@@ -281,24 +281,24 @@ class ExtractorModule:
         # Create dict with all element
         if ast_argument.args:
             for arg in ast_argument.args:
-                dct_args[f"{arg.lineno}-{arg.col_offset}"] = arg
+                dct_args[(arg.lineno, arg.col_offset)] = arg
         if ast_argument.defaults:
             for arg in ast_argument.defaults:
-                dct_args[f"{arg.lineno}-{arg.col_offset}"] = arg
+                dct_args[(arg.lineno, arg.col_offset)] = arg
         if ast_argument.kwonlyargs:
             for arg in ast_argument.kwonlyargs:
-                dct_args[f"{arg.lineno}-{arg.col_offset}"] = arg
+                dct_args[(arg.lineno, arg.col_offset)] = arg
         if ast_argument.kw_defaults:
             for arg in ast_argument.kw_defaults:
-                dct_args[f"{arg.lineno}-{arg.col_offset}"] = arg
+                dct_args[(arg.lineno, arg.col_offset)] = arg
         if ast_argument.vararg:
             arg = ast_argument.vararg
             arg.is_vararg = True
-            dct_args[f"{arg.lineno}-{arg.col_offset}"] = arg
+            dct_args[(arg.lineno, arg.col_offset)] = arg
         if ast_argument.kwarg:
             arg = ast_argument.kwarg
             arg.is_kwarg = True
-            dct_args[f"{arg.lineno}-{arg.col_offset}"] = arg
+            dct_args[(arg.lineno, arg.col_offset)] = arg
 
         # Regroup all extra associated with arg
         str_args = ""

@@ -1401,29 +1401,37 @@ class CodeGeneratorWriter(models.Model):
                                                         with cw.block(
                                                             delim=("{", "}")
                                                         ):
-                                                            str_line = (
-                                                                f"\"code\": '''"
-                                                            )
                                                             lst_line = code_id.code.split(
                                                                 "\n"
                                                             )
-                                                            cw.emit(
-                                                                str_line
-                                                                + lst_line[0]
-                                                            )
+                                                            if (
+                                                                len(lst_line)
+                                                                == 1
+                                                            ):
+                                                                cw.emit(
+                                                                    '"code":'
+                                                                    f" '''{lst_line[0]}''',"
+                                                                )
+                                                            else:
+                                                                cw.emit(
+                                                                    '"code":'
+                                                                    f" '''{lst_line[0]}"
+                                                                )
                                                             for (
                                                                 line
                                                             ) in lst_line[
                                                                 1:-1
                                                             ]:
-                                                                # str_line += line
                                                                 cw.emit_raw(
                                                                     line + "\n"
                                                                 )
-                                                                # str_line = ""
-                                                            cw.emit_raw(
-                                                                f"{lst_line[-1]}''',\n"
-                                                            )
+                                                            if (
+                                                                len(lst_line)
+                                                                > 1
+                                                            ):
+                                                                cw.emit_raw(
+                                                                    f"{lst_line[-1]}''',\n"
+                                                                )
                                                             cw.emit(
                                                                 '"name":'
                                                                 f' "{code_id.name}",'

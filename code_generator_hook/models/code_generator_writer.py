@@ -908,9 +908,13 @@ class CodeGeneratorWriter(models.Model):
                             lst_view_item_code_generator = []
                             model_id = None
                             if module.template_model_name:
-                                lst_model = module.template_model_name.split(
-                                    ";"
-                                )
+                                lst_model = [
+                                    a.strip()
+                                    for a in module.template_model_name.split(
+                                        ";"
+                                    )
+                                    if a.strip()
+                                ]
                                 len_model = len(lst_model)
                                 i = -1
                                 for model_model in lst_model:

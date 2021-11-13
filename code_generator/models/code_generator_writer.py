@@ -1795,6 +1795,8 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
+        key_special_endline = str(uuid.uuid1())
+
         cw = CodeWriter()
 
         code_ids = model.o2m_codes.filtered(
@@ -1892,8 +1894,15 @@ class CodeGeneratorWriter(models.Model):
                             cw.emit(line)
                 return_v = "" if not code.returns else f" -> {code.returns}"
                 cw.emit(f"def {code.name}({code.param}){return_v}:")
+
+                code_traited = code.code.replace("\\\n", key_special_endline)
+                code_traited = code_traited.replace("\\'", "\\\\'")
                 with cw.indent():
-                    for code_line in code.code.split("\n"):
+                    for code_line in code_traited.split("\n"):
+                        if key_special_endline in code_line:
+                            code_line = code_line.replace(
+                                key_special_endline, "\\\\n"
+                            )
                         cw.emit(code_line)
 
         if model.transient:

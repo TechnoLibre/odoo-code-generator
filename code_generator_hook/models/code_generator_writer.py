@@ -254,7 +254,7 @@ class CodeGeneratorWriter(models.Model):
                     if "\n" in field_id.help:
                         cw.emit_raw(
                             f'{" " * cw.cur_indent}"help":'
-                            f' "{field_id.help}",\n'
+                            f' """{field_id.help}""",\n'
                         )
                     else:
                         cw.emit(f'"help": "{field_id.help}",')

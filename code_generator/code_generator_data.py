@@ -491,7 +491,7 @@ class CodeGeneratorData:
 
     def auto_format(self):
         workspace_path = os.path.normpath(
-            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
+            os.path.join(os.path.dirname(__file__), "..", "..", "..")
         )
         max_col = 79
         use_prettier = True

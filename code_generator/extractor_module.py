@@ -135,8 +135,10 @@ class ExtractorModule:
                     if (
                         type(node) is ast.Assign
                         and node.targets
+                        and type(node.targets[0]) is ast.Name
                         and node.targets[0].id == "_name"
                         and node.value.s == self.model
+                        and type(node.value) is ast.Str
                     ):
                         return children
 

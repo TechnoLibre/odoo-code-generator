@@ -114,13 +114,13 @@ class ExtractorModule:
                 continue
             with open(py_file, "r") as source:
                 f_lines = source.read()
-                lst_lines = f_lines.split("\n")
                 f_ast = ast.parse(f_lines)
                 class_model_ast = self.search_class_model(f_ast)
                 if class_model_ast:
                     self.py_filename = filename
                     self.search_field(class_model_ast)
                     # Fill method
+                    lst_lines = f_lines.split("\n")
                     self.search_import(lst_lines)
                     self.search_method(class_model_ast, lst_lines, module)
         self.is_enabled = True
@@ -128,6 +128,7 @@ class ExtractorModule:
     def search_class_model(self, f_ast):
         for children in f_ast.body:
             # TODO check bases of class if equal models.Model for better performance
+            # TODO check multiple class
             if type(children) == ast.ClassDef:
                 # Detect good _name
                 for node in children.body:

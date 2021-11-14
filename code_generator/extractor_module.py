@@ -413,6 +413,7 @@ class ExtractorModule:
                 ast.Compare,
                 ast.Call,
                 ast.Str,
+                ast.Num,
                 ast.Attribute,
                 ast.JoinedStr,
                 ast.BinOp,
@@ -421,6 +422,7 @@ class ExtractorModule:
                 ast.arguments,
                 ast.Load,
                 ast.List,
+                ast.ListComp,
                 ast.IfExp,
                 ast.Subscript,
                 ast.UnaryOp,
@@ -433,10 +435,19 @@ class ExtractorModule:
                 # This check is only to understand what style of code we read
                 self._get_recursive_lineno(lst_attr_item, set_lineno, lst_line)
             else:
-                _logger.warning(
-                    f"From get recursive '{attr}' unknown type"
-                    f" {type(lst_attr_item)}."
-                )
+                try:
+                    self._get_recursive_lineno(
+                        lst_attr_item, set_lineno, lst_line
+                    )
+                    _logger.warning(
+                        f"From get recursive '{attr}' unknown type, add type"
+                        f" '{type(lst_attr_item)}'"
+                    )
+                except Exception as e:
+                    _logger.warning(
+                        f"From get recursive '{attr}' unknown type"
+                        f" {type(lst_attr_item)}."
+                    )
 
     def _get_min_max_no_line(self, node, lst_line):
         # hint node.name == ""

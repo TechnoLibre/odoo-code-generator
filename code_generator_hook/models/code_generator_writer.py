@@ -1391,12 +1391,18 @@ class CodeGeneratorWriter(models.Model):
                                                             "=",
                                                             True,
                                                         ),
+                                                        (
+                                                            "m2o_model",
+                                                            "=",
+                                                            model_id.id,
+                                                        ),
                                                     ]
                                                 )
                                                 .sorted(
                                                     lambda code: code.sequence
                                                 )
                                             )
+                                            # TODO est-ce que le code est bien connecté à tous les modèles?
 
                                             if code_ids:
                                                 cw.emit(

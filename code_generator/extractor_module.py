@@ -175,18 +175,33 @@ class ExtractorModule:
             result = ast_obj.value
         elif ast_obj_type is ast.Num:
             result = ast_obj.n
+        elif ast_obj_type is ast.Name:
+            result = ast_obj.id
+        elif ast_obj_type is ast.Attribute:
+            # Support -> fields.Date.context_today
+            parent_node = ast_obj
+            lst_call_lambda = []
+            while hasattr(parent_node, "value"):
+                lst_call_lambda.insert(0, parent_node.attr)
+                parent_node = parent_node.value
+            lst_call_lambda.insert(0, parent_node.id)
+            result = ".".join(lst_call_lambda)
         elif ast_obj_type is ast.List:
-            lst_value = [
+            result = [
                 self._fill_search_field(a, var_name) for a in ast_obj.elts
             ]
-            result = lst_value
+        elif ast_obj_type is ast.Dict:
+            result = {
+                self._fill_search_field(k, var_name): self._fill_search_field(
+                    ast_obj.values[i], var_name
+                )
+                for (i, k) in enumerate(ast_obj.keys)
+            }
         elif ast_obj_type is ast.Tuple:
-            lst_value = [
-                self._fill_search_field(a, var_name) for a in ast_obj.elts
-            ]
-            result = tuple(lst_value)
+            result = tuple(
+                [self._fill_search_field(a, var_name) for a in ast_obj.elts]
+            )
         else:
-            # TODO missing ast.Dict?
             result = None
             _logger.error(
                 f"Cannot support keyword of variable {var_name} type"

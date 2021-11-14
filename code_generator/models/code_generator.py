@@ -601,7 +601,12 @@ class CodeGeneratorViewItem(models.Model):
     )
 
     section_type = fields.Selection(
-        [("header", "Header"), ("title", "Title"), ("body", "Body")],
+        [
+            ("header", "Header"),
+            ("title", "Title"),
+            ("body", "Body"),
+            ("footer", "Footer"),
+        ],
         default="body",
         help="Choose item type to generate.",
     )

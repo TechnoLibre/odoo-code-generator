@@ -399,6 +399,27 @@ class ExtractorView:
                             sequence=no_sequence,
                         )
 
+            # Search footer
+            footer_xml = None
+            no_sequence = 1
+            lst_footer_xml = mydoc.getElementsByTagName("footer")
+            if len(lst_footer_xml) > 1:
+                _logger.warning("Cannot support multiple footer.")
+            for footer_xml in lst_footer_xml:
+                # TODO get inside attributes for footer
+                for child_footer in footer_xml.childNodes:
+                    if child_footer.nodeType is Node.TEXT_NODE:
+                        data = child_footer.data.strip()
+                        if data:
+                            _logger.warning("Not supported.")
+                    elif child_footer.nodeType is Node.ELEMENT_NODE:
+                        self._extract_child_xml(
+                            child_footer,
+                            lst_view_item_id,
+                            "footer",
+                            sequence=no_sequence,
+                        )
+
             # Search title
             no_sequence = 1
             nb_oe_title = 0
@@ -480,6 +501,7 @@ class ExtractorView:
                         if (
                             child_form == div_title
                             or child_form == header_xml
+                            or child_form == footer_xml
                             or child_form == sheet_xml
                         ):
                             continue
@@ -497,9 +519,15 @@ class ExtractorView:
             if lst_sheet_xml:
                 # TODO validate this, test with and without <sheet>
                 if type(lst_sheet_xml) is xml.dom.minicompat.NodeList:
-                    lst_body_xml = [a for a in lst_sheet_xml[0].childNodes]
+                    lst_body_xml = [
+                        a
+                        for a in lst_sheet_xml[0].childNodes
+                        if a != footer_xml
+                    ]
                 else:
-                    lst_body_xml = [a for a in lst_sheet_xml.childNodes]
+                    lst_body_xml = [
+                        a for a in lst_sheet_xml.childNodes if a != footer_xml
+                    ]
             sequence = 1
             lst_node = []
             for body_xml in lst_body_xml:

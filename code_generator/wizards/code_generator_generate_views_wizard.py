@@ -1955,6 +1955,7 @@ pass''',
         model_id = code_generator_view_id.m2o_model.id
         dct_replace = {}
         lst_item_header = []
+        lst_item_footer = []
         lst_item_body = []
         lst_item_title = []
         for view_item in code_generator_view_id.view_item_ids:
@@ -1962,6 +1963,8 @@ pass''',
                 lst_item_body.append(view_item)
             elif view_item.section_type == "header":
                 lst_item_header.append(view_item)
+            elif view_item.section_type == "footer":
+                lst_item_footer.append(view_item)
             elif view_item.section_type == "title":
                 lst_item_title.append(view_item)
             else:
@@ -1999,55 +2002,74 @@ pass''',
             )
             lst_child = []
             i = 0
-            for item_header in lst_item_title:
-                if item_header.item_type == "field":
+            for item_title in lst_item_title:
+                if item_title.item_type == "field":
                     item = self._generate_xml_title_field(
-                        item_header, lst_child, level=i
+                        item_title, lst_child, level=i
                     )
-                elif item_header.item_type == "button":
+                elif item_title.item_type == "button":
                     _logger.warning(
                         f"Button is not supported in title section."
                     )
                     continue
                 else:
                     _logger.warning(
-                        f"Item header type '{item_header.item_type}' is not"
+                        f"Item title type '{item_title.item_type}' is not"
                         " supported."
                     )
                     continue
                 i += 1
                 lst_child.append(item)
-            header_xml = E.div({"class": "oe_title"}, *lst_child)
-            lst_item_form_sheet.append(header_xml)
+            title_xml = E.div({"class": "oe_title"}, *lst_child)
+            lst_item_form_sheet.append(title_xml)
 
         if lst_item_body:
             lst_item_root_body = [a for a in lst_item_body if not a.parent_id]
             lst_item_root_body = sorted(
                 lst_item_root_body, key=lambda item: item.sequence
             )
-            for item_header in lst_item_root_body:
-                if item_header.is_help:
+            for item_body in lst_item_root_body:
+                if item_body.is_help:
                     item_xml = self._generate_xml_html_help(
-                        item_header, lst_item_form_sheet, dct_replace
+                        item_body, lst_item_form_sheet, dct_replace
                     )
                     lst_item_form_sheet.append(item_xml)
-                elif item_header.item_type in ("div", "group"):
-                    if not item_header.child_id:
+                elif item_body.item_type in ("div", "group"):
+                    if not item_body.child_id:
                         _logger.warning(
                             f"Item type div or group missing child."
                         )
                         continue
                     item_xml = self._generate_xml_group_div(
-                        item_header, lst_item_form_sheet, dct_replace, model_id
+                        item_body, lst_item_form_sheet, dct_replace, model_id
                     )
                     lst_item_form_sheet.append(item_xml)
-                elif item_header.item_type in ("field",):
-                    item_xml = self._generate_xml_object(item_header, model_id)
+                elif item_body.item_type in ("field",):
+                    item_xml = self._generate_xml_object(item_body, model_id)
                     lst_item_form_sheet.append(item_xml)
                 else:
+                    _logger.warning(f"Unknown type xml {item_body.item_type}")
+
+        if lst_item_footer:
+            lst_item_footer = sorted(
+                lst_item_footer, key=lambda item: item.sequence
+            )
+            lst_child = []
+            for item_footer in lst_item_footer:
+                if item_footer.item_type == "field":
+                    item = E.field()
+                    # TODO field in footer
+                elif item_footer.item_type == "button":
+                    item = self._generate_xml_button(item_footer, model_id)
+                else:
                     _logger.warning(
-                        f"Unknown type xml {item_header.item_type}"
+                        f"Item footer type '{item_footer.item_type}' is not"
+                        " supported."
                     )
+                    continue
+                lst_child.append(item)
+            footer_xml = E.footer({}, *lst_child)
+            lst_item_form.append(footer_xml)
 
         if lst_item_form_sheet:
             if code_generator_view_id.has_body_sheet:

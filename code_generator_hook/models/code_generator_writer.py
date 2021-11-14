@@ -233,7 +233,12 @@ class CodeGeneratorWriter(models.Model):
                 cw.emit(f'"model_id": {var_model_model}.id,')
                 field_default = ast_attr.get("default") if ast_attr else None
                 if field_default:
-                    if field_id.ttype in ("char", "selection"):
+                    if type(field_default) is str and "\n" in field_default:
+                        cw.emit_raw(
+                            f'{" " * cw.cur_indent}"default":'
+                            f' """{field_default}""",\n'
+                        )
+                    elif field_id.ttype in ("char", "selection"):
                         cw.emit(f'"default": "{field_default}",')
                     else:
                         cw.emit(f'"default": {field_default},')

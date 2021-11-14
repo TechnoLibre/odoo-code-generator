@@ -149,8 +149,20 @@ class ExtractorModule:
             # Support -> lambda self: self._default_folder()
             body = node.body.func
             value = f"{body.value.id}.{body.attr}()"
+        elif type(node.body) is ast.Attribute:
+            # Support -> lambda s: s.env.user.id
+            parent_node = node.body
+            lst_call_lambda = []
+            while hasattr(parent_node, "value"):
+                lst_call_lambda.insert(0, parent_node.attr)
+                parent_node = parent_node.value
+            lst_call_lambda.insert(0, parent_node.id)
+            value = ".".join(lst_call_lambda)
         else:
-            _logger.error("Lambda not supported.")
+            _logger.error(
+                f"Lambda not supported, body lambda type {type(node.body)}."
+            )
+            return
         return f"lambda {args}: {value}"
 
     def _fill_search_field(self, ast_obj, var_name=""):
@@ -422,7 +434,7 @@ class ExtractorModule:
                 self._get_recursive_lineno(lst_attr_item, set_lineno, lst_line)
             else:
                 _logger.warning(
-                    f"From get recursive {attr} unknown type"
+                    f"From get recursive '{attr}' unknown type"
                     f" {type(lst_attr_item)}."
                 )
 

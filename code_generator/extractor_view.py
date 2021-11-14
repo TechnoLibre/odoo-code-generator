@@ -152,6 +152,13 @@ class ExtractorView:
         for view_id in self.view_ids:
             mydoc = minidom.parseString(view_id.arch_base.encode())
 
+            # TODO check when form inherit, check inherit_id
+            if view_id.inherit_id:
+                _logger.warning(
+                    f"Inherit_id not supported for view {view_id.display_name}"
+                )
+                continue
+
             lst_view_item_id = []
 
             # Search form
@@ -461,7 +468,7 @@ class ExtractorView:
                     f"Cannot find a xml type from list: {lst_tag_support}."
                 )
             elif len(lst_content) > 1:
-                _logger.warning(f"Cannot support multiple {lst_tag_support}.")
+                _logger.warning(f"Cannot support multiple {lst_content}.")
             else:
                 form_xml = lst_content[0]
                 for child_form in form_xml.childNodes:
@@ -484,6 +491,7 @@ class ExtractorView:
                         # else:
                         #     lst_body_xml.append(child_form)
                         # TODO everything can be in body? check when add oe_chatter
+                        # TODO why cumulate here when change value in lst_sheet_xml next lines
                         lst_body_xml.append(child_form)
 
             if lst_sheet_xml:

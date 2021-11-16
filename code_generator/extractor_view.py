@@ -695,6 +695,20 @@ class ExtractorView:
             if attributes_name:
                 dct_attributes[attributes_name] = value
         # TODO validate dct_attributes has all needed key with dct_key_keep (except button_type)
+        if "button_type" in dct_attributes.keys():
+            button_type_value = dct_attributes.get("button_type")
+            if " " in button_type_value:
+                # TODO cannot support multiple type, because of limitation of button_type = fields.Selection()
+                # patch, workaround
+                if "btn-primary" in button_type_value:
+                    dct_attributes["button_type"] = "btn-primary"
+                elif "btn-secondary" in button_type_value:
+                    dct_attributes["button_type"] = "btn-secondary"
+                else:
+                    _logger.warning(
+                        "Cannot support multiple value in button_type, value"
+                        f" : {button_type_value}"
+                    )
         view_item_id = self._module.env["code.generator.view.item"].create(
             dct_attributes
         )

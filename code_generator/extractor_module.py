@@ -2,6 +2,7 @@ import logging
 import os
 import glob
 import ast
+import astor
 
 
 _logger = logging.getLogger(__name__)
@@ -117,12 +118,18 @@ class ExtractorModule:
                 f_ast = ast.parse(f_lines)
                 class_model_ast = self.search_class_model(f_ast)
                 if class_model_ast:
-                    self.py_filename = filename
-                    self.search_field(class_model_ast)
-                    # Fill method
-                    lst_lines = f_lines.split("\n")
-                    self.search_import(lst_lines)
-                    self.search_method(class_model_ast, lst_lines, module)
+                    extract_file = ExtractModuleFile(
+                        module,
+                        filename,
+                        f_lines,
+                        class_model_ast,
+                        self.dct_model,
+                        self.model,
+                        self.view_file_sync_model,
+                        self.model_id,
+                    )
+                    extract_file.extract()
+
         self.is_enabled = True
 
     def search_class_model(self, f_ast):
@@ -142,28 +149,39 @@ class ExtractorModule:
                     ):
                         return children
 
+
+class ExtractModuleFile:
+    def __init__(
+        self,
+        module,
+        filename,
+        f_lines,
+        class_model_ast,
+        dct_model,
+        model,
+        view_file_sync_model,
+        model_id,
+    ):
+        self.module = module
+        self.py_filename = filename
+        self.lst_line = f_lines.split("\n")
+        self.class_model_ast = class_model_ast
+        self.dct_model = dct_model
+        self.model = model
+        self.view_file_sync_model = view_file_sync_model
+        self.model_id = model_id
+
+    def extract(self):
+        self.search_field()
+        # Fill method
+        self.search_import()
+        self.search_method()
+
     def extract_lambda(self, node):
-        args = ", ".join([a.arg for a in node.args.args])
-        value = ""
-        if type(node.body) is ast.Call:
-            # Support -> lambda self: self._default_folder()
-            body = node.body.func
-            value = f"{body.value.id}.{body.attr}()"
-        elif type(node.body) is ast.Attribute:
-            # Support -> lambda s: s.env.user.id
-            parent_node = node.body
-            lst_call_lambda = []
-            while hasattr(parent_node, "value"):
-                lst_call_lambda.insert(0, parent_node.attr)
-                parent_node = parent_node.value
-            lst_call_lambda.insert(0, parent_node.id)
-            value = ".".join(lst_call_lambda)
-        else:
-            _logger.error(
-                f"Lambda not supported, body lambda type {type(node.body)}."
-            )
-            return
-        return f"lambda {args}: {value}"
+        result = astor.to_source(node).strip().replace("\n", "")
+        if result[0] == "(" and result[-1] == ")":
+            result = result[1:-1]
+        return result
 
     def _fill_search_field(self, ast_obj, var_name=""):
         ast_obj_type = type(ast_obj)
@@ -209,7 +227,7 @@ class ExtractorModule:
             )
         return result
 
-    def search_field(self, class_model_ast):
+    def search_field(self):
         if self.dct_model[self.model]:
             dct_field = self.dct_model[self.model]
         else:
@@ -218,7 +236,7 @@ class ExtractorModule:
         lst_var_name_check = []
 
         sequence = -1
-        for node in class_model_ast.body:
+        for node in self.class_model_ast.body:
             sequence += 1
             if (
                 type(node) is ast.Assign
@@ -477,10 +495,10 @@ class ExtractorModule:
             self._get_recursive_lineno(body, set_lineno, lst_line)
         return min(set_lineno), max(set_lineno)
 
-    def search_import(self, lst_line):
+    def search_import(self):
         # get all line until meet "class "
         i = 0
-        for line in lst_line:
+        for line in self.lst_line:
             if line.startswith("class "):
                 break
             i += 1
@@ -489,7 +507,7 @@ class ExtractorModule:
                 "Don't know what to do when missing class in python file..."
             )
 
-        str_code = "\n".join(lst_line[:i])
+        str_code = "\n".join(self.lst_line[:i])
         str_code = str_code.strip()
         if "'''" in str_code:
             str_code = str_code.replace("'''", "\\'''")
@@ -512,9 +530,9 @@ class ExtractorModule:
         ):
             self.module.env["code.generator.model.code.import"].create(d)
 
-    def search_method(self, class_model_ast, lst_line, module):
+    def search_method(self):
         sequence = -1
-        lst_body = [a for a in class_model_ast.body]
+        lst_body = [a for a in self.class_model_ast.body]
         for i in range(len(lst_body)):
             node = lst_body[i]
             if i + 1 < len(lst_body):
@@ -529,11 +547,11 @@ class ExtractorModule:
                     elif node.targets[0].id == "_inherit":
                         value = self._fill_search_field(node.value)
                         if type(value) is list:
-                            model_id = module.env["ir.model"].search(
+                            model_id = self.module.env["ir.model"].search(
                                 [("model", "in", value)]
                             )
                         else:
-                            model_id = module.env["ir.model"].search(
+                            model_id = self.module.env["ir.model"].search(
                                 [("model", "=", value)]
                             )
                         if not model_id:
@@ -542,10 +560,16 @@ class ExtractorModule:
                             self.model_id.add_model_inherit(model_id)
                     elif node.targets[0].id == "_sql_constraints":
                         lst_value = self._fill_search_field(node.value)
-                        constraint_ids = module.env[
+                        constraint_ids = self.module.env[
                             "ir.model.constraint"
                         ].search(
-                            [("module", "=", module.template_module_id.id)]
+                            [
+                                (
+                                    "module",
+                                    "=",
+                                    self.module.template_module_id.id,
+                                )
+                            ]
                         )
                         model_name = self.model_id.model.replace(".", "_")
                         for value in lst_value:
@@ -582,7 +606,7 @@ class ExtractorModule:
                     )
                     d["decorator"] = str_decorator
                 no_line_min, no_line_max = self._get_min_max_no_line(
-                    node, lst_line
+                    node, self.lst_line
                 )
                 # Ignore this no_line_max, bug some times.
                 # no_line_min = min([a.lineno for a in node.body])
@@ -590,15 +614,15 @@ class ExtractorModule:
                     no_line_max = next_node.lineno - 1
                 else:
                     # TODO this will bug with multiple class
-                    no_line_max = len(lst_line)
+                    no_line_max = len(self.lst_line)
                 codes = ""
-                for line in lst_line[no_line_min - 1 : no_line_max]:
+                for line in self.lst_line[no_line_min - 1 : no_line_max]:
                     if line.startswith(" " * 8):
                         str_line = line[8:]
                     else:
                         str_line = line
                     codes += f"{str_line}\n"
-                # codes = "\n".join(lst_line[no_line_min - 1:no_line_max])
+                # codes = "\n".join(self.lst_line[no_line_min - 1:no_line_max])
                 if "'''" in codes:
                     codes = codes.replace("'''", "\\'''")
                 if "\\n" in codes:

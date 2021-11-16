@@ -262,7 +262,8 @@ class CodeGeneratorWriter(models.Model):
                             f' """{field_id.help}""",\n'
                         )
                     else:
-                        cw.emit(f'"help": "{field_id.help}",')
+                        new_help = field_id.help.replace('"', '\\"')
+                        cw.emit(f'"help": "{new_help}",')
             # If need a variable, uncomment next line
             # cw.emit(f'{var_id_view} = env["ir.model.fields"].create({var_value_field_name})')
             cw.emit(f'env["ir.model.fields"].create({var_value_field_name})')

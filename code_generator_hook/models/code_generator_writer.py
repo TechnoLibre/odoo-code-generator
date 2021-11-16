@@ -941,332 +941,384 @@ class CodeGeneratorWriter(models.Model):
                                     variable_model_model = (
                                         f"model_{model_name}"
                                     )
-                                    cw.emit(f"# Add {title_model_model}")
-                                    cw.emit("value = {")
-                                    with cw.indent():
-                                        cw.emit(f'"name": "{model_name}",')
-                                        if (
-                                            model_id
-                                            and model_id.description
-                                            and model_id.description
-                                            != model_name
-                                        ):
-                                            cw.emit(
-                                                '"description":'
-                                                f' "{model_id.description}",'
-                                            )
-                                        cw.emit(f'"model": "{model_model}",')
-                                        cw.emit(
-                                            '"m2o_module":'
-                                            " code_generator_id.id,"
-                                        )
-                                        cw.emit('"rec_name": None,')
-                                        if application_name.lower() == "demo":
-                                            cw.emit(
-                                                '"menu_name_keep_application":'
-                                                " True,"
-                                            )
-                                        # TODO wrong place for this code, add it in inherit_model_ids when evaluate code
-                                        field_id_track = (
-                                            model_id.field_id.filtered(
-                                                lambda x: x.track_visibility
-                                            )
-                                        )
-                                        if (
-                                            model_id.enable_activity
-                                            or field_id_track
-                                        ):
-                                            cw.emit('"enable_activity": True,')
-                                        if (
-                                            model_id.diagram_node_object
-                                            and model_id.diagram_node_xpos_field
-                                            and model_id.diagram_node_ypos_field
-                                            and model_id.diagram_arrow_object
-                                            and model_id.diagram_arrow_src_field
-                                            and model_id.diagram_arrow_dst_field
-                                        ):
-                                            cw.emit(
-                                                '"diagram_node_object":'
-                                                f' "{model_id.diagram_node_object}",'
-                                            )
-                                            cw.emit(
-                                                '"diagram_node_xpos_field":'
-                                                f' "{model_id.diagram_node_xpos_field}",'
-                                            )
-                                            cw.emit(
-                                                '"diagram_node_ypos_field":'
-                                                f' "{model_id.diagram_node_ypos_field}",'
-                                            )
-                                            if (
-                                                model_id.diagram_node_shape_field
-                                            ):
-                                                cw.emit(
-                                                    '"diagram_node_shape_field":'
-                                                    f' "{model_id.diagram_node_shape_field}",'
-                                                )
-                                            if (
-                                                model_id.diagram_node_form_view_ref
-                                            ):
-                                                # TODO validate it exist and add variable to link name if changed
-                                                cw.emit(
-                                                    '"diagram_node_form_view_ref":'
-                                                    f' "{model_id.diagram_node_form_view_ref}",'
-                                                )
-                                            cw.emit(
-                                                '"diagram_arrow_object":'
-                                                f' "{model_id.diagram_arrow_object}",'
-                                            )
-                                            cw.emit(
-                                                '"diagram_arrow_src_field":'
-                                                f' "{model_id.diagram_arrow_src_field}",'
-                                            )
-                                            cw.emit(
-                                                '"diagram_arrow_dst_field":'
-                                                f' "{model_id.diagram_arrow_dst_field}",'
-                                            )
-                                            if model_id.diagram_arrow_label:
-                                                cw.emit(
-                                                    '"diagram_arrow_label":'
-                                                    f' "{model_id.diagram_arrow_label}",'
-                                                )
-                                            if (
-                                                model_id.diagram_arrow_form_view_ref
-                                            ):
-                                                # TODO validate it exist and add variable to link name if changed
-                                                cw.emit(
-                                                    '"diagram_arrow_form_view_ref":'
-                                                    f' "{model_id.diagram_arrow_form_view_ref}",'
-                                                )
-                                            if model_id.diagram_label_string:
-                                                cw.emit(
-                                                    '"diagram_label_string":'
-                                                    f' "{model_id.diagram_label_string}",'
-                                                )
-                                        cw.emit('"nomenclator": True,')
-                                    cw.emit("}")
+
+                                    cw.emit(
+                                        f"# Add/Update {title_model_model}"
+                                    )
+
                                     cw.emit(
                                         f"{variable_model_model} ="
-                                        ' env["ir.model"].create(value)'
+                                        ' env["ir.model"].search([("model",'
+                                        f' "=", "{model_model}")])'
                                     )
-                                    cw.emit()
-                                    # inherit
-                                    if model_id and model_id.inherit_model_ids:
+
+                                    cw.emit("# Check if exist or create it")
+                                    cw.emit(f"if {variable_model_model}:")
+                                    with cw.indent():
+                                        # TODO use variable to select variable name "code_generator_id"
+                                        cw.emit(
+                                            f"{variable_model_model}.m2o_module"
+                                            " = code_generator_id.id"
+                                        )
+                                    cw.emit(f"else:")
+                                    with cw.indent():
+                                        cw.emit("value = {")
+                                        with cw.indent():
+                                            cw.emit(f'"name": "{model_name}",')
+                                            if (
+                                                model_id
+                                                and model_id.description
+                                                and model_id.description
+                                                != model_name
+                                            ):
+                                                cw.emit(
+                                                    '"description":'
+                                                    f' "{model_id.description}",'
+                                                )
+                                            cw.emit(
+                                                f'"model": "{model_model}",'
+                                            )
+                                            cw.emit(
+                                                '"m2o_module":'
+                                                " code_generator_id.id,"
+                                            )
+                                            cw.emit('"rec_name": None,')
+                                            if (
+                                                application_name.lower()
+                                                == "demo"
+                                            ):
+                                                cw.emit(
+                                                    '"menu_name_keep_application":'
+                                                    " True,"
+                                                )
+                                            # TODO wrong place for this code, add it in inherit_model_ids when evaluate code
+                                            field_id_track = model_id.field_id.filtered(
+                                                lambda x: x.track_visibility
+                                            )
+                                            if (
+                                                model_id.enable_activity
+                                                or field_id_track
+                                            ):
+                                                cw.emit(
+                                                    '"enable_activity": True,'
+                                                )
+                                            if (
+                                                model_id.diagram_node_object
+                                                and model_id.diagram_node_xpos_field
+                                                and model_id.diagram_node_ypos_field
+                                                and model_id.diagram_arrow_object
+                                                and model_id.diagram_arrow_src_field
+                                                and model_id.diagram_arrow_dst_field
+                                            ):
+                                                cw.emit(
+                                                    '"diagram_node_object":'
+                                                    f' "{model_id.diagram_node_object}",'
+                                                )
+                                                cw.emit(
+                                                    '"diagram_node_xpos_field":'
+                                                    f' "{model_id.diagram_node_xpos_field}",'
+                                                )
+                                                cw.emit(
+                                                    '"diagram_node_ypos_field":'
+                                                    f' "{model_id.diagram_node_ypos_field}",'
+                                                )
+                                                if (
+                                                    model_id.diagram_node_shape_field
+                                                ):
+                                                    cw.emit(
+                                                        '"diagram_node_shape_field":'
+                                                        f' "{model_id.diagram_node_shape_field}",'
+                                                    )
+                                                if (
+                                                    model_id.diagram_node_form_view_ref
+                                                ):
+                                                    # TODO validate it exist and add variable to link name if changed
+                                                    cw.emit(
+                                                        '"diagram_node_form_view_ref":'
+                                                        f' "{model_id.diagram_node_form_view_ref}",'
+                                                    )
+                                                cw.emit(
+                                                    '"diagram_arrow_object":'
+                                                    f' "{model_id.diagram_arrow_object}",'
+                                                )
+                                                cw.emit(
+                                                    '"diagram_arrow_src_field":'
+                                                    f' "{model_id.diagram_arrow_src_field}",'
+                                                )
+                                                cw.emit(
+                                                    '"diagram_arrow_dst_field":'
+                                                    f' "{model_id.diagram_arrow_dst_field}",'
+                                                )
+                                                if (
+                                                    model_id.diagram_arrow_label
+                                                ):
+                                                    cw.emit(
+                                                        '"diagram_arrow_label":'
+                                                        f' "{model_id.diagram_arrow_label}",'
+                                                    )
+                                                if (
+                                                    model_id.diagram_arrow_form_view_ref
+                                                ):
+                                                    # TODO validate it exist and add variable to link name if changed
+                                                    cw.emit(
+                                                        '"diagram_arrow_form_view_ref":'
+                                                        f' "{model_id.diagram_arrow_form_view_ref}",'
+                                                    )
+                                                if (
+                                                    model_id.diagram_label_string
+                                                ):
+                                                    cw.emit(
+                                                        '"diagram_label_string":'
+                                                        f' "{model_id.diagram_label_string}",'
+                                                    )
+                                            cw.emit('"nomenclator": True,')
+                                        cw.emit("}")
+                                        cw.emit(
+                                            f"{variable_model_model} ="
+                                            ' env["ir.model"].create(value)'
+                                        )
+                                        cw.emit()
+                                        # inherit
                                         if (
-                                            module.template_module_id
-                                            and module.template_module_id.dependencies_id
+                                            model_id
+                                            and model_id.inherit_model_ids
                                         ):
-                                            lst_module_depend = sorted(
-                                                list(
-                                                    set(
-                                                        [
-                                                            a.name
-                                                            for a in module.template_module_id.dependencies_id
-                                                        ]
-                                                    ).difference(
+                                            if (
+                                                module.template_module_id
+                                                and module.template_module_id.dependencies_id
+                                            ):
+                                                lst_module_depend = sorted(
+                                                    list(
                                                         set(
-                                                            lst_inherit_module_name_added
+                                                            [
+                                                                a.name
+                                                                for a in module.template_module_id.dependencies_id
+                                                            ]
+                                                        ).difference(
+                                                            set(
+                                                                lst_inherit_module_name_added
+                                                            )
                                                         )
                                                     )
                                                 )
-                                            )
-                                        if lst_module_depend:
-                                            lst_inherit_module_name_added += (
-                                                lst_module_depend
-                                            )
-                                            cw.emit("# Module dependency")
-                                            if len(lst_module_depend) == 1:
-                                                dependency_name = (
-                                                    module.template_module_id.dependencies_id.name
+                                            if lst_module_depend:
+                                                lst_inherit_module_name_added += (
+                                                    lst_module_depend
                                                 )
-                                                cw.emit(
-                                                    f"code_generator_id.add_module_dependency('{dependency_name}')"
-                                                )
-                                            else:
-                                                cw.emit(
-                                                    "lst_depend_module ="
-                                                    f" {str(lst_module_depend)}"
-                                                )
-                                                cw.emit(
-                                                    f"code_generator_id.add_module_dependency(lst_depend_module)"
-                                                )
-                                            cw.emit()
+                                                cw.emit("# Module dependency")
+                                                if len(lst_module_depend) == 1:
+                                                    dependency_name = (
+                                                        module.template_module_id.dependencies_id.name
+                                                    )
+                                                    cw.emit(
+                                                        f"code_generator_id.add_module_dependency('{dependency_name}')"
+                                                    )
+                                                else:
+                                                    cw.emit(
+                                                        "lst_depend_module ="
+                                                        f" {str(lst_module_depend)}"
+                                                    )
+                                                    cw.emit(
+                                                        f"code_generator_id.add_module_dependency(lst_depend_module)"
+                                                    )
+                                                cw.emit()
 
-                                        lst_dependency = [
-                                            a.name
-                                            for a in model_id.inherit_model_ids
-                                        ]
-                                        if field_id_track:
-                                            if (
-                                                "mail.thread"
-                                                not in lst_dependency
-                                            ):
-                                                lst_dependency.append(
+                                            lst_dependency = [
+                                                a.name
+                                                for a in model_id.inherit_model_ids
+                                            ]
+                                            if field_id_track:
+                                                if (
                                                     "mail.thread"
-                                                )
-                                            if (
-                                                "mail.activity.mixin"
-                                                not in lst_dependency
-                                            ):
-                                                lst_dependency.append(
+                                                    not in lst_dependency
+                                                ):
+                                                    lst_dependency.append(
+                                                        "mail.thread"
+                                                    )
+                                                if (
                                                     "mail.activity.mixin"
-                                                )
-                                        if lst_dependency:
-                                            cw.emit("# Model inherit")
-                                            if len(lst_dependency) == 1:
-                                                cw.emit(
-                                                    f"{variable_model_model}.add_model_inherit('{lst_dependency[0]}')"
-                                                )
-                                            else:
-                                                cw.emit(
-                                                    "lst_depend_model ="
-                                                    f" {str(lst_dependency)}"
-                                                )
-                                                cw.emit(
-                                                    f"{variable_model_model}.add_model_inherit(lst_depend_model)"
-                                                )
-                                        cw.emit()
-                                    if module.external_dependencies_id:
-                                        cw.emit("# External dependencies")
-                                        for (
-                                            ext_depend
-                                        ) in module.external_dependencies_id:
-                                            if not ext_depend.is_template:
-                                                continue
-                                            cw.emit("value = {")
-                                            with cw.indent():
-                                                cw.emit(
-                                                    f'"module_id":'
-                                                    f" code_generator_id.id,"
-                                                )
-                                                cw.emit(
-                                                    '"depend":'
-                                                    f' "{ext_depend.depend}",'
-                                                )
-                                                cw.emit(
-                                                    '"application_type":'
-                                                    f' "{ext_depend.application_type}",'
-                                                )
-                                            cw.emit("}")
-                                            cw.emit(
-                                                "env['code.generator.module.external.dependency'].create(value)"
-                                            )
+                                                    not in lst_dependency
+                                                ):
+                                                    lst_dependency.append(
+                                                        "mail.activity.mixin"
+                                                    )
+                                            if lst_dependency:
+                                                cw.emit("# Model inherit")
+                                                if len(lst_dependency) == 1:
+                                                    cw.emit(
+                                                        f"{variable_model_model}.add_model_inherit('{lst_dependency[0]}')"
+                                                    )
+                                                else:
+                                                    cw.emit(
+                                                        "lst_depend_model ="
+                                                        f" {str(lst_dependency)}"
+                                                    )
+                                                    cw.emit(
+                                                        f"{variable_model_model}.add_model_inherit(lst_depend_model)"
+                                                    )
                                             cw.emit()
-                                    self._write_generated_template(
-                                        module, model_model, cw
-                                    )
-                                    cw.emit("##### Begin Field")
-                                    if module.enable_sync_template:
-                                        module_file_sync = (
-                                            module.module_file_sync.get(
-                                                model_model
-                                            )
+                                        if module.external_dependencies_id:
+                                            cw.emit("# External dependencies")
+                                            for (
+                                                ext_depend
+                                            ) in (
+                                                module.external_dependencies_id
+                                            ):
+                                                if not ext_depend.is_template:
+                                                    continue
+                                                cw.emit("value = {")
+                                                with cw.indent():
+                                                    cw.emit(
+                                                        f'"module_id":'
+                                                        f" code_generator_id.id,"
+                                                    )
+                                                    cw.emit(
+                                                        '"depend":'
+                                                        f' "{ext_depend.depend}",'
+                                                    )
+                                                    cw.emit(
+                                                        '"application_type":'
+                                                        f' "{ext_depend.application_type}",'
+                                                    )
+                                                cw.emit("}")
+                                                cw.emit(
+                                                    "env['code.generator.module.external.dependency'].create(value)"
+                                                )
+                                                cw.emit()
+                                        self._write_generated_template(
+                                            module, model_model, cw
                                         )
-                                        view_file_sync = (
-                                            module.view_file_sync.get(
-                                                model_model
+                                        cw.emit("##### Begin Field")
+                                        if module.enable_sync_template:
+                                            module_file_sync = (
+                                                module.module_file_sync.get(
+                                                    model_model
+                                                )
                                             )
-                                        )
-                                        if view_file_sync:
-                                            lst_view_item_code_generator.append(
-                                                view_file_sync
+                                            view_file_sync = (
+                                                module.view_file_sync.get(
+                                                    model_model
+                                                )
                                             )
-                                        self._write_sync_template_model(
-                                            module,
-                                            model_model,
-                                            cw,
-                                            variable_model_model,
-                                            lst_keep_f2exports,
-                                            module_file_sync,
-                                            view_file_sync,
-                                        )
-                                    else:
-                                        cw.emit("value_field_boolean = {")
-                                        with cw.indent():
-                                            cw.emit('"name": "field_boolean",')
-                                            cw.emit('"model": "demo.model",')
-                                            cw.emit(
-                                                '"field_description": "field'
-                                                ' description",'
-                                            )
-                                            cw.emit('"ttype": "boolean",')
-                                            cw.emit(
-                                                '"model_id":'
-                                                f" {variable_model_model}.id,"
-                                            )
-                                        cw.emit("}")
-                                        cw.emit(
-                                            'env["ir.model.fields"].create(value_field_boolean)'
-                                        )
-                                        cw.emit()
-                                        cw.emit("# FIELD TYPE Many2one")
-                                        cw.emit("#value_field_many2one = {")
-                                        with cw.indent():
-                                            cw.emit(
-                                                '#"name": "field_many2one",'
-                                            )
-                                            cw.emit('#"model": "demo.model",')
-                                            cw.emit(
-                                                '#"field_description": "field'
-                                                ' description",'
-                                            )
-                                            cw.emit('#"ttype": "many2one",')
-                                            # cw.emit(
-                                            #     '#"comodel_name":'
-                                            #     ' "model.name",'
-                                            # )
-                                            cw.emit(
-                                                '#"relation": "model.name",'
-                                            )
-                                            cw.emit(
-                                                '#"model_id":'
-                                                f" {variable_model_model}.id,"
-                                            )
-                                        cw.emit("#}")
-                                        cw.emit(
-                                            '#env["ir.model.fields"].create(value_field_many2one)'
-                                        )
-                                        cw.emit("")
-                                        cw.emit("# Hack to solve field name")
-                                        cw.emit(
-                                            "field_x_name ="
-                                            " env[\"ir.model.fields\"].search([('model_id',"
-                                            " '=',"
-                                            f" {variable_model_model}.id),"
-                                            " ('name', '=', 'x_name')])"
-                                        )
-                                        cw.emit('field_x_name.name = "name"')
-                                        cw.emit(
-                                            f"{variable_model_model}.rec_name"
-                                            ' = "name"'
-                                        )
-                                        cw.emit("")
-                                    if (
-                                        i >= len_model - 1
-                                        and lst_keep_f2exports
-                                    ):
-                                        cw.emit("")
-                                        cw.emit(
-                                            "# Added one2many field, many2many"
-                                            " need to be create before add"
-                                            " one2many"
-                                        )
-                                        for (
-                                            field_id,
-                                            model_model,
-                                            variable_model_model,
-                                        ) in lst_keep_f2exports:
-                                            # Finish to print one2many move at the end
+                                            if view_file_sync:
+                                                lst_view_item_code_generator.append(
+                                                    view_file_sync
+                                                )
                                             self._write_sync_template_model(
                                                 module,
                                                 model_model,
                                                 cw,
                                                 variable_model_model,
                                                 lst_keep_f2exports,
-                                                None,
-                                                None,
-                                                lst_force_f2exports=[field_id],
+                                                module_file_sync,
+                                                view_file_sync,
                                             )
-                                    cw.emit("##### End Field")
+                                        else:
+                                            cw.emit("value_field_boolean = {")
+                                            with cw.indent():
+                                                cw.emit(
+                                                    '"name": "field_boolean",'
+                                                )
+                                                cw.emit(
+                                                    '"model": "demo.model",'
+                                                )
+                                                cw.emit(
+                                                    '"field_description":'
+                                                    ' "field description",'
+                                                )
+                                                cw.emit('"ttype": "boolean",')
+                                                cw.emit(
+                                                    '"model_id":'
+                                                    f" {variable_model_model}.id,"
+                                                )
+                                            cw.emit("}")
+                                            cw.emit(
+                                                'env["ir.model.fields"].create(value_field_boolean)'
+                                            )
+                                            cw.emit()
+                                            cw.emit("# FIELD TYPE Many2one")
+                                            cw.emit(
+                                                "#value_field_many2one = {"
+                                            )
+                                            with cw.indent():
+                                                cw.emit(
+                                                    '#"name":'
+                                                    ' "field_many2one",'
+                                                )
+                                                cw.emit(
+                                                    '#"model": "demo.model",'
+                                                )
+                                                cw.emit(
+                                                    '#"field_description":'
+                                                    ' "field description",'
+                                                )
+                                                cw.emit(
+                                                    '#"ttype": "many2one",'
+                                                )
+                                                # cw.emit(
+                                                #     '#"comodel_name":'
+                                                #     ' "model.name",'
+                                                # )
+                                                cw.emit(
+                                                    '#"relation":'
+                                                    ' "model.name",'
+                                                )
+                                                cw.emit(
+                                                    '#"model_id":'
+                                                    f" {variable_model_model}.id,"
+                                                )
+                                            cw.emit("#}")
+                                            cw.emit(
+                                                '#env["ir.model.fields"].create(value_field_many2one)'
+                                            )
+                                            cw.emit("")
+                                            cw.emit(
+                                                "# Hack to solve field name"
+                                            )
+                                            cw.emit(
+                                                "field_x_name ="
+                                                " env[\"ir.model.fields\"].search([('model_id',"
+                                                " '=',"
+                                                f" {variable_model_model}.id),"
+                                                " ('name', '=', 'x_name')])"
+                                            )
+                                            cw.emit(
+                                                'field_x_name.name = "name"'
+                                            )
+                                            cw.emit(
+                                                f"{variable_model_model}.rec_name"
+                                                ' = "name"'
+                                            )
+                                            cw.emit("")
+                                        if (
+                                            i >= len_model - 1
+                                            and lst_keep_f2exports
+                                        ):
+                                            cw.emit("")
+                                            cw.emit(
+                                                "# Added one2many field,"
+                                                " many2many need to be create"
+                                                " before add one2many"
+                                            )
+                                            for (
+                                                field_id,
+                                                model_model,
+                                                variable_model_model,
+                                            ) in lst_keep_f2exports:
+                                                # Finish to print one2many move at the end
+                                                self._write_sync_template_model(
+                                                    module,
+                                                    model_model,
+                                                    cw,
+                                                    variable_model_model,
+                                                    lst_keep_f2exports,
+                                                    None,
+                                                    None,
+                                                    lst_force_f2exports=[
+                                                        field_id
+                                                    ],
+                                                )
+                                        cw.emit("##### End Field")
                                     cw.emit()
                                     # TODO add data nomenclator, research data from model
                                     # TODO By default, no data will be nomenclator

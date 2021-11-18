@@ -1290,7 +1290,7 @@ class CodeGeneratorWriter(models.Model):
 
                 if view.priority != 16:
                     lst_field.append(
-                        E.field({"name": "priority"}, view.priority)
+                        E.field({"name": "priority"}, str(view.priority))
                     )
 
                 if view.inherit_id:

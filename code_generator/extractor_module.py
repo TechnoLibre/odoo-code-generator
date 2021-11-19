@@ -116,7 +116,9 @@ class ExtractorModule:
             with open(py_file, "r") as source:
                 f_lines = source.read()
                 f_ast = ast.parse(f_lines)
-                class_model_ast = self.search_class_model(f_ast)
+                class_model_ast, next_model_ast = self.search_class_model(
+                    f_ast
+                )
                 if class_model_ast:
                     extract_file = ExtractModuleFile(
                         module,
@@ -127,13 +129,18 @@ class ExtractorModule:
                         self.model,
                         self.view_file_sync_model,
                         self.model_id,
+                        next_model_ast,
                     )
                     extract_file.extract()
 
         self.is_enabled = True
 
     def search_class_model(self, f_ast):
+        find_children = None
         for children in f_ast.body:
+            if find_children:
+                # children is next node
+                return find_children, children
             # TODO check bases of class if equal models.Model for better performance
             # TODO check multiple class
             if type(children) == ast.ClassDef:
@@ -143,11 +150,14 @@ class ExtractorModule:
                         type(node) is ast.Assign
                         and node.targets
                         and type(node.targets[0]) is ast.Name
-                        and node.targets[0].id == "_name"
+                        and node.targets[0].id in ("_name", "_inherit")
                         and node.value.s == self.model
                         and type(node.value) is ast.Str
                     ):
-                        return children
+                        find_children = children
+                        break
+
+        return find_children, None
 
 
 class ExtractModuleFile:
@@ -161,6 +171,7 @@ class ExtractModuleFile:
         model,
         view_file_sync_model,
         model_id,
+        next_model_ast,
     ):
         self.module = module
         self.py_filename = filename
@@ -170,6 +181,7 @@ class ExtractModuleFile:
         self.model = model
         self.view_file_sync_model = view_file_sync_model
         self.model_id = model_id
+        self.next_model_ast = next_model_ast
 
     def extract(self):
         self.search_field()
@@ -531,10 +543,10 @@ class ExtractModuleFile:
             self.module.env["code.generator.model.code.import"].create(d)
 
     def search_method(self):
+        use_astor = False
         sequence = -1
         lst_body = [a for a in self.class_model_ast.body]
-        for i in range(len(lst_body)):
-            node = lst_body[i]
+        for i, node in enumerate(lst_body):
             if i + 1 < len(lst_body):
                 next_node = lst_body[i + 1]
             else:
@@ -588,44 +600,72 @@ class ExtractModuleFile:
                                 constraint_id.definition = definition
                                 constraint_id.message = message
             elif type(node) is ast.FunctionDef:
-                sequence += 1
-                d = {
-                    "m2o_model": self.model_id.id,
-                    "m2o_module": self.module.id,
-                    "name": node.name,
-                    "sequence": sequence,
-                    "is_templated": True,
-                }
-                if node.args:
-                    d["param"] = self._extract_argument(node.args)
-                if node.returns:
-                    d["returns"] = node.returns.id
-                if node.decorator_list:
-                    str_decorator = self._extract_decorator(
-                        node.decorator_list
+                if use_astor:
+                    # This technique is not working perfectly, it removes comments
+                    codes2 = "".join(
+                        [astor.to_source(a) for a in node.body]
+                    ).strip()
+                    codes2 = codes2.replace("'''", "\\'''").replace(
+                        "\\n", "\\\\n"
                     )
-                    d["decorator"] = str_decorator
-                no_line_min, no_line_max = self._get_min_max_no_line(
-                    node, self.lst_line
-                )
-                # Ignore this no_line_max, bug some times.
-                # no_line_min = min([a.lineno for a in node.body])
-                if next_node:
-                    no_line_max = next_node.lineno - 1
+                    codes2 = codes2.strip()
+                    if codes2.endswith("'"):
+                        codes2 += "\n"
+                    d["code"] = codes2
+
                 else:
-                    # TODO this will bug with multiple class
-                    no_line_max = len(self.lst_line)
-                codes = ""
-                for line in self.lst_line[no_line_min - 1 : no_line_max]:
-                    if line.startswith(" " * 8):
-                        str_line = line[8:]
+                    sequence += 1
+                    d = {
+                        "m2o_model": self.model_id.id,
+                        "m2o_module": self.module.id,
+                        "name": node.name,
+                        "sequence": sequence,
+                        "is_templated": True,
+                    }
+                    if node.args:
+                        d["param"] = self._extract_argument(node.args)
+                    if node.returns:
+                        d["returns"] = node.returns.id
+                    if node.decorator_list:
+                        str_decorator = self._extract_decorator(
+                            node.decorator_list
+                        )
+                        d["decorator"] = str_decorator
+                    no_line_min, no_line_max = self._get_min_max_no_line(
+                        node, self.lst_line
+                    )
+                    _logger.debug(
+                        f"Extract code from mode '{self.model}', file"
+                        f" '{self.py_filename}'"
+                    )
+                    # TODO why calculate max if patch this with next node min?
+                    # Ignore this no_line_max, bug some times.
+                    no_line_min = min(
+                        min([a.lineno for a in node.body]), no_line_min
+                    )
+                    if next_node:
+                        no_line_max = next_node.lineno - 1
+                    elif self.next_model_ast:
+                        no_line_max = self.next_model_ast.lineno - 1
                     else:
-                        str_line = line
-                    codes += f"{str_line}\n"
-                # codes = "\n".join(self.lst_line[no_line_min - 1:no_line_max])
-                if "'''" in codes:
-                    codes = codes.replace("'''", "\\'''")
-                if "\\n" in codes:
-                    codes = codes.replace("\\n", "\\\\n")
-                d["code"] = codes.strip()
+                        # TODO this will bug with multiple class
+                        # This can be broken when finish by multiple line with not ast char like ')'
+                        # no_line_max = len(self.lst_line)
+                        no_line_max += 1
+                    codes = ""
+                    if no_line_max >= len(self.lst_line):
+                        no_line_max = len(self.lst_line) - 1
+                    for line in self.lst_line[no_line_min - 1 : no_line_max]:
+                        if line.startswith(" " * 8):
+                            str_line = line[8:]
+                        else:
+                            str_line = line
+                        codes += f"{str_line}\n"
+                    # codes = "\n".join(self.lst_line[no_line_min - 1:no_line_max])
+                    if "'''" in codes:
+                        codes = codes.replace("'''", "\\'''")
+                    if "\\n" in codes:
+                        codes = codes.replace("\\n", "\\\\n")
+                    d["code"] = codes.strip()
+
                 self.module.env["code.generator.model.code"].create(d)

@@ -1184,11 +1184,11 @@ class CodeGeneratorWriter(models.Model):
                 start_index = line.index(key)
                 offset_index = start_index + len(key)
                 next_index = line.index(" ", offset_index)
-                pre_offset_replace = '  ' + ' ' * offset_index
+                pre_offset_replace = "  " + " " * offset_index
                 last_part = line[next_index + 1 :].replace(
                     '" ', '"\n' + pre_offset_replace
                 )[:-2]
-                pre_start_replace = '  ' + ' ' * start_index
+                pre_start_replace = "  " + " " * start_index
                 last_part += "\n" + pre_start_replace + "/>\n"
                 new_result += (
                     "  "

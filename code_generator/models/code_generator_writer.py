@@ -1184,10 +1184,12 @@ class CodeGeneratorWriter(models.Model):
                 start_index = line.index(key)
                 offset_index = start_index + len(key)
                 next_index = line.index(" ", offset_index)
+                pre_offset_replace = '  ' + ' ' * offset_index
                 last_part = line[next_index + 1 :].replace(
-                    '" ', f'"\n{"  " + " " * offset_index}'
+                    '" ', '"\n' + pre_offset_replace
                 )[:-2]
-                last_part += f'\n{"  " + " " * start_index}/>\n'
+                pre_start_replace = '  ' + ' ' * start_index
+                last_part += "\n" + pre_start_replace + "/>\n"
                 new_result += (
                     "  "
                     + line[:next_index]
@@ -1863,7 +1865,8 @@ class CodeGeneratorWriter(models.Model):
                 if len(lst_inherit) == 1:
                     str_inherit = f"'{lst_inherit[0]}'"
                 else:
-                    str_inherit = f"""["{'", "'.join(lst_inherit)}"]"""
+                    str_inherit_internal = '", "'.join(lst_inherit)
+                    str_inherit = f'["{str_inherit_internal}"]'
                 cw.emit(f"_inherit = {str_inherit}")
 
             if model.description:

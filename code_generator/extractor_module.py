@@ -602,16 +602,11 @@ class ExtractModuleFile:
             elif type(node) is ast.FunctionDef:
                 if use_astor:
                     # This technique is not working perfectly, it removes comments
-                    codes2 = "".join(
+                    codes = "".join(
                         [astor.to_source(a) for a in node.body]
                     ).strip()
-                    codes2 = codes2.replace("'''", "\\'''").replace(
-                        "\\n", "\\\\n"
-                    )
-                    codes2 = codes2.strip()
-                    if codes2.endswith("'"):
-                        codes2 += "\n"
-                    d["code"] = codes2
+                    if codes.endswith("'"):
+                        codes += "\n"
 
                 else:
                     sequence += 1
@@ -662,10 +657,9 @@ class ExtractModuleFile:
                             str_line = line
                         codes += f"{str_line}\n"
                     # codes = "\n".join(self.lst_line[no_line_min - 1:no_line_max])
-                    if "'''" in codes:
-                        codes = codes.replace("'''", "\\'''")
-                    if "\\n" in codes:
-                        codes = codes.replace("\\n", "\\\\n")
-                    d["code"] = codes.strip()
+                codes = codes.replace("'''", "\\'''").replace(
+                    "\\n", "\\\\n"
+                ).replace("\b", "\\b")
+                d["code"] = codes.strip()
 
                 self.module.env["code.generator.model.code"].create(d)

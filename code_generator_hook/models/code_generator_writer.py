@@ -1383,7 +1383,7 @@ class CodeGeneratorWriter(models.Model):
                                                 ):
                                                     str_line = f"\"code\": '''"
                                                     lst_line = (
-                                                        code_id.code.split(
+                                                        code_id.code.replace("\\b", "\\\\b").split(
                                                             "\n"
                                                         )
                                                     )

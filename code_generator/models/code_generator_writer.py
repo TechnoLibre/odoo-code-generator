@@ -1900,6 +1900,7 @@ class CodeGeneratorWriter(models.Model):
 
                 code_traited = code.code.replace("\\\n", key_special_endline)
                 code_traited = code_traited.replace("\\'", "\\\\'")
+                code_traited = code_traited.replace("\b", "\\b")
                 with cw.indent():
                     for code_line in code_traited.split("\n"):
                         if key_special_endline in code_line:

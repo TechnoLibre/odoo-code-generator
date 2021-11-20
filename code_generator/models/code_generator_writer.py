@@ -38,6 +38,7 @@ BREAK_LINE_OFF = "\n"
 BREAK_LINE = ["\n"]
 XML_VERSION_HEADER = '<?xml version="1.0" encoding="utf-8"?>' + BREAK_LINE_OFF
 XML_VERSION = ['<?xml version="1.0" encoding="utf-8"?>']
+XML_VERSION_STR = '<?xml version="1.0"?>\n'
 XML_ODOO_OPENING_TAG = ["<odoo>"]
 XML_HEAD = XML_VERSION + XML_ODOO_OPENING_TAG
 XML_ODOO_CLOSING_TAG = ["</odoo>"]
@@ -1315,8 +1316,13 @@ class CodeGeneratorWriter(models.Model):
 
                 if view.arch_db:
                     uid = str(uuid.uuid1())
+                    str_arch_db = (
+                        view.arch_db
+                        if not view.arch_db.startswith(XML_VERSION_STR)
+                        else view.arch_db[len(XML_VERSION_STR) :]
+                    )
                     dct_replace[uid] = self._setup_xml_indent(
-                        view.arch_db, indent=3
+                        str_arch_db, indent=3
                     )
                     lst_field.append(
                         E.field({"name": "arch", "type": "xml"}, uid)
@@ -1713,9 +1719,13 @@ class CodeGeneratorWriter(models.Model):
                 '<template id="%s">' % report.report_name
             )
 
+            str_arch_db = (
+                report.m2o_template.arch_db
+                if not report.m2o_template.arch_db.startswith(XML_VERSION_STR)
+                else report.m2o_template.arch_db[len(XML_VERSION_STR) :]
+            )
             l_model_report_file.append(
-                '<field name="arch" type="xml">%s</field>'
-                % report.m2o_template.arch_db
+                f'<field name="arch" type="xml">{str_arch_db}</field>'
             )
 
             l_model_report_file.append("</template>\n")

@@ -657,9 +657,11 @@ class ExtractModuleFile:
                             str_line = line
                         codes += f"{str_line}\n"
                     # codes = "\n".join(self.lst_line[no_line_min - 1:no_line_max])
-                codes = codes.replace("'''", "\\'''").replace(
-                    "\\n", "\\\\n"
-                ).replace("\b", "\\b")
+                codes = (
+                    codes.replace("'''", "\\'''")
+                    .replace("\\n", "\\\\n")
+                    .replace("\b", "\\b")
+                )
                 d["code"] = codes.strip()
 
                 self.module.env["code.generator.model.code"].create(d)

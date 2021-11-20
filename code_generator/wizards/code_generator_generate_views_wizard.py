@@ -719,6 +719,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             *lst_field,
         )
         str_arch = ET.tostring(arch_xml, pretty_print=True)
+        str_arch = b'<?xml version="1.0"?>\n' + str_arch
         # ir_ui_view_value = {
         #     "name": f"{model_name_str}_tree",
         #     "type": "tree",
@@ -888,6 +889,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             *lst_item_form,
         )
         str_arch = ET.tostring(arch_xml, pretty_print=True)
+        str_arch = b'<?xml version="1.0"?>\n' + str_arch
         # ir_ui_view_value = {
         #     "name": f"{model_name_str}_form",
         #     "type": "form",
@@ -1066,6 +1068,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             *lst_item_kanban,
         )
         str_arch = ET.tostring(arch_xml, pretty_print=True)
+        str_arch = b'<?xml version="1.0"?>\n' + str_arch
         # ir_ui_view_value = {
         #     "name": f"{model_name_str}_kanban",
         #     "type": "kanban",
@@ -1205,6 +1208,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             *lst_item_search,
         )
         str_arch = ET.tostring(arch_xml, pretty_print=True)
+        str_arch = b'<?xml version="1.0"?>\n' + str_arch
         # ir_ui_view_value = {
         #     "name": f"{model_name_str}_search",
         #     "type": "search",
@@ -1332,6 +1336,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             *lst_item_pivot,
         )
         str_arch = ET.tostring(arch_xml, pretty_print=True)
+        str_arch = b'<?xml version="1.0"?>\n' + str_arch
         # ir_ui_view_value = {
         #     "name": f"{model_name_str}_pivot",
         #     "type": "pivot",
@@ -1464,6 +1469,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             *lst_item_calendar,
         )
         str_arch = ET.tostring(arch_xml, pretty_print=True)
+        str_arch = b'<?xml version="1.0"?>\n' + str_arch
         # ir_ui_view_value = {
         #     "name": f"{model_name_str}_calendar",
         #     "type": "calendar",
@@ -1591,6 +1597,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             *lst_item_graph,
         )
         str_arch = ET.tostring(arch_xml, pretty_print=True)
+        str_arch = b'<?xml version="1.0"?>\n' + str_arch
         # ir_ui_view_value = {
         #     "name": f"{model_name_str}_graph",
         #     "type": "graph",
@@ -1650,6 +1657,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             }
         )
         str_arch = ET.tostring(arch_xml, pretty_print=True)
+        str_arch = b'<?xml version="1.0"?>\n' + str_arch
         # ir_ui_view_value = {
         #     "name": f"{model_name_str}_timeline",
         #     "type": "timeline",
@@ -1779,6 +1787,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         )
 
         str_arch = ET.tostring(arch_xml, pretty_print=True)
+        str_arch = b'<?xml version="1.0"?>\n' + str_arch
         # dct_value_to_create["ir.ui.view"].append(ir_ui_view_value)
         view_value = self.env["ir.ui.view"].create(
             {

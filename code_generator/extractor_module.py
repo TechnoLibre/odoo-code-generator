@@ -151,11 +151,15 @@ class ExtractorModule:
                         and node.targets
                         and type(node.targets[0]) is ast.Name
                         and node.targets[0].id in ("_name", "_inherit")
-                        and node.value.s == self.model
-                        and type(node.value) is ast.Str
                     ):
-                        find_children = children
-                        break
+                        if (
+                            type(node.value) is ast.Str
+                            and node.value.s == self.model
+                            or type(node.value) is ast.List
+                            and self.model in [a.s for a in node.value.elts]
+                        ):
+                            find_children = children
+                            break
 
         return find_children, None
 

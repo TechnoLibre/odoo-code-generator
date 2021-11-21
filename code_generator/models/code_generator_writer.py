@@ -2177,12 +2177,17 @@ class CodeGeneratorWriter(models.Model):
             )
 
         # Force field name first
-        lst_field_name = f2exports.filtered(lambda field: field.name == "name")
-        if lst_field_name:
+        field_rec_name = model.rec_name if model.rec_name else model._rec_name
+        if not field_rec_name:
+            field_rec_name = "name"
+        lst_field_rec_name = f2exports.filtered(
+            lambda field: field.name == field_rec_name
+        )
+        if lst_field_rec_name:
             lst_field_not_name = f2exports.filtered(
-                lambda field: field.name != "name"
+                lambda field: field.name != field_rec_name
             )
-            lst_id = lst_field_name.ids + lst_field_not_name.ids
+            lst_id = lst_field_rec_name.ids + lst_field_not_name.ids
             f2exports = self.env["ir.model.fields"].browse(lst_id)
 
         for f2export in f2exports:
@@ -2212,13 +2217,6 @@ class CodeGeneratorWriter(models.Model):
                 else:
                     dct_field_attribute["selection"] = []
 
-            if (
-                f2export.field_description
-                and f2export.name.replace("_", " ").title()
-                != f2export.field_description
-            ):
-                dct_field_attribute["string"] = f2export.field_description
-
             if f2export.ttype in ["many2one", "one2many", "many2many"]:
                 if f2export.relation:
                     dct_field_attribute["comodel_name"] = f2export.relation
@@ -2227,16 +2225,6 @@ class CodeGeneratorWriter(models.Model):
                     dct_field_attribute[
                         "inverse_name"
                     ] = f2export.relation_field
-
-                if (
-                    f2export.ttype == "many2one"
-                    and f2export.on_delete
-                    and f2export.on_delete != "set null"
-                ):
-                    dct_field_attribute["ondelete"] = f2export.on_delete
-
-                if f2export.domain and f2export.domain != "[]":
-                    dct_field_attribute["domain"] = f2export.domain
 
                 if f2export.ttype == "many2many":
                     # elif f2export.relation_table.startswith("x_"):
@@ -2258,6 +2246,23 @@ class CodeGeneratorWriter(models.Model):
                         dct_field_attribute["column1"] = f2export.column1
                         dct_field_attribute["column2"] = f2export.column2
 
+                if f2export.domain and f2export.domain != "[]":
+                    dct_field_attribute["domain"] = f2export.domain
+
+                if (
+                    f2export.ttype == "many2one"
+                    and f2export.on_delete
+                    and f2export.on_delete != "set null"
+                ):
+                    dct_field_attribute["ondelete"] = f2export.on_delete
+
+            if (
+                f2export.field_description
+                and f2export.name.replace("_", " ").title()
+                != f2export.field_description
+            ):
+                dct_field_attribute["string"] = f2export.field_description
+
             if (
                 f2export.ttype == "char" or f2export.ttype == "reference"
             ) and f2export.size != 0:
@@ -2267,6 +2272,7 @@ class CodeGeneratorWriter(models.Model):
                 dct_field_attribute["related"] = f2export.related
 
             if f2export.readonly:
+                # TODO force readonly at false when inherit and origin is True
                 dct_field_attribute["readonly"] = True
 
             if f2export.required:

@@ -1,11 +1,28 @@
-# -*- coding: utf-8 -*-
-
-from . import (
-    code_generator,
-    code_generator_writer,
-    ir_actions,
-    ir_model,
-    ir_uis,
-    res_groups,
-    res_config_settings,
-)
+from . import code_generator_act_window
+from . import code_generator_ir_model_dependency
+from . import code_generator_ir_model_fields
+from . import code_generator_menu
+from . import code_generator_model_code
+from . import code_generator_model_code_import
+from . import code_generator_module
+from . import code_generator_module_dependency
+from . import code_generator_module_external_dependency
+from . import code_generator_module_template_dependency
+from . import code_generator_pyclass
+from . import code_generator_view
+from . import code_generator_view_item
+from . import code_generator_writer
+from . import ir_actions_act_url
+from . import ir_actions_act_window
+from . import ir_actions_report
+from . import ir_actions_server
+from . import ir_actions_todo
+from . import ir_model
+from . import ir_model_constraint
+from . import ir_model_fields
+from . import ir_model_server_constrain
+from . import ir_module_module
+from . import ir_ui_menu
+from . import ir_ui_view
+from . import res_config_settings
+from . import res_groups

@@ -33,7 +33,7 @@ class CodeGeneratorData:
         self._css_path = os.path.join("static", "src", "scss")
         self._security_path = "security"
         self._views_path = "views"
-        self._wizards_path = "wizard"
+        self._wizards_path = "wizards"
         self._controllers_path = "controllers"
         self._reports_path = "report"
         self._static_description_path = os.path.join("static", "description")

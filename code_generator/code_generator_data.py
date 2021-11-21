@@ -622,8 +622,9 @@ class CodeGeneratorData:
         # TODO check diff before and after format to auto improvement of generation
         if use_format_black:
             cmd = (
-                f"cd {workspace_path};. .venv/bin/activate;black -l {max_col}"
-                f" --experimental-string-processing -t py37 {self.module_path}"
+                f"cd {workspace_path};./.venv/bin/black -l"
+                f" {max_col} --experimental-string-processing -t py37"
+                f" {self.module_path}"
             )
             result = self.subprocess_cmd(cmd)
 

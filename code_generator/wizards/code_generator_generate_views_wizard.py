@@ -195,6 +195,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         if not self.code_generator_view_ids:
             status = self.generic_generate_view(dct_value_to_create)
         else:
+            model_id = None
             lst_view_generated = []
             for code_generator_view_id in self.code_generator_view_ids:
                 view_id = self._generate_specific_form_views_models(

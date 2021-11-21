@@ -2176,6 +2176,17 @@ class CodeGeneratorWriter(models.Model):
                 lambda field: field.name not in list(set_unique_field)
             )
 
+        # Force field name first
+        lst_field_name = f2exports.filtered(
+                lambda field: field.name == "name"
+            )
+        if lst_field_name:
+            lst_field_not_name = f2exports.filtered(
+                    lambda field: field.name != "name"
+                )
+            lst_id = lst_field_name.ids + lst_field_not_name.ids
+            f2exports = self.env["ir.model.fields"].browse(lst_id)
+
         for f2export in f2exports:
             cw.emit()
             dct_field_attribute = {}

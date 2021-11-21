@@ -7,45 +7,9 @@ class CodeGeneratorViewItem(models.Model):
 
     action_name = fields.Char(string="Action name")
 
-    sequence = fields.Integer(string="Sequence", default=1)
-
-    # TODO create HTML for specific label
-    label = fields.Char(string="Label")
-
-    item_type = fields.Selection(
-        [
-            ("field", "Field"),
-            ("button", "Button"),
-            ("html", "HTML"),
-            ("filter", "Filter"),
-            ("div", "Division"),
-            ("group", "Group"),
-            ("templates", "Templates"),
-            ("t", "T"),
-            ("ul", "UL"),
-            ("li", "LI"),
-            ("i", "I"),
-            ("strong", "Strong"),
-        ],
-        default="field",
-        help="Choose item type to generate.",
-    )
-
-    button_type = fields.Selection(
-        [
-            ("", ""),  # Default
-            ("btn-default", "Default"),  # Default
-            ("btn-primary", "Primary"),
-            ("btn-secondary", "Secondary"),  # Default
-            ("btn-link", "Link"),  # URL
-            ("btn-success", "Success"),  # Green
-            ("btn-warning", "Warning"),  # Yellow
-            ("btn-danger", "Danger"),  # Red
-            ("oe_highlight", "Highlight"),  # Primary
-            ("oe_stat_button", "Statistic"),  # Default
-        ],
-        default="",
-        help="Choose item type to generate.",
+    attrs = fields.Char(
+        string="Attributes",
+        help="Specific condition, search attrs for more information.",
     )
 
     background_type = fields.Selection(
@@ -70,6 +34,85 @@ class CodeGeneratorViewItem(models.Model):
         help="Choose background color of HTML.",
     )
 
+    button_type = fields.Selection(
+        [
+            ("", ""),  # Default
+            ("btn-default", "Default"),  # Default
+            ("btn-primary", "Primary"),
+            ("btn-secondary", "Secondary"),  # Default
+            ("btn-link", "Link"),  # URL
+            ("btn-success", "Success"),  # Green
+            ("btn-warning", "Warning"),  # Yellow
+            ("btn-danger", "Danger"),  # Red
+            ("oe_highlight", "Highlight"),  # Primary
+            ("oe_stat_button", "Statistic"),  # Default
+        ],
+        default="",
+        help="Choose item type to generate.",
+    )
+
+    child_id = fields.One2many(
+        comodel_name="code.generator.view.item",
+        inverse_name="parent_id",
+        string="Child",
+    )
+
+    colspan = fields.Integer(
+        default=1,
+        help="Use this to fill more column, check HTML table.",
+    )
+
+    edit_only = fields.Boolean(string="Edit only")
+
+    item_type = fields.Selection(
+        [
+            ("field", "Field"),
+            ("button", "Button"),
+            ("html", "HTML"),
+            ("filter", "Filter"),
+            ("div", "Division"),
+            ("group", "Group"),
+            ("templates", "Templates"),
+            ("t", "T"),
+            ("ul", "UL"),
+            ("li", "LI"),
+            ("i", "I"),
+            ("strong", "Strong"),
+        ],
+        default="field",
+        help="Choose item type to generate.",
+    )
+
+    has_label = fields.Boolean(
+        string="Labeled",
+        help="Label for title.",
+    )
+
+    icon = fields.Char(
+        string="Icon",
+        help="Example fa-television. Only supported with button.",
+    )
+
+    is_required = fields.Boolean(string="Required")
+
+    is_invisible = fields.Boolean(string="Invisible")
+
+    is_readonly = fields.Boolean(string="Readonly")
+
+    is_help = fields.Boolean(string="Help")
+
+    # TODO create HTML for specific label
+    label = fields.Char(string="Label")
+
+    parent_id = fields.Many2one(
+        comodel_name="code.generator.view.item",
+        string="Parent",
+    )
+
+    password = fields.Boolean(help="Hide character.")
+
+    placeholder = fields.Char()
+
     section_type = fields.Selection(
         [
             ("header", "Header"),
@@ -81,41 +124,4 @@ class CodeGeneratorViewItem(models.Model):
         help="Choose item type to generate.",
     )
 
-    colspan = fields.Integer(
-        string="Colspan",
-        default=1,
-        help="Use this to fill more column, check HTML table.",
-    )
-
-    placeholder = fields.Char(string="Placeholder")
-
-    password = fields.Boolean(string="Password", help="Hide character.")
-
-    icon = fields.Char(
-        string="Icon",
-        help="Example fa-television. Only supported with button.",
-    )
-
-    attrs = fields.Char(
-        string="Attributes",
-        help="Specific condition, search attrs for more information.",
-    )
-
-    is_required = fields.Boolean(string="Required")
-
-    is_invisible = fields.Boolean(string="Invisible")
-
-    is_readonly = fields.Boolean(string="Readonly")
-
-    is_help = fields.Boolean(string="Help")
-
-    has_label = fields.Boolean(string="Labeled", help="Label for title.")
-
-    parent_id = fields.Many2one(comodel_name="code.generator.view.item")
-
-    child_id = fields.One2many(
-        comodel_name="code.generator.view.item",
-        inverse_name="parent_id",
-    )
-
-    edit_only = fields.Boolean(string="Edit only")
+    sequence = fields.Integer(default=1)

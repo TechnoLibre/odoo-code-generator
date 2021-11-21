@@ -397,7 +397,6 @@ class CodeGeneratorData:
         try:
             # if not os.path.isdir(path_sync_code):
             #     osmakedirs(path_sync_code)
-            # if module.clean_before_sync_code:
             path_sync_code = os.path.join(directory, name)
             if os.path.isdir(path_sync_code):
                 shutil.rmtree(path_sync_code)

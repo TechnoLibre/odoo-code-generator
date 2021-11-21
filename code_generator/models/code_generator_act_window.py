@@ -7,14 +7,15 @@ class CodeGeneratorActWindow(models.Model):
 
     name = fields.Char(string="name")
 
-    # TODO use ir.model.data instead if id_name
-    id_name = fields.Char(
-        string="Action id", help="Specify id name of this action window."
-    )
-
     code_generator_id = fields.Many2one(
         comodel_name="code.generator.module",
         string="Code Generator",
         required=True,
         ondelete="cascade",
+    )
+
+    # TODO use ir.model.data instead if id_name
+    id_name = fields.Char(
+        string="Action id",
+        help="Specify id name of this action window.",
     )

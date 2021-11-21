@@ -34,21 +34,43 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     #     result["selected_model_form_view_ids"] = [(6, 0, lst_model_id)]
     #     return result
 
+    name = fields.Char()
+
+    all_model = fields.Boolean(
+        string="All models",
+        default=True,
+        help="Generate with all existing model, or select manually.",
+    )
+
+    clear_all_access = fields.Boolean(
+        string="Clear access",
+        default=True,
+        help="Clear all access/permission before execute.",
+    )
+
+    clear_all_act_window = fields.Boolean(
+        string="Clear actions windows",
+        default=True,
+        help="Clear all actions windows before execute.",
+    )
+
+    clear_all_menu = fields.Boolean(
+        string="Clear menus",
+        default=True,
+        help="Clear all menus before execute.",
+    )
+
+    clear_all_view = fields.Boolean(
+        string="Clear views",
+        default=True,
+        help="Clear all views before execute.",
+    )
+
     code_generator_id = fields.Many2one(
         comodel_name="code.generator.module",
         string="Code Generator",
         required=True,
         ondelete="cascade",
-    )
-
-    enable_generate_all = fields.Boolean(
-        string="Enable all feature",
-        default=True,
-        help="Generate with all feature.",
-    )
-
-    disable_generate_access = fields.Boolean(
-        help="Disable security access generation.",
     )
 
     code_generator_view_ids = fields.Many2many(
@@ -58,9 +80,72 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     )
 
     date = fields.Date(
-        string="Date",
         required=True,
         default=fields.Date.context_today,
+    )
+
+    disable_generate_access = fields.Boolean(
+        help="Disable security access generation."
+    )
+
+    enable_generate_all = fields.Boolean(
+        string="Enable all feature",
+        default=True,
+        help="Generate with all feature.",
+    )
+
+    selected_model_calendar_view_ids = fields.Many2many(
+        comodel_name="ir.model",
+        relation="selected_model_calendar_view_ids_ir_model",
+        string="Selected Model Calendar View",
+    )
+
+    selected_model_diagram_view_ids = fields.Many2many(
+        comodel_name="ir.model",
+        relation="selected_model_diagram_view_ids_ir_model",
+        string="Selected Model Diagram View",
+    )
+
+    selected_model_form_view_ids = fields.Many2many(
+        comodel_name="ir.model",
+        relation="selected_model_form_view_ids_ir_model",
+        string="Selected Model Form View",
+    )
+
+    selected_model_graph_view_ids = fields.Many2many(
+        comodel_name="ir.model",
+        relation="selected_model_graph_view_ids_ir_model",
+        string="Selected Model Graph View",
+    )
+
+    selected_model_kanban_view_ids = fields.Many2many(
+        comodel_name="ir.model",
+        relation="selected_model_kanban_view_ids_ir_model",
+        string="Selected Model Kanban View",
+    )
+
+    selected_model_list_view_ids = fields.Many2many(
+        comodel_name="ir.model",
+        relation="selected_model_list_view_ids_ir_model",
+        string="Selected Model List View",
+    )
+
+    selected_model_pivot_view_ids = fields.Many2many(
+        comodel_name="ir.model",
+        relation="selected_model_pivot_view_ids_ir_model",
+        string="Selected Model Pivot View",
+    )
+
+    selected_model_search_view_ids = fields.Many2many(
+        comodel_name="ir.model",
+        relation="selected_model_search_view_ids_ir_model",
+        string="Selected Model Search View",
+    )
+
+    selected_model_timeline_view_ids = fields.Many2many(
+        comodel_name="ir.model",
+        relation="selected_model_timeline_view_ids_ir_model",
+        string="Selected Model Timeline View",
     )
 
     user_id = fields.Many2one(
@@ -68,85 +153,6 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         string="User",
         required=True,
         default=lambda s: s.env.user.id,
-    )
-
-    name = fields.Char(
-        string="Name",
-    )
-
-    clear_all_view = fields.Boolean(
-        string="Clear views",
-        default=True,
-        help="Clear all views before execute.",
-    )
-
-    clear_all_access = fields.Boolean(
-        string="Clear access",
-        default=True,
-        help="Clear all access/permission before execute.",
-    )
-
-    clear_all_menu = fields.Boolean(
-        string="Clear menus",
-        default=True,
-        help="Clear all menus before execute.",
-    )
-
-    clear_all_act_window = fields.Boolean(
-        string="Clear actions windows",
-        default=True,
-        help="Clear all actions windows before execute.",
-    )
-
-    all_model = fields.Boolean(
-        string="All models",
-        default=True,
-        help="Generate with all existing model, or select manually.",
-    )
-
-    selected_model_list_view_ids = fields.Many2many(
-        comodel_name="ir.model",
-        relation="selected_model_list_view_ids_ir_model",
-    )
-
-    selected_model_form_view_ids = fields.Many2many(
-        comodel_name="ir.model",
-        relation="selected_model_form_view_ids_ir_model",
-    )
-
-    selected_model_kanban_view_ids = fields.Many2many(
-        comodel_name="ir.model",
-        relation="selected_model_kanban_view_ids_ir_model",
-    )
-
-    selected_model_search_view_ids = fields.Many2many(
-        comodel_name="ir.model",
-        relation="selected_model_search_view_ids_ir_model",
-    )
-
-    selected_model_pivot_view_ids = fields.Many2many(
-        comodel_name="ir.model",
-        relation="selected_model_pivot_view_ids_ir_model",
-    )
-
-    selected_model_calendar_view_ids = fields.Many2many(
-        comodel_name="ir.model",
-        relation="selected_model_calendar_view_ids_ir_model",
-    )
-
-    selected_model_timeline_view_ids = fields.Many2many(
-        comodel_name="ir.model",
-        relation="selected_model_timeline_view_ids_ir_model",
-    )
-
-    selected_model_diagram_view_ids = fields.Many2many(
-        comodel_name="ir.model",
-        relation="selected_model_diagram_view_ids_ir_model",
-    )
-
-    selected_model_graph_view_ids = fields.Many2many(
-        comodel_name="ir.model",
-        relation="selected_model_graph_view_ids_ir_model",
     )
 
     generated_root_menu = None
@@ -158,8 +164,8 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     nb_sub_menu = 0
 
     def clear_all(self):
-        if self.clear_all_view and self.code_generator_id.o2m_model_views:
-            self.code_generator_id.o2m_model_views.unlink()
+        # if self.clear_all_view and self.code_generator_id.o2m_model_views:
+        #     self.code_generator_id.o2m_model_views.unlink()
         if self.clear_all_access and self.code_generator_id.o2m_model_access:
             self.code_generator_id.o2m_model_access.unlink()
         if self.clear_all_menu and self.code_generator_id.o2m_menus:

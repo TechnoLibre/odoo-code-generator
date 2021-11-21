@@ -23,11 +23,10 @@ class CodeGeneratorAddControllerWizard(models.TransientModel):
     # ], required=True, default='whitelist', help="When whitelist, all selected fields will be added.\n"
     #                                             "When blacklist, all selected fields will be ignored.")
 
-    user_id = fields.Many2one(
-        comodel_name="res.users",
-        string="User",
-        required=True,
-        default=lambda s: s.env.user.id,
+    field_ids = fields.Many2many(
+        comodel_name="ir.model.fields",
+        string="Fields",
+        help="Select the field you want to inherit or import data.",
     )
 
     model_ids = fields.Many2many(
@@ -36,10 +35,11 @@ class CodeGeneratorAddControllerWizard(models.TransientModel):
         help="Select the model you want to inherit or import data.",
     )
 
-    field_ids = fields.Many2many(
-        comodel_name="ir.model.fields",
-        string="Fields",
-        help="Select the field you want to inherit or import data.",
+    user_id = fields.Many2one(
+        comodel_name="res.users",
+        string="User",
+        required=True,
+        default=lambda s: s.env.user.id,
     )
 
     # clear_fields_blacklist = fields.Boolean(string="Clear field blacklisted", default=False,

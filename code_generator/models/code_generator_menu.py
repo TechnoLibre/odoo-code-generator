@@ -15,7 +15,14 @@ class CodeGeneratorMenu(models.Model):
 
     # TODO use ir.model.data instead if id_name
     id_name = fields.Char(
-        string="Menu id", help="Specify id name of this menu."
+        string="Menu id",
+        help="Specify id name of this menu.",
+    )
+
+    m2o_act_window = fields.Many2one(
+        comodel_name="code.generator.act_window",
+        string="Action Windows",
+        help="Act window to open when click on this menu.",
     )
 
     # TODO use ir.model.data instead if parent_id_name
@@ -24,10 +31,4 @@ class CodeGeneratorMenu(models.Model):
         help="Specify id name of parent menu, optional.",
     )
 
-    sequence = fields.Integer(string="Sequence", default=10)
-
-    m2o_act_window = fields.Many2one(
-        comodel_name="code.generator.act_window",
-        string="Action Windows",
-        help="Act window to open when click on this menu.",
-    )
+    sequence = fields.Integer(default=10)

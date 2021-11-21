@@ -110,15 +110,15 @@ class IrModelConstraint(models.Model):
         ondelete="cascade",
     )
 
+    message = fields.Char()
+
+    model_state = fields.Selection(related="model.state")
+
     module = fields.Many2one(
         default=lambda self: self.env["ir.module.module"]
         .search([("name", "=", "base")])[0]
         .id
     )
-
-    model_state = fields.Selection(related="model.state")
-
-    message = fields.Char(string="Message", help="Message")
 
     @api.model_create_multi
     def create(self, vals_list):

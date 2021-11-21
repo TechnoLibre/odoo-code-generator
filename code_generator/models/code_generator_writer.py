@@ -57,8 +57,8 @@ class CodeGeneratorWriter(models.Model):
     basename = fields.Char(string="Base name")
 
     code_generator_ids = fields.Many2many(
-        string="Code Generator",
         comodel_name="code.generator.module",
+        string="Code Generator",
     )
 
     list_path_file = fields.Char(
@@ -2177,13 +2177,11 @@ class CodeGeneratorWriter(models.Model):
             )
 
         # Force field name first
-        lst_field_name = f2exports.filtered(
-                lambda field: field.name == "name"
-            )
+        lst_field_name = f2exports.filtered(lambda field: field.name == "name")
         if lst_field_name:
             lst_field_not_name = f2exports.filtered(
-                    lambda field: field.name != "name"
-                )
+                lambda field: field.name != "name"
+            )
             lst_id = lst_field_name.ids + lst_field_not_name.ids
             f2exports = self.env["ir.model.fields"].browse(lst_id)
 
@@ -2363,22 +2361,35 @@ class CodeGeneratorWriter(models.Model):
             # elif f2export.ttype != 'one2many' and not f2export.related and not compute and not f2export.copied:
             #     dct_field_attribute["copy"] = False
 
+            lst_first_field_attribute = []
             lst_field_attribute = []
+            lst_last_field_attribute = []
             for key, value in dct_field_attribute.items():
                 if type(value) is str:
                     # TODO find another solution than removing \n, this cause error with cw.CodeWriter
                     value = value.replace("\n", " ").replace("'", "\\'")
-                    if key == "default" and value.startswith("lambda"):
-                        # Exception for lambda
-                        lst_field_attribute.append(f"{key}={value}")
+                    if key == "comodel_name":
+                        lst_first_field_attribute.append(f"{key}='{value}'")
+                    elif key == "ondelete":
+                        lst_last_field_attribute.append(f"{key}='{value}'")
                     else:
-                        lst_field_attribute.append(f"{key}='{value}'")
+                        if key == "default" and value.startswith("lambda"):
+                            # Exception for lambda
+                            lst_field_attribute.append(f"{key}={value}")
+                        else:
+                            lst_field_attribute.append(f"{key}='{value}'")
                 elif type(value) is list:
                     # TODO find another solution than removing \n, this cause error with cw.CodeWriter
                     new_value = str(value).replace("\n", " ")
                     lst_field_attribute.append(f"{key}={new_value}")
                 else:
                     lst_field_attribute.append(f"{key}={value}")
+
+            lst_field_attribute = (
+                lst_first_field_attribute
+                + lst_field_attribute
+                + lst_last_field_attribute
+            )
 
             cw.emit_list(
                 lst_field_attribute,

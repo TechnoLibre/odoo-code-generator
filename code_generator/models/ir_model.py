@@ -20,86 +20,21 @@ MAGIC_FIELDS = MAGIC_COLUMNS + [
 class IrModel(models.Model):
     _inherit = "ir.model"
 
-    @api.constrains("model")
-    def _check_model_name(self):
-        for model in self:
-            if model.state == "manual":
-                if not model.m2o_module and not model.model.startswith("x_"):
-                    raise ValidationError(
-                        _("The model name must start with 'x_'.")
-                    )
-            if not models.check_object_name(model.model):
-                raise ValidationError(
-                    _(
-                        "The model name %s can only contain lowercase"
-                        " characters, digits, underscores and dots."
-                    )
-                    % model.model
-                )
-
-    rec_name = fields.Char(default="name")
-
     description = fields.Char()
 
-    menu_group = fields.Char(
+    diagram_arrow_dst_field = fields.Char(
+        help="Diagram arrow field name for destination."
+    )
+
+    diagram_arrow_form_view_ref = fields.Char(
         help=(
-            "If not empty, will create a group of element in menu when"
-            " auto-generate."
-        )
-    )
-
-    menu_parent = fields.Char(
-        help=(
-            "If not empty, will create a new root menu of element in menu when"
-            " auto-generate."
-        )
-    )
-
-    menu_label = fields.Char(help="Force label menu to use this value.")
-
-    m2o_module = fields.Many2one(
-        "code.generator.module",
-        string="Module",
-        help="Module",
-        ondelete="cascade",
-    )
-
-    o2m_code_import = fields.One2many(
-        "code.generator.model.code.import", "m2o_model"
-    )
-
-    o2m_codes = fields.One2many("code.generator.model.code", "m2o_model")
-
-    menu_name_keep_application = fields.Boolean(
-        help=(
-            "When generate menu name, do we keep application name in item"
-            " name?"
-        )
-    )
-
-    enable_activity = fields.Boolean(
-        help="Will add chatter and activity to this model in form view."
-    )
-
-    diagram_node_object = fields.Char(help="Diagram model name for node.")
-
-    diagram_node_xpos_field = fields.Char(
-        help="Diagram node field name for xpos."
-    )
-
-    diagram_node_ypos_field = fields.Char(
-        help="Diagram node field name for ypos."
-    )
-
-    diagram_node_shape_field = fields.Char(
-        help="Diagram node field shape.", default="rectangle:True"
-    )
-
-    diagram_node_form_view_ref = fields.Char(
-        help=(
-            "Diagram node field, reference view xml id. If empty, will take"
+            "Diagram arrow field, reference view xml id. If empty, will take"
             " default form."
-        ),
+        )
+    )
+    diagram_arrow_label = fields.Char(
+        help="Diagram label, data to show when draw a line.",
+        default="['name']",
     )
 
     diagram_arrow_object = fields.Char(
@@ -110,24 +45,148 @@ class IrModel(models.Model):
         help="Diagram arrow field name for source."
     )
 
-    diagram_arrow_dst_field = fields.Char(
-        help="Diagram arrow field name for destination."
+    diagram_label_string = fields.Char(
+        help="Sentence to show at top of diagram."
     )
 
-    diagram_arrow_label = fields.Char(
-        help="Diagram label, data to show when draw a line.",
-        default="['name']",
-    )
-
-    diagram_arrow_form_view_ref = fields.Char(
+    diagram_node_form_view_ref = fields.Char(
         help=(
-            "Diagram arrow field, reference view xml id. If empty, will take"
+            "Diagram node field, reference view xml id. If empty, will take"
             " default form."
+        )
+    )
+
+    diagram_node_object = fields.Char(help="Diagram model name for node.")
+
+    diagram_node_shape_field = fields.Char(
+        help="Diagram node field shape.",
+        default="rectangle:True",
+    )
+
+    diagram_node_xpos_field = fields.Char(
+        help="Diagram node field name for xpos."
+    )
+
+    diagram_node_ypos_field = fields.Char(
+        help="Diagram node field name for ypos."
+    )
+
+    enable_activity = fields.Boolean(
+        help="Will add chatter and activity to this model in form view."
+    )
+
+    expression_export_data = fields.Char(
+        string="Expression export data",
+        help=(
+            "Set an expression to apply filter when exporting data. example"
+            ' ("website_id", "in", [1,2]). Keep it empty to export all data.'
         ),
     )
 
-    diagram_label_string = fields.Char(
-        help="Sentence to show at top of diagram.",
+    inherit_model_ids = fields.Many2many(
+        comodel_name="code.generator.ir.model.dependency",
+        string="Inherit ir Model",
+        help="Inherit Model",
+        ondelete="cascade",
+    )
+
+    menu_group = fields.Char(
+        help=(
+            "If not empty, will create a group of element in menu when"
+            " auto-generate."
+        )
+    )
+
+    menu_label = fields.Char(help="Force label menu to use this value.")
+
+    menu_name_keep_application = fields.Boolean(
+        help=(
+            "When generate menu name, do we keep application name in item"
+            " name?"
+        )
+    )
+
+    menu_parent = fields.Char(
+        help=(
+            "If not empty, will create a new root menu of element in menu when"
+            " auto-generate."
+        )
+    )
+
+    m2o_module = fields.Many2one(
+        comodel_name="code.generator.module",
+        string="Module",
+        help="Module",
+        ondelete="cascade",
+    )
+
+    nomenclator = fields.Boolean(
+        string="Nomenclator?",
+        help="Set this if you want this model as a nomenclator",
+    )
+
+    o2m_code_import = fields.One2many(
+        comodel_name="code.generator.model.code.import",
+        inverse_name="m2o_model",
+        string="Codes import",
+    )
+
+    o2m_codes = fields.One2many(
+        comodel_name="code.generator.model.code",
+        inverse_name="m2o_model",
+        string="Codes",
+    )
+
+    o2m_constraints = fields.One2many(
+        comodel_name="ir.model.constraint",
+        inverse_name="model",
+        string="Constraints",
+        domain=[("type", "=", "u"), ("message", "!=", None)],
+    )
+
+    m2o_inherit_py_class = fields.Many2one(
+        comodel_name="code.generator.pyclass",
+        string="Python Class",
+        help="Python Class",
+        ondelete="cascade",
+    )
+
+    o2m_act_window = fields.One2many(
+        comodel_name="ir.actions.act_window",
+        inverse_name="m2o_res_model",
+        string="Act window",
+    )
+
+    o2m_reports = fields.One2many(
+        comodel_name="ir.actions.report",
+        inverse_name="m2o_model",
+        string="Reports",
+        help="Reports associated with this model",
+    )
+
+    o2m_server_action = fields.One2many(
+        comodel_name="ir.actions.server",
+        inverse_name="model_id",
+        string="Server action",
+        domain=[
+            ("binding_type", "=", "action"),
+            "|",
+            ("state", "=", "code"),
+            ("state", "=", "multi"),
+            ("usage", "=", "ir_actions_server"),
+        ],
+    )
+
+    o2m_server_constrains = fields.One2many(
+        comodel_name="ir.model.server_constrain",
+        inverse_name="m2o_ir_model",
+        string="Server Constrains",
+        help="Server Constrains attach to this model",
+    )
+
+    rec_name = fields.Char(
+        default="name",
+        help="Will be the field name to use when show the generic name.",
     )
 
     @api.onchange("m2o_module")
@@ -163,52 +222,22 @@ class IrModel(models.Model):
             )
         )
 
-    o2m_constraints = fields.One2many(
-        "ir.model.constraint",
-        "model",
-        domain=[("type", "=", "u"), ("message", "!=", None)],
-    )
-
-    m2o_inherit_py_class = fields.Many2one(
-        "code.generator.pyclass",
-        string="Python Class",
-        help="Python Class",
-        ondelete="cascade",
-    )
-
-    inherit_model_ids = fields.Many2many(
-        "code.generator.ir.model.dependency",
-        string="Inherit ir Model",
-        help="Inherit Model",
-        ondelete="cascade",
-    )
-
-    o2m_act_window = fields.One2many("ir.actions.act_window", "m2o_res_model")
-
-    o2m_server_action = fields.One2many(
-        "ir.actions.server",
-        "binding_model_id",
-        domain=[
-            ("binding_type", "=", "action"),
-            "|",
-            ("state", "=", "code"),
-            ("state", "=", "multi"),
-            ("usage", "=", "ir_actions_server"),
-        ],
-    )
-
-    nomenclator = fields.Boolean(
-        string="Nomenclator?",
-        help="Set this if you want this model as a nomenclator",
-    )
-
-    expression_export_data = fields.Char(
-        string="Expression export data",
-        help=(
-            "Set an expression to apply filter when exporting data. example"
-            ' ("website_id", "in", [1,2]). Keep it empty to export all data.'
-        ),
-    )
+    @api.constrains("model")
+    def _check_model_name(self):
+        for model in self:
+            if model.state == "manual":
+                if not model.m2o_module and not model.model.startswith("x_"):
+                    raise ValidationError(
+                        _("The model name must start with 'x_'.")
+                    )
+            if not models.check_object_name(model.model):
+                raise ValidationError(
+                    _(
+                        "The model name %s can only contain lowercase"
+                        " characters, digits, underscores and dots."
+                    )
+                    % model.model
+                )
 
     @api.multi
     def add_model_inherit(self, model_name):
@@ -365,20 +394,6 @@ class IrModel(models.Model):
             pass
 
         return custommodelclass
-
-    o2m_server_constrains = fields.One2many(
-        comodel_name="ir.model.server_constrain",
-        inverse_name="m2o_ir_model",
-        string="Server Constrains",
-        help="Server Constrains attach to this model",
-    )
-
-    o2m_reports = fields.One2many(
-        comodel_name="ir.actions.report",
-        inverse_name="m2o_model",
-        string="Reports",
-        help="Reports associated with this model",
-    )
 
 
 # class CodeGeneratorBase(models.AbstractModel):

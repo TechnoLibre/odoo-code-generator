@@ -5,11 +5,29 @@ class CodeGeneratorAddModelWizard(models.TransientModel):
     _name = "code.generator.add.model.wizard"
     _description = "Code Generator Model Wizard"
 
+    clear_fields_blacklist = fields.Boolean(
+        string="Clear field blacklisted",
+        default=False,
+        help="Erase all blacklisted fields when enable.",
+    )
+
     code_generator_id = fields.Many2one(
         comodel_name="code.generator.module",
         string="Code Generator",
         required=True,
         ondelete="cascade",
+    )
+
+    field_ids = fields.Many2many(
+        comodel_name="ir.model.fields",
+        string="Fields",
+        help="Select the field you want to inherit or import data.",
+    )
+
+    model_ids = fields.Many2many(
+        comodel_name="ir.model",
+        string="Models",
+        help="Select the model you want to inherit or import data.",
     )
 
     option_adding = fields.Selection(
@@ -40,24 +58,6 @@ class CodeGeneratorAddModelWizard(models.TransientModel):
         string="User",
         required=True,
         default=lambda s: s.env.user.id,
-    )
-
-    model_ids = fields.Many2many(
-        comodel_name="ir.model",
-        string="Models",
-        help="Select the model you want to inherit or import data.",
-    )
-
-    field_ids = fields.Many2many(
-        comodel_name="ir.model.fields",
-        string="Fields",
-        help="Select the field you want to inherit or import data.",
-    )
-
-    clear_fields_blacklist = fields.Boolean(
-        string="Clear field blacklisted",
-        default=False,
-        help="Erase all blacklisted fields when enable.",
     )
 
     @api.onchange("model_ids")

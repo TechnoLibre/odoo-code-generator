@@ -16,136 +16,52 @@ class CodeGeneratorModule(models.Model):
 
     name = fields.Char(readonly=False)
 
-    category_id = fields.Many2one(readonly=False)
-
-    shortdesc = fields.Char(readonly=False, required=True)
-
-    summary = fields.Char(readonly=False)
-
-    description = fields.Text(readonly=False)
+    application = fields.Boolean(readonly=False)
 
     author = fields.Char(readonly=False)
 
-    maintainer = fields.Char(readonly=False)
-
-    contributors = fields.Text(readonly=False)
-
-    website = fields.Char(readonly=False)
-
-    latest_version = fields.Char(readonly=False)
-
-    published_version = fields.Char(readonly=False)
-
-    url = fields.Char(readonly=False)
-
-    dependencies_id = fields.One2many(
-        "code.generator.module.dependency", "module_id", readonly=False
-    )
-
-    dependencies_template_id = fields.One2many(
-        "code.generator.module.template.dependency",
-        "module_id",
+    category_id = fields.Many2one(
+        string="Category",
         readonly=False,
-    )
-
-    external_dependencies_id = fields.One2many(
-        "code.generator.module.external.dependency",
-        "module_id",
-        readonly=False,
-    )
-
-    state = fields.Selection(readonly=False, default="uninstalled")
-
-    demo = fields.Boolean(readonly=False)
-
-    license = fields.Selection(readonly=False, default="AGPL-3")
-
-    application = fields.Boolean(readonly=False)
-
-    icon_image = fields.Binary(readonly=False)
-
-    icon_child_image = fields.Binary(String="Generated icon")
-
-    icon_real_image = fields.Binary(
-        String="Replace icon", help="This will replace icon_image"
-    )
-
-    o2m_groups = fields.One2many("res.groups", "m2o_module")
-
-    o2m_models = fields.One2many("ir.model", "m2o_module")
-
-    o2m_codes = fields.One2many("code.generator.model.code", "m2o_module")
-
-    o2m_nomenclator_whitelist_fields = fields.One2many(
-        "code.generator.ir.model.fields",
-        "m2o_module",
-        domain=[("nomenclature_whitelist", "=", True)],
-    )
-
-    o2m_nomenclator_blacklist_fields = fields.One2many(
-        "code.generator.ir.model.fields",
-        "m2o_module",
-        domain=[("nomenclature_blacklist", "=", True)],
-    )
-
-    o2m_model_access = fields.One2many(
-        "ir.model.access", compute="_get_models_info"
-    )
-
-    o2m_model_rules = fields.One2many("ir.rule", compute="_get_models_info")
-
-    # o2m_model_constraints = fields.One2many("ir.model.constraint", compute="_get_models_info")
-    o2m_model_constraints = fields.One2many(
-        "ir.model.constraint", inverse_name="code_generator_id"
-    )
-
-    o2m_model_views = fields.One2many("ir.ui.view", compute="_get_models_info")
-
-    code_generator_menus_id = fields.One2many(
-        "code.generator.menu", inverse_name="code_generator_id"
     )
 
     code_generator_act_window_id = fields.One2many(
-        "code.generator.act_window", inverse_name="code_generator_id"
+        comodel_name="code.generator.act_window",
+        string="Code Generator Act Window",
+        inverse_name="code_generator_id",
+    )
+
+    code_generator_menus_id = fields.One2many(
+        comodel_name="code.generator.menu",
+        string="Code Generator Menus",
+        inverse_name="code_generator_id",
     )
 
     code_generator_views_id = fields.One2many(
-        "code.generator.view", inverse_name="code_generator_id"
+        comodel_name="code.generator.view",
+        string="Code Generator Views",
+        inverse_name="code_generator_id",
     )
 
-    o2m_model_act_url = fields.One2many(
-        comodel_name="ir.actions.act_url", inverse_name="m2o_code_generator"
+    contributors = fields.Text(readonly=False)
+
+    demo = fields.Boolean(readonly=False)
+
+    dependencies_id = fields.One2many(
+        comodel_name="code.generator.module.dependency",
+        inverse_name="module_id",
+        string="Dependencies module",
+        readonly=False,
     )
 
-    o2m_model_act_todo = fields.One2many(
-        comodel_name="ir.actions.todo", inverse_name="m2o_code_generator"
+    dependencies_template_id = fields.One2many(
+        comodel_name="code.generator.module.template.dependency",
+        inverse_name="module_id",
+        string="Dependencies template module",
+        readonly=False,
     )
 
-    o2m_model_act_window = fields.One2many(
-        "ir.actions.act_window", compute="_get_models_info"
-    )
-
-    o2m_model_act_server = fields.One2many(
-        "ir.actions.server", compute="_get_models_info"
-    )
-
-    o2m_model_server_constrains = fields.One2many(
-        "ir.model.server_constrain", compute="_get_models_info"
-    )
-
-    o2m_model_reports = fields.One2many(
-        "ir.actions.report", compute="_get_models_info"
-    )
-
-    o2m_menus = fields.One2many(
-        "ir.ui.menu", "m2o_module", context={"ir.ui.menu.full_list": True}
-    )
-
-    nomenclator_only = fields.Boolean(
-        string="Only export data",
-        default=False,
-        help="Useful to export data with existing model.",
-    )
+    description = fields.Text(readonly=False)
 
     # Dev binding code
     enable_sync_code = fields.Boolean(
@@ -160,9 +76,139 @@ class CodeGeneratorModule(models.Model):
         help="Show pylint result at the end of generation.",
     )
 
+    external_dependencies_id = fields.One2many(
+        comodel_name="code.generator.module.external.dependency",
+        string="External Dependencies",
+        inverse_name="module_id",
+        readonly=False,
+    )
+
+    icon_child_image = fields.Binary(string="Generated icon")
+
+    icon_image = fields.Binary(readonly=False)
+
+    icon_real_image = fields.Binary(
+        string="Replace icon",
+        help="This will replace icon_image",
+    )
+
+    latest_version = fields.Char(readonly=False)
+
+    license = fields.Selection(
+        readonly=False,
+        default="AGPL-3",
+    )
+
+    maintainer = fields.Char(readonly=False)
+
+    nomenclator_only = fields.Boolean(
+        string="Only export data",
+        default=False,
+        help="Useful to export data with existing model.",
+    )
+
+    o2m_codes = fields.One2many(
+        comodel_name="code.generator.model.code",
+        inverse_name="m2o_module",
+    )
+
+    o2m_groups = fields.One2many(
+        comodel_name="res.groups",
+        inverse_name="m2o_module",
+    )
+
+    o2m_menus = fields.One2many(
+        comodel_name="ir.ui.menu",
+        inverse_name="m2o_module",
+        context={"ir.ui.menu.full_list": True},
+    )
+
+    o2m_model_access = fields.One2many(
+        comodel_name="ir.model.access",
+        compute="_get_models_info",
+    )
+
+    o2m_model_act_server = fields.One2many(
+        comodel_name="ir.actions.server",
+        compute="_get_models_info",
+    )
+
+    o2m_model_act_todo = fields.One2many(
+        comodel_name="ir.actions.todo",
+        inverse_name="m2o_code_generator",
+    )
+
+    o2m_model_act_url = fields.One2many(
+        comodel_name="ir.actions.act_url",
+        inverse_name="m2o_code_generator",
+    )
+
+    o2m_model_act_window = fields.One2many(
+        comodel_name="ir.actions.act_window",
+        compute="_get_models_info",
+    )
+
+    # o2m_model_constraints = fields.One2many("ir.model.constraint", compute="_get_models_info")
+    o2m_model_constraints = fields.One2many(
+        comodel_name="ir.model.constraint",
+        inverse_name="code_generator_id",
+    )
+
+    o2m_model_rules = fields.One2many(
+        comodel_name="ir.rule",
+        compute="_get_models_info",
+    )
+
+    o2m_model_reports = fields.One2many(
+        comodel_name="ir.actions.report",
+        compute="_get_models_info",
+    )
+
+    o2m_model_server_constrains = fields.One2many(
+        comodel_name="ir.model.server_constrain",
+        compute="_get_models_info",
+    )
+
+    o2m_models = fields.One2many(
+        comodel_name="ir.model",
+        inverse_name="m2o_module",
+    )
+
+    o2m_model_views = fields.One2many(
+        comodel_name="ir.ui.view",
+        compute="_get_models_info",
+    )
+
+    o2m_nomenclator_blacklist_fields = fields.One2many(
+        comodel_name="code.generator.ir.model.fields",
+        inverse_name="m2o_module",
+        domain=[("nomenclature_blacklist", "=", True)],
+    )
+
+    o2m_nomenclator_whitelist_fields = fields.One2many(
+        comodel_name="code.generator.ir.model.fields",
+        inverse_name="m2o_module",
+        domain=[("nomenclature_whitelist", "=", True)],
+    )
+
+    published_version = fields.Char(readonly=False)
+
+    shortdesc = fields.Char(readonly=False, required=True)
+
+    state = fields.Selection(readonly=False, default="uninstalled")
+
+    summary = fields.Char(readonly=False)
+
     template_model_name = fields.Char(
         string="Functions models",
         help="Add model from list, separate by ';' and generate template.",
+    )
+
+    template_module_id = fields.Many2one(
+        comodel_name="ir.module.module",
+        string="Template module id",
+        help="Child module to generate.",
+        compute="_fill_template_module_id",
     )
 
     template_module_name = fields.Char(
@@ -173,21 +219,9 @@ class CodeGeneratorModule(models.Model):
         ),
     )
 
-    template_module_id = fields.Many2one(
-        comodel_name="ir.module.module",
-        string="Template module id",
-        help="Child module to generate.",
-        compute="_fill_template_module_id",
-    )
+    url = fields.Char(readonly=False)
 
-    @api.depends("template_module_name")
-    @api.multi
-    def _fill_template_module_id(self):
-        for module_id in self:
-            if module_id.template_module_name:
-                module_id.template_module_id = self.env[
-                    "ir.module.module"
-                ].search([("name", "=", module_id.template_module_name)])
+    website = fields.Char(readonly=False)
 
     @api.model
     def _default_path_sync_code(self):
@@ -216,6 +250,15 @@ class CodeGeneratorModule(models.Model):
             " generate new code."
         ),
     )
+
+    @api.depends("template_module_name")
+    @api.multi
+    def _fill_template_module_id(self):
+        for module_id in self:
+            if module_id.template_module_name:
+                module_id.template_module_id = self.env[
+                    "ir.module.module"
+                ].search([("name", "=", module_id.template_module_name)])
 
     @api.multi
     def add_module_dependency_template(self, module_name):
@@ -263,8 +306,6 @@ class CodeGeneratorModule(models.Model):
                         "name": dependency.display_name,
                     }
                     self.env[model_dependency].create(value)
-
-    # clean_before_sync_code = fields.Boolean(string="Clean before sync", help="Clean before sync, all will be lost.")
 
     @api.depends("o2m_models")
     def _get_models_info(self):

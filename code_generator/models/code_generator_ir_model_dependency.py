@@ -1,12 +1,17 @@
 from odoo import models, fields, api, modules, tools
 
 
-class IrModelDependency(models.Model):
+class CodeGeneratorIrModelDependency(models.Model):
     _name = "code.generator.ir.model.dependency"
     _description = "Code Generator ir model Dependency"
 
-    depend_id = fields.Many2one("ir.model", "Dependency", ondelete="cascade")
     name = fields.Char(compute="compute_name")
+
+    depend_id = fields.Many2one(
+        comodel_name="ir.model",
+        string="Dependency",
+        ondelete="cascade",
+    )
 
     ir_model_ids = fields.One2many(
         comodel_name="ir.model",

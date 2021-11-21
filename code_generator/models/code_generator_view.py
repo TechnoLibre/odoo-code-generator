@@ -12,29 +12,16 @@ class CodeGeneratorView(models.Model):
         ondelete="cascade",
     )
 
+    has_body_sheet = fields.Boolean(
+        string="Sheet format",
+        help="Use sheet presentation for body of form view.",
+    )
+
     # TODO use ir.model.data instead if id_name
     id_name = fields.Char(
-        string="View id", help="Specify id name of this view."
+        string="View id",
+        help="Specify id name of this view.",
     )
-
-    view_type = fields.Selection(
-        [
-            ("tree", "Tree"),
-            ("form", "Form"),
-            ("pivot", "Pivot"),
-            ("graph", "Graph"),
-            ("search", "Search"),  # Special
-            ("kanban", "Kanban"),
-            ("timeline", "Timeline"),
-            ("activity", "Activity"),
-            ("calendar", "Calendar"),
-            ("diagram", "Diagram"),
-        ],
-        default="form",
-        help="Choose view type to generate.",
-    )
-
-    view_name = fields.Char(string="View name")
 
     m2o_model = fields.Many2one(
         comodel_name="ir.model",
@@ -48,7 +35,21 @@ class CodeGeneratorView(models.Model):
         help="Item view to add in this view.",
     )
 
-    has_body_sheet = fields.Boolean(
-        string="Sheet format",
-        help="Use sheet presentation for body of form view.",
+    view_name = fields.Char(string="View name")
+
+    view_type = fields.Selection(
+        [
+            ("tree", "Tree"),
+            ("form", "Form"),
+            ("pivot", "Pivot"),
+            ("graph", "Graph"),
+            ("search", "Search"),
+            ("kanban", "Kanban"),
+            ("timeline", "Timeline"),
+            ("activity", "Activity"),
+            ("calendar", "Calendar"),
+            ("diagram", "Diagram"),
+        ],
+        default="form",
+        help="Choose view type to generate.",
     )

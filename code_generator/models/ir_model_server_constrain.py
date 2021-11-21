@@ -52,9 +52,23 @@ class IrModelServerConstrain(models.Model):
     _rec_name = "constrained"
 
     constrained = fields.Char(
-        string="Constrained",
-        help="Constrained fields, ej: name, age",
         required=True,
+        help="Constrained fields, ej: name, age",
+    )
+
+    m2o_ir_model = fields.Many2one(
+        comodel_name="ir.model",
+        string="Code generator Model",
+        domain=[("transient", "=", False)],
+        required=True,
+        help="Model that will hold this server constrain",
+        ondelete="cascade",
+    )
+
+    txt_code = fields.Text(
+        string="Code",
+        required=True,
+        help="Code to execute",
     )
 
     @api.onchange("constrained")
@@ -71,10 +85,6 @@ class IrModelServerConstrain(models.Model):
             ):
                 raise ValidationError(CONSTRAINEDLS)
 
-    txt_code = fields.Text(
-        string="Code", help="Code to execute", required=True
-    )
-
     @api.onchange("txt_code")
     @api.constrains("txt_code")
     def _check_txt_code(self):
@@ -85,12 +95,3 @@ class IrModelServerConstrain(models.Model):
                 self.txt_code,
                 SYNTAXERRORMSG % constrain_detail,
             )
-
-    m2o_ir_model = fields.Many2one(
-        comodel_name="ir.model",
-        string="Code generator Model",
-        help="Model that will hold this server constrain",
-        required=True,
-        domain=[("transient", "=", False)],
-        ondelete="cascade",
-    )

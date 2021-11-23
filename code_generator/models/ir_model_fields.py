@@ -223,6 +223,11 @@ class IrModelFields(models.Model):
         help="Hide from view when field is blacklisted. View list only.",
     )
 
+    is_hide_blacklist_model_inherit = fields.Boolean(
+        string="Hide in blacklist model inherit",
+        help="Hide from model inherit when field is blacklisted.",
+    )
+
     is_hide_blacklist_pivot_view = fields.Boolean(
         string="Hide in blacklist pivot view",
         help="Hide from view when field is blacklisted. View pivot only.",
@@ -270,6 +275,14 @@ class IrModelFields(models.Model):
         help=(
             "If a field in model is in whitelist, all is not will be hide. "
             "View list only."
+        ),
+    )
+
+    is_show_whitelist_model_inherit = fields.Boolean(
+        string="Show in whitelist model inherit",
+        help=(
+            "If a field in model is in whitelist, will be show in generated"
+            " model."
         ),
     )
 

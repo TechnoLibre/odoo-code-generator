@@ -1865,12 +1865,14 @@ class CodeGeneratorWriter(models.Model):
             _rec_name = ""
             _foreign_keys = []
             """
-            cw.emit(f"_name = '{model.model}'")
-
             # Force unique inherit
             lst_inherit = sorted(
                 list(set([a.depend_id.model for a in model.inherit_model_ids]))
             )
+
+            if model.model not in lst_inherit:
+                cw.emit(f"_name = '{model.model}'")
+
             if lst_inherit:
                 if len(lst_inherit) == 1:
                     str_inherit = f"'{lst_inherit[0]}'"
@@ -1882,7 +1884,7 @@ class CodeGeneratorWriter(models.Model):
             if model.description:
                 new_description = model.description.replace("'", "\\'")
                 cw.emit(f"_description = '{new_description}'")
-            else:
+            elif not lst_inherit:
                 cw.emit(f"_description = '{model.name}'")
             if model.rec_name and model.rec_name != "name":
                 cw.emit(f"_rec_name = '{model.rec_name}'")
@@ -1940,6 +1942,10 @@ class CodeGeneratorWriter(models.Model):
         :param l_model_csv_access:
         :return:
         """
+        # TODO check when need to generate access in the context of inherit with same model
+        if module.is_inherit_module:
+            return
+
         l_model_csv_access.insert(
             0,
             "id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink",
@@ -2163,18 +2169,34 @@ class CodeGeneratorWriter(models.Model):
         ).sorted(key=lambda r: r.code_generator_sequence)
 
         if model.inherit_model_ids:
-            father_ids = self.env["ir.model"].browse(
-                [a.depend_id.id for a in model.inherit_model_ids]
+            is_whitelist = any(
+                [a.is_show_whitelist_model_inherit for a in f2exports]
             )
-            set_unique_field = set()
-            for father_id in father_ids:
-                fatherfieldnames = father_id.field_id.filtered(
+            if is_whitelist:
+                f2exports = f2exports.filtered(
                     lambda field: field.name not in MAGIC_FIELDS
-                ).mapped("name")
-                set_unique_field.update(fatherfieldnames)
-            f2exports = f2exports.filtered(
-                lambda field: field.name not in list(set_unique_field)
-            )
+                    and not field.is_hide_blacklist_model_inherit
+                    and (
+                        not is_whitelist
+                        or (
+                            is_whitelist
+                            and field.is_show_whitelist_model_inherit
+                        )
+                    )
+                )
+            else:
+                father_ids = self.env["ir.model"].browse(
+                    [a.depend_id.id for a in model.inherit_model_ids]
+                )
+                set_unique_field = set()
+                for father_id in father_ids:
+                    fatherfieldnames = father_id.field_id.filtered(
+                        lambda field: field.name not in MAGIC_FIELDS
+                    ).mapped("name")
+                    set_unique_field.update(fatherfieldnames)
+                f2exports = f2exports.filtered(
+                    lambda field: field.name not in list(set_unique_field)
+                )
 
         # Force field name first
         field_rec_name = model.rec_name if model.rec_name else model._rec_name

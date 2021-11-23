@@ -92,6 +92,11 @@ class CodeGeneratorModule(models.Model):
         help="This will replace icon_image",
     )
 
+    is_inherit_module = fields.Boolean(
+        default=False,
+        help="Enable when generate inherit module when same model.",
+    )
+
     latest_version = fields.Char(readonly=False)
 
     license = fields.Selection(

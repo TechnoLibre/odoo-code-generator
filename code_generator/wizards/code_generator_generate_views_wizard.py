@@ -307,7 +307,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
             # Different view
             if model_id in o2m_models_view_list:
-                is_whitelist = all(
+                is_whitelist = any(
                     [a.is_show_whitelist_list_view for a in model_id.field_id]
                 )
                 # model_created_fields_list = list(
@@ -341,7 +341,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 lst_view_generated.append("list")
 
             if model_id in o2m_models_view_form:
-                is_whitelist = all(
+                is_whitelist = any(
                     [
                         a.is_show_whitelist_form_view
                         for b in model_id
@@ -376,7 +376,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 lst_view_generated.append("form")
 
             if model_id in o2m_models_view_kanban:
-                is_whitelist = all(
+                is_whitelist = any(
                     [
                         a.is_show_whitelist_kanban_view
                         for b in model_id
@@ -414,7 +414,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 lst_view_generated.append("kanban")
 
             if model_id in o2m_models_view_search:
-                is_whitelist = all(
+                is_whitelist = any(
                     [
                         a.is_show_whitelist_search_view
                         for b in model_id
@@ -452,7 +452,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 lst_view_generated.append("search")
 
             if model_id in o2m_models_view_pivot:
-                is_whitelist = all(
+                is_whitelist = any(
                     [
                         a.is_show_whitelist_pivot_view
                         for b in model_id
@@ -489,7 +489,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 lst_view_generated.append("pivot")
 
             if model_id in o2m_models_view_calendar:
-                is_whitelist = all(
+                is_whitelist = any(
                     [
                         a.is_show_whitelist_calendar_view
                         for b in model_id
@@ -534,7 +534,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                     lst_view_generated.append("calendar")
 
             if model_id in o2m_models_view_graph:
-                is_whitelist = all(
+                is_whitelist = any(
                     [
                         a.is_show_whitelist_graph_view
                         for b in model_id

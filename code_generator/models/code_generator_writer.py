@@ -1247,10 +1247,7 @@ class CodeGeneratorWriter(models.Model):
         server_action_ids = model.o2m_server_action
 
         # Remove all field when in inherit if not in whitelist
-        is_whitelist = any(
-            [a.is_show_whitelist_write_view for a in view_ids]
-            + [module.is_inherit_module]
-        )
+        is_whitelist = any([a.is_show_whitelist_write_view for a in view_ids])
         view_filtered_ids = view_ids.filtered(
             lambda field: field.name not in MAGIC_FIELDS
             and not field.is_hide_blacklist_write_view
@@ -1973,10 +1970,6 @@ class CodeGeneratorWriter(models.Model):
         :param l_model_csv_access:
         :return:
         """
-        # TODO check when need to generate access in the context of inherit with same model
-        if module.is_inherit_module:
-            return
-
         l_model_csv_access.insert(
             0,
             "id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink",

@@ -1240,9 +1240,27 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        if not (
-            model.view_ids or model.o2m_act_window or model.o2m_server_action
-        ):
+        # view_ids = model.view_ids
+        # TODO model.view_ids not working when add inherit view from wizard... what is different? Force values
+        view_ids = self.env["ir.ui.view"].search([("model", "=", model.model)])
+        act_window_ids = model.o2m_act_window
+        server_action_ids = model.o2m_server_action
+
+        # Remove all field when in inherit if not in whitelist
+        is_whitelist = any(
+            [a.is_show_whitelist_write_view for a in view_ids]
+            + [module.is_inherit_module]
+        )
+        view_filtered_ids = view_ids.filtered(
+            lambda field: field.name not in MAGIC_FIELDS
+            and not field.is_hide_blacklist_write_view
+            and (
+                not is_whitelist
+                or (is_whitelist and field.is_show_whitelist_write_view)
+            )
+        )
+
+        if not (view_filtered_ids or act_window_ids or server_action_ids):
             return
 
         dct_replace = {}
@@ -1254,7 +1272,7 @@ class CodeGeneratorWriter(models.Model):
         #
         # Views
         #
-        for view in model.view_ids:
+        for view in view_filtered_ids:
 
             view_type = view.type
 
@@ -1301,7 +1319,9 @@ class CodeGeneratorWriter(models.Model):
                         E.field(
                             {
                                 "name": "inherit_id",
-                                "ref": self._get_view_data_name(view),
+                                "ref": self._get_view_data_name(
+                                    view.inherit_id
+                                ),
                             }
                         )
                     )
@@ -1321,6 +1341,15 @@ class CodeGeneratorWriter(models.Model):
                         if not view.arch_db.startswith(XML_VERSION_STR)
                         else view.arch_db[len(XML_VERSION_STR) :]
                     )
+                    # TODO retransform xml to format correctly
+                    str_data_begin = "<data>\n"
+                    str_data_end = "</data>\n"
+                    if str_arch_db.startswith(
+                        str_data_begin
+                    ) and str_arch_db.endswith(str_data_end):
+                        str_arch_db = str_arch_db[
+                            len(str_data_begin) : -len(str_data_end)
+                        ]
                     dct_replace[uid] = self._setup_xml_indent(
                         str_arch_db, indent=3
                     )
@@ -1362,7 +1391,7 @@ class CodeGeneratorWriter(models.Model):
         #
         # Action Windows
         #
-        for act_window in model.o2m_act_window:
+        for act_window in act_window_ids:
             # Use descriptive method when contain this attributes, not supported in simplify view
             use_complex_view = bool(
                 act_window.groups_id
@@ -1583,7 +1612,7 @@ class CodeGeneratorWriter(models.Model):
         #
         # Server Actions
         #
-        for server_action in model.o2m_server_action:
+        for server_action in server_action_ids:
 
             lst_field = []
 

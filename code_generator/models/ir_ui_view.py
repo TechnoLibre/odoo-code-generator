@@ -10,3 +10,13 @@ class IrUiView(models.Model):
         help="Model",
         ondelete="cascade",
     )
+
+    is_show_whitelist_write_view = fields.Boolean(
+        string="Show in whitelist when writing code view",
+        help="If a field in model is in whitelist, all is not will be hide. ",
+    )
+
+    is_hide_blacklist_write_view = fields.Boolean(
+        string="Hide in blacklist when writing code view",
+        help="Hide from view when field is blacklisted.",
+    )

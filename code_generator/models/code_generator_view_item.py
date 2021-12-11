@@ -57,6 +57,8 @@ class CodeGeneratorViewItem(models.Model):
         string="Child",
     )
 
+    class_attr = fields.Char(help="Update class attribute")
+
     colspan = fields.Integer(
         default=1,
         help="Use this to fill more column, check HTML table.",
@@ -72,6 +74,7 @@ class CodeGeneratorViewItem(models.Model):
             ("filter", "Filter"),
             ("div", "Division"),
             ("group", "Group"),
+            ("xpath", "Xpath"),
             ("templates", "Templates"),
             ("t", "T"),
             ("ul", "UL"),
@@ -112,6 +115,19 @@ class CodeGeneratorViewItem(models.Model):
     password = fields.Boolean(help="Hide character.")
 
     placeholder = fields.Char()
+
+    position = fields.Selection(
+        [
+            ("inside", "Inside"),
+            ("replace", "Replace"),
+            ("after", "After"),
+            ("before", "Before"),
+            ("attributes", "Attributes"),
+            ("move", "Move"),
+        ]
+    )
+
+    expr = fields.Char(help="Example: //field[@name='name']")
 
     section_type = fields.Selection(
         [

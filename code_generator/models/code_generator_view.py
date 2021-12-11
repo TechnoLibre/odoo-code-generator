@@ -23,6 +23,10 @@ class CodeGeneratorView(models.Model):
         help="Specify id name of this view.",
     )
 
+    inherit_view_name = fields.Char(
+        help="Set inherit view name, use record id (ir.model.data)."
+    )
+
     m2o_model = fields.Many2one(
         comodel_name="ir.model",
         string="Code generator Model",

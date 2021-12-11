@@ -88,6 +88,8 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         help="Disable security access generation."
     )
 
+    disable_generate_menu = fields.Boolean(help="Disable menu generation.")
+
     enable_generate_all = fields.Boolean(
         string="Enable all feature",
         default=True,
@@ -1896,6 +1898,31 @@ pass''',
                 dct_item["attrs"] = item.attrs
             item_xml = E.group(dct_item, *lst_child)
             return item_xml
+        elif item.item_type == "li":
+            dct_item = {}
+            if item.class_attr:
+                dct_item["class"] = item.class_attr
+            item_xml = E.li(dct_item, *lst_child)
+            return item_xml
+        elif item.item_type == "strong":
+            dct_item = {}
+            item_xml = E.strong(dct_item, *lst_child)
+            return item_xml
+        elif item.item_type == "xpath":
+            dct_item = {}
+            if not item.expr:
+                _logger.error(
+                    f"Missing expr for item action_name {item.action_name}"
+                )
+            elif not item.position:
+                _logger.error(
+                    f"Missing position for item action_name {item.action_name}"
+                )
+            else:
+                dct_item["expr"] = item.expr
+                dct_item["position"] = item.position
+                item_xml = E.xpath(dct_item, *lst_child)
+                return item_xml
         elif item.item_type == "div":
             dct_item = {}
             if item.attrs:
@@ -1926,6 +1953,9 @@ pass''',
             )
         else:
             item_xml = self._generate_xml_object(item, model_id)
+
+        if item_xml is None:
+            _logger.error(f"Cannot generate view for item {item.action_name}")
 
         return item_xml
 
@@ -2060,6 +2090,16 @@ pass''',
                         item_body, lst_item_form_sheet, dct_replace, model_id
                     )
                     lst_item_form_sheet.append(item_xml)
+                elif item_body.item_type in ("xpath",):
+                    # TODO maybe move this in lst_item_xpath with view_item.section_type == 'xpath'
+                    if not item_body.child_id:
+                        _logger.warning(f"Item type xpath missing child.")
+                        continue
+                    item_xml = self._generate_xml_group_div(
+                        item_body, lst_item_form_sheet, dct_replace, model_id
+                    )
+
+                    lst_item_form_sheet.append(item_xml)
                 elif item_body.item_type in ("field",):
                     item_xml = self._generate_xml_object(item_body, model_id)
                     lst_item_form_sheet.append(item_xml)
@@ -2094,7 +2134,12 @@ pass''',
             else:
                 lst_item_form += lst_item_form_sheet
 
-        if view_type == "form":
+        if code_generator_view_id.inherit_view_name:
+            if len(lst_item_form) > 1:
+                form_xml = E.data({}, *lst_item_form)
+            else:
+                form_xml = lst_item_form[0]
+        elif view_type == "form":
             form_xml = E.form({}, *lst_item_form)
         elif view_type == "search":
             form_xml = E.search({}, *lst_item_form)
@@ -2116,22 +2161,24 @@ pass''',
         for key, value in dct_replace.items():
             str_content = str_content.replace(key, value)
 
-        view_value = self.env["ir.ui.view"].create(
-            {
-                "name": code_generator_view_id.view_name,
-                "type": view_type,
-                "model": model_name,
-                "arch": str_content,
-                "m2o_model": code_generator_view_id.m2o_model.id,
-            }
+        view_name = (
+            code_generator_view_id.view_name
+            if code_generator_view_id.view_name
+            else f"{model_name.replace('.', '_')}_{view_type}"
         )
-        # ir_ui_view_value = {
-        #     "name": f"{model_name_str}_tree",
-        #     "type": "tree",
-        #     "model": model_name,
-        #     "arch": str_arch,
-        #     "m2o_model": model_created.id,
-        # }
+        dct_view_value = {
+            "name": view_name,
+            "type": view_type,
+            "model": model_name,
+            "arch": str_content,
+            "m2o_model": code_generator_view_id.m2o_model.id,
+        }
+        if code_generator_view_id.inherit_view_name:
+            dct_view_value["inherit_id"] = self.env.ref(
+                code_generator_view_id.inherit_view_name
+            ).id
+            dct_view_value["is_show_whitelist_write_view"] = True
+        view_value = self.env["ir.ui.view"].create(dct_view_value)
         # dct_value_to_create["ir.ui.view"].append(ir_ui_view_value)
 
         if code_generator_view_id.id_name:
@@ -2185,6 +2232,9 @@ pass''',
     def _generate_menu(
         self, model_created, module, lst_view_generated, model_ids
     ):
+        if self.disable_generate_menu:
+            return
+
         # group_id = self.env['res.groups'].search([('name', '=', 'Code Generator / Manager')])
         # group_id = self.env['res.groups'].search([('name', '=', 'Internal User')])
         is_generic_menu = not model_created.m2o_module.code_generator_menus_id

@@ -1899,7 +1899,9 @@ class CodeGeneratorWriter(models.Model):
                 list(set([a.depend_id.model for a in model.inherit_model_ids]))
             )
 
+            add_name = False
             if model.model not in lst_inherit:
+                add_name = True
                 cw.emit(f"_name = '{model.model}'")
 
             if lst_inherit:
@@ -1913,7 +1915,7 @@ class CodeGeneratorWriter(models.Model):
             if model.description:
                 new_description = model.description.replace("'", "\\'")
                 cw.emit(f"_description = '{new_description}'")
-            elif not lst_inherit:
+            elif not lst_inherit or add_name:
                 cw.emit(f"_description = '{model.name}'")
             if model.rec_name and model.rec_name != "name":
                 cw.emit(f"_rec_name = '{model.rec_name}'")

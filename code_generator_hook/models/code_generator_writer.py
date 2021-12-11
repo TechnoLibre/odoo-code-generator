@@ -789,6 +789,9 @@ class CodeGeneratorWriter(models.Model):
                                     " = False"
                                 )
                                 cw.emit(
+                                    'value["disable_generate_access"] = False'
+                                )
+                                cw.emit(
                                     'value["enable_template_website_snippet_view"] = '
                                     f"{module.enable_template_website_snippet_view}"
                                 )
@@ -1619,8 +1622,10 @@ class CodeGeneratorWriter(models.Model):
                                             module.template_module_id.icon_image
                                         )
 
+                                # TODO why force_generic_template_wizard_view force no access?
                                 if (
                                     not module.force_generic_template_wizard_view
+                                    and not module.disable_generate_access
                                 ):
                                     access_ids = self.env[
                                         "ir.model.access"

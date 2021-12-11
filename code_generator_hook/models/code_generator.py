@@ -78,6 +78,10 @@ class CodeGeneratorModule(models.Model):
         help="Use default value to generate template wizard.",
     )
 
+    disable_generate_access = fields.Boolean(
+        help="Disable the writing access.",
+    )
+
     enable_generate_portal = fields.Boolean(
         string="Wizard enable portal", help="Add template of portal to wizard."
     )

@@ -472,28 +472,36 @@ class CodeGeneratorWriter(models.Model):
         cw.emit("# tree view")
         cw.emit("if True:")
         with cw.indent():
-            cw.emit("lst_item_view = []")
-            for view_id in tree_view_ids:
-                tpl_ordered_section = ("body",)
-                self._write_block_template_views(
-                    cw, view_id, view_item, tpl_ordered_section, "tree"
-                )
+            if not tree_view_ids:
+                cw.emit("pass")
+            else:
+                cw.emit("lst_item_view = []")
+                for view_id in tree_view_ids:
+                    tpl_ordered_section = ("body",)
+                    self._write_block_template_views(
+                        cw, view_id, view_item, tpl_ordered_section, "tree"
+                    )
 
         cw.emit()
         cw.emit("# search view")
         cw.emit("if True:")
         with cw.indent():
-            cw.emit("lst_item_view = []")
-            for view_id in search_view_ids:
-                tpl_ordered_section = ("body",)
-                self._write_block_template_views(
-                    cw, view_id, view_item, tpl_ordered_section, "search"
-                )
+            if not search_view_ids:
+                cw.emit("pass")
+            else:
+                cw.emit("lst_item_view = []")
+                for view_id in search_view_ids:
+                    tpl_ordered_section = ("body",)
+                    self._write_block_template_views(
+                        cw, view_id, view_item, tpl_ordered_section, "search"
+                    )
         cw.emit()
         cw.emit("# act_window view")
         cw.emit("if True:")
         with cw.indent():
-            if view_item.code_generator_id.code_generator_act_window_id:
+            if not view_item.code_generator_id.code_generator_act_window_id:
+                cw.emit("pass")
+            else:
                 for (
                     act_win_id
                 ) in view_item.code_generator_id.code_generator_act_window_id:
@@ -511,13 +519,13 @@ class CodeGeneratorWriter(models.Model):
                             cw.emit(f'"name": "{act_win_id.name}",')
                             cw.emit(f'"id_name": "{act_win_id.id_name}",')
                     cw.emit()
-            else:
-                cw.emit("pass")
         cw.emit()
         cw.emit("# menu view")
         cw.emit("if True:")
         with cw.indent():
-            if view_item.code_generator_id.code_generator_menus_id:
+            if not view_item.code_generator_id.code_generator_menus_id:
+                cw.emit("pass")
+            else:
                 for (
                     menu_id
                 ) in view_item.code_generator_id.code_generator_menus_id:
@@ -549,8 +557,6 @@ class CodeGeneratorWriter(models.Model):
                                     '"m2o_act_window":'
                                     f" {menu_id.m2o_act_window.id_name}.id,"
                                 )
-            else:
-                cw.emit("pass")
 
         # TODO implement portal
         # cw.emit()
@@ -1252,7 +1258,9 @@ class CodeGeneratorWriter(models.Model):
                             )
                     cw.emit('"nomenclator": True,')
                 cw.emit("}")
-                cw.emit(f'{variable_model_model} = env["ir.model"].create(value)')
+                cw.emit(
+                    f'{variable_model_model} = env["ir.model"].create(value)'
+                )
                 cw.emit()
             # inherit
             if model_id and model_id.inherit_model_ids:

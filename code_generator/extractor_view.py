@@ -13,8 +13,15 @@ _logger = logging.getLogger(__name__)
 class ExtractorView:
     def __init__(self, module, model_model):
         self._module = module
-        self.view_ids = module.env["ir.ui.view"].search(
-            [("model", "=", model_model)]
+        model_name = model_model.replace(".", "_")
+        self.view_ids = (
+            module.env["ir.ui.view"]
+            .search([("model", "=", model_model)])
+            .filtered(
+                lambda i: i.xml_id.startswith(
+                    f"{module.template_module_name}."
+                )
+            )
         )
         self.code_generator_id = None
         self.model_id = module.env["ir.model"].search(
@@ -23,7 +30,6 @@ class ExtractorView:
         self.dct_model = defaultdict(dict)
         self.dct_field = defaultdict(dict)
         self.module_attr = defaultdict(dict)
-        model_name = model_model.replace(".", "_")
         self.var_model_name = f"model_{model_name}"
         self.var_model = model_model
         if self.view_ids:

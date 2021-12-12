@@ -60,6 +60,7 @@ class ExtractorModule:
             module.template_module_id.header_manifest = str_line
             dct_data = ast.literal_eval("".join(lst_line[i:]).strip())
             external_dep = dct_data.get("external_dependencies")
+            depends = dct_data.get("depends")
             if external_dep:
                 if type(external_dep) is dict:
                     for key, lst_value in external_dep.items():
@@ -77,13 +78,22 @@ class ExtractorModule:
                         else:
                             _logger.warning(
                                 "Unknown value type external_dependencies"
-                                f" in __manifest__ key {key}, value"
-                                f" {value}."
+                                f" in __manifest__ key {key}, values"
+                                f" {lst_value}."
                             )
                 else:
                     _logger.warning(
                         "Unknown external_dependencies in __manifest__"
-                        f" {external_dep}"
+                        f" {external_dep} in file {manifest_file_path}"
+                    )
+            if depends:
+                if type(depends) is list:
+                    module.add_module_dependency(depends)
+                else:
+                    _logger.error(
+                        "Not supported 'depends' with value type"
+                        f" {type(external_dep)} in __manifest__"
+                        f" {manifest_file_path}"
                     )
 
         elif not module.template_module_id:

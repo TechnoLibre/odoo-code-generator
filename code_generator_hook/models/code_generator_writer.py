@@ -66,7 +66,7 @@ class CodeGeneratorWriter(models.Model):
     def _write_sync_template_model(
         self,
         module,
-        model_model,
+        model_id,
         cw,
         var_model_model,
         lst_keep_f2exports,
@@ -74,6 +74,7 @@ class CodeGeneratorWriter(models.Model):
         view_file_sync=None,
         lst_force_f2exports=None,
     ):
+        model_model = model_id.model
         if module_file_sync and module_file_sync.is_enabled:
             dct_field_ast = module_file_sync.dct_model.get(model_model)
         else:
@@ -174,6 +175,8 @@ class CodeGeneratorWriter(models.Model):
                                 '"code_generator_tree_view_sequence":'
                                 f" {code_generator_tree_view_sequence},"
                             )
+                    if model_id.inherit_model_ids:
+                        cw.emit('"is_show_whitelist_model_inherit": True,')
                     if "force_widget" in ast_attr.keys():
                         cw.emit(
                             '"force_widget":'
@@ -271,7 +274,7 @@ class CodeGeneratorWriter(models.Model):
 
         if lst_force_f2exports:
             lst_force_f2exports.clear()
-        elif f2exports:
+        elif f2exports and not model_id.inherit_model_ids:
             cw.emit("# Hack to solve field name")
             cw.emit(
                 'field_x_name = env["ir.model.fields"].search([("model_id",'
@@ -377,7 +380,7 @@ class CodeGeneratorWriter(models.Model):
         with cw.block(delim=("{", "}")):
             cw.emit('"code_generator_id": code_generator_id.id,')
             cw.emit(f'"view_type": "{view_type}",')
-            cw.emit(f'# "view_name": "view_backup_conf_form",')
+            # cw.emit(f'# "view_name": "view_backup_conf_form",')
             cw.emit(f'"m2o_model": {view_item.var_model_name}.id,')
             cw.emit('"view_item_ids": [(6, 0, lst_item_view)],')
             if view_id.has_body_sheet:
@@ -579,8 +582,12 @@ class CodeGeneratorWriter(models.Model):
             cw.emit(str_line)
 
         if module.template_module_id and module.template_module_id.icon_image:
+            # TODO need logging when has inherit
+            cw.emit("import logging")
             # TODO this case need import os, find another dynamic way to specify import before write code
             cw.emit("import os")
+            cw.emit()
+            cw.emit("_logger = logging.getLogger(__name__)")
             cw.emit()
 
         is_generator_demo = module.name == "code_generator_demo"
@@ -1136,100 +1143,117 @@ class CodeGeneratorWriter(models.Model):
         len_model,
         i,
     ):
-        # if model_id.inherit_model_ids
         model_name = model_id.name
+        # TODO wrong place for this code, add it in inherit_model_ids when evaluate code
+        field_id_track = model_id.field_id.filtered(
+            lambda x: x.track_visibility
+        )
         cw.emit("# Check if exist or create it")
-        cw.emit(f"if {variable_model_model}:")
-        with cw.indent():
-            # TODO use variable to select variable name "code_generator_id"
-            cw.emit(
-                f"{variable_model_model}.m2o_module = code_generator_id.id"
-            )
+        if model_id.inherit_model_ids:
+            cw.emit(f"if not {variable_model_model}:")
+            with cw.indent():
+                cw.emit("msg = (")
+                with cw.indent():
+                    cw.emit('f"Cannot create {MODULE_NAME}, missing model"')
+                    cw.emit('" demo.model.internal"')
+                cw.emit(")")
+                cw.emit("_logger.error(msg)")
+                cw.emit("raise Exception(msg)")
+        else:
+            cw.emit(f"if {variable_model_model}:")
+            with cw.indent():
+                # TODO use variable to select variable name "code_generator_id"
+                cw.emit(
+                    f"{variable_model_model}.m2o_module = code_generator_id.id"
+                )
+
         cw.emit(f"else:")
         with cw.indent():
-            cw.emit("value = {")
-            with cw.indent():
-                cw.emit(f'"name": "{model_name}",')
-                if (
-                    model_id
-                    and model_id.description
-                    and model_id.description != model_name
-                ):
-                    cw.emit(f'"description": "{model_id.description}",')
-                cw.emit(f'"model": "{model_id.model}",')
-                cw.emit('"m2o_module": code_generator_id.id,')
-                cw.emit('"rec_name": None,')
-                if application_name.lower() == "demo":
-                    cw.emit('"menu_name_keep_application": True,')
-                # TODO wrong place for this code, add it in inherit_model_ids when evaluate code
-                field_id_track = model_id.field_id.filtered(
-                    lambda x: x.track_visibility
+            if model_id.inherit_model_ids:
+                # TODO use variable to select variable name "code_generator_id"
+                cw.emit(
+                    f"{variable_model_model}.m2o_module = code_generator_id.id"
                 )
-                if model_id.enable_activity or field_id_track:
-                    cw.emit('"enable_activity": True,')
-                if (
-                    model_id.diagram_node_object
-                    and model_id.diagram_node_xpos_field
-                    and model_id.diagram_node_ypos_field
-                    and model_id.diagram_arrow_object
-                    and model_id.diagram_arrow_src_field
-                    and model_id.diagram_arrow_dst_field
-                ):
-                    cw.emit(
-                        '"diagram_node_object":'
-                        f' "{model_id.diagram_node_object}",'
-                    )
-                    cw.emit(
-                        '"diagram_node_xpos_field":'
-                        f' "{model_id.diagram_node_xpos_field}",'
-                    )
-                    cw.emit(
-                        '"diagram_node_ypos_field":'
-                        f' "{model_id.diagram_node_ypos_field}",'
-                    )
-                    if model_id.diagram_node_shape_field:
+            else:
+                cw.emit("value = {")
+                with cw.indent():
+                    cw.emit(f'"name": "{model_name}",')
+                    if (
+                        model_id
+                        and model_id.description
+                        and model_id.description != model_name
+                    ):
+                        cw.emit(f'"description": "{model_id.description}",')
+                    cw.emit(f'"model": "{model_id.model}",')
+                    cw.emit('"m2o_module": code_generator_id.id,')
+                    cw.emit('"rec_name": None,')
+                    if application_name.lower() == "demo":
+                        cw.emit('"menu_name_keep_application": True,')
+                    if model_id.enable_activity or field_id_track:
+                        cw.emit('"enable_activity": True,')
+                    if (
+                        model_id.diagram_node_object
+                        and model_id.diagram_node_xpos_field
+                        and model_id.diagram_node_ypos_field
+                        and model_id.diagram_arrow_object
+                        and model_id.diagram_arrow_src_field
+                        and model_id.diagram_arrow_dst_field
+                    ):
                         cw.emit(
-                            '"diagram_node_shape_field":'
-                            f' "{model_id.diagram_node_shape_field}",'
+                            '"diagram_node_object":'
+                            f' "{model_id.diagram_node_object}",'
                         )
-                    if model_id.diagram_node_form_view_ref:
-                        # TODO validate it exist and add variable to link name if changed
                         cw.emit(
-                            '"diagram_node_form_view_ref":'
-                            f' "{model_id.diagram_node_form_view_ref}",'
+                            '"diagram_node_xpos_field":'
+                            f' "{model_id.diagram_node_xpos_field}",'
                         )
-                    cw.emit(
-                        '"diagram_arrow_object":'
-                        f' "{model_id.diagram_arrow_object}",'
-                    )
-                    cw.emit(
-                        '"diagram_arrow_src_field":'
-                        f' "{model_id.diagram_arrow_src_field}",'
-                    )
-                    cw.emit(
-                        '"diagram_arrow_dst_field":'
-                        f' "{model_id.diagram_arrow_dst_field}",'
-                    )
-                    if model_id.diagram_arrow_label:
                         cw.emit(
-                            '"diagram_arrow_label":'
-                            f' "{model_id.diagram_arrow_label}",'
+                            '"diagram_node_ypos_field":'
+                            f' "{model_id.diagram_node_ypos_field}",'
                         )
-                    if model_id.diagram_arrow_form_view_ref:
-                        # TODO validate it exist and add variable to link name if changed
+                        if model_id.diagram_node_shape_field:
+                            cw.emit(
+                                '"diagram_node_shape_field":'
+                                f' "{model_id.diagram_node_shape_field}",'
+                            )
+                        if model_id.diagram_node_form_view_ref:
+                            # TODO validate it exist and add variable to link name if changed
+                            cw.emit(
+                                '"diagram_node_form_view_ref":'
+                                f' "{model_id.diagram_node_form_view_ref}",'
+                            )
                         cw.emit(
-                            '"diagram_arrow_form_view_ref":'
-                            f' "{model_id.diagram_arrow_form_view_ref}",'
+                            '"diagram_arrow_object":'
+                            f' "{model_id.diagram_arrow_object}",'
                         )
-                    if model_id.diagram_label_string:
                         cw.emit(
-                            '"diagram_label_string":'
-                            f' "{model_id.diagram_label_string}",'
+                            '"diagram_arrow_src_field":'
+                            f' "{model_id.diagram_arrow_src_field}",'
                         )
-                cw.emit('"nomenclator": True,')
-            cw.emit("}")
-            cw.emit(f'{variable_model_model} = env["ir.model"].create(value)')
-            cw.emit()
+                        cw.emit(
+                            '"diagram_arrow_dst_field":'
+                            f' "{model_id.diagram_arrow_dst_field}",'
+                        )
+                        if model_id.diagram_arrow_label:
+                            cw.emit(
+                                '"diagram_arrow_label":'
+                                f' "{model_id.diagram_arrow_label}",'
+                            )
+                        if model_id.diagram_arrow_form_view_ref:
+                            # TODO validate it exist and add variable to link name if changed
+                            cw.emit(
+                                '"diagram_arrow_form_view_ref":'
+                                f' "{model_id.diagram_arrow_form_view_ref}",'
+                            )
+                        if model_id.diagram_label_string:
+                            cw.emit(
+                                '"diagram_label_string":'
+                                f' "{model_id.diagram_label_string}",'
+                            )
+                    cw.emit('"nomenclator": True,')
+                cw.emit("}")
+                cw.emit(f'{variable_model_model} = env["ir.model"].create(value)')
+                cw.emit()
             # inherit
             if model_id and model_id.inherit_model_ids:
                 if (
@@ -1310,7 +1334,7 @@ class CodeGeneratorWriter(models.Model):
                     lst_view_item_code_generator.append(view_file_sync)
                 self._write_sync_template_model(
                     module,
-                    model_id.model,
+                    model_id,
                     cw,
                     variable_model_model,
                     lst_keep_f2exports,
@@ -1370,7 +1394,7 @@ class CodeGeneratorWriter(models.Model):
                     # Finish to print one2many move at the end
                     self._write_sync_template_model(
                         module,
-                        model_id.model,
+                        model_id,
                         cw,
                         variable_model_model,
                         lst_keep_f2exports,

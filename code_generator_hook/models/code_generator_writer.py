@@ -314,6 +314,11 @@ class CodeGeneratorWriter(models.Model):
                             )
                         if view_item_id.icon:
                             cw.emit(f'"icon": "{view_item_id.icon}",')
+                    elif view_item_id.item_type == "li":
+                        if view_item_id.class_attr:
+                            cw.emit(
+                                f'"class_attr": "{view_item_id.class_attr}",'
+                            )
                     elif view_item_id.item_type == "field":
                         cw.emit(
                             f'"action_name": "{view_item_id.action_name}",'
@@ -327,6 +332,14 @@ class CodeGeneratorWriter(models.Model):
                     elif view_item_id.item_type in ("group", "div"):
                         if view_item_id.attrs:
                             cw.emit(f'"attrs": "{view_item_id.attrs}",')
+                    elif view_item_id.item_type == "xpath":
+                        if not view_item_id.expr or not view_item_id.position:
+                            _logger.error(
+                                f"Need expr and position of xpath {1}"
+                            )
+                        else:
+                            cw.emit(f'"expr": "{view_item_id.expr}",')
+                            cw.emit(f'"position": "{view_item_id.position}",')
                     elif view_item_id.item_type == "html":
                         # TODO support help and type bg-warning
                         if view_item_id.colspan != 1:
@@ -387,6 +400,8 @@ class CodeGeneratorWriter(models.Model):
                 cw.emit(f'"has_body_sheet": {view_id.has_body_sheet},')
             if view_id.id_name:
                 cw.emit(f'"id_name": "{view_id.id_name}",')
+            if view_id.inherit_view_name:
+                cw.emit(f'"inherit_view_name": "{view_id.inherit_view_name}",')
         cw.emit(")")
         cw.emit("lst_view_id.append(view_code_generator.id)")
 
@@ -448,54 +463,36 @@ class CodeGeneratorWriter(models.Model):
         code_generator_views_id = (
             view_item.code_generator_id.code_generator_views_id
         )
-        form_view_ids = code_generator_views_id.filtered(
-            lambda view_id: view_id.view_type == "form"
+        tlp_order_section_form = ("header", "title", "body")
+        tlp_order_section_other = ("body",)
+        lst_tag_support = list(
+            dict(
+                self.env["code.generator.view"]._fields["view_type"].selection
+            ).keys()
         )
-        search_view_ids = code_generator_views_id.filtered(
-            lambda view_id: view_id.view_type == "search"
-        )
-        tree_view_ids = code_generator_views_id.filtered(
-            lambda view_id: view_id.view_type == "tree"
-        )
-        cw.emit("lst_view_id = []")
-        cw.emit("# form view")
-        cw.emit("if True:")
-        with cw.indent():
-            cw.emit("lst_item_view = []")
-
-            for view_id in form_view_ids:
-                tpl_ordered_section = ("header", "title", "body")
-                self._write_block_template_views(
-                    cw, view_id, view_item, tpl_ordered_section, "form"
-                )
-        cw.emit()
-        cw.emit("# tree view")
-        cw.emit("if True:")
-        with cw.indent():
-            if not tree_view_ids:
-                cw.emit("pass")
+        is_first = True
+        for tag_name in lst_tag_support:
+            view_ids = code_generator_views_id.filtered(
+                lambda view_id: view_id.view_type == tag_name
+            )
+            if not view_ids:
+                continue
+            if is_first:
+                cw.emit("lst_view_id = []")
+                is_first = False
+            if tag_name == "form":
+                tpl_order_section = tlp_order_section_form
             else:
+                tpl_order_section = tlp_order_section_other
+            cw.emit(f"# {tag_name} view")
+            cw.emit("if True:")
+            with cw.indent():
                 cw.emit("lst_item_view = []")
-                for view_id in tree_view_ids:
-                    tpl_ordered_section = ("body",)
+                for view_id in view_ids:
                     self._write_block_template_views(
-                        cw, view_id, view_item, tpl_ordered_section, "tree"
+                        cw, view_id, view_item, tpl_order_section, tag_name
                     )
-
-        cw.emit()
-        cw.emit("# search view")
-        cw.emit("if True:")
-        with cw.indent():
-            if not search_view_ids:
-                cw.emit("pass")
-            else:
-                cw.emit("lst_item_view = []")
-                for view_id in search_view_ids:
-                    tpl_ordered_section = ("body",)
-                    self._write_block_template_views(
-                        cw, view_id, view_item, tpl_ordered_section, "search"
-                    )
-        cw.emit()
+            cw.emit()
         cw.emit("# act_window view")
         cw.emit("if True:")
         with cw.indent():

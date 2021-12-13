@@ -158,13 +158,6 @@ class ExtractorView:
         for view_id in self.view_ids:
             mydoc = minidom.parseString(view_id.arch_base.encode())
 
-            # TODO check when form inherit, check inherit_id
-            if view_id.inherit_id:
-                _logger.warning(
-                    f"Inherit_id not supported for view {view_id.display_name}"
-                )
-                continue
-
             lst_view_item_id = []
 
             # Search form
@@ -243,6 +236,15 @@ class ExtractorView:
                     find_node = False
                     find_arrow = False
                     find_label = False
+                    node_object = None
+                    node_xpos = None
+                    node_ypos = None
+                    node_shape = None
+                    node_form_view_ref = None
+                    arrow_object = None
+                    arrow_source = None
+                    arrow_destination = None
+                    diagram_label_string = None
                     for child_div in diagram_xml.childNodes:
                         if child_div.nodeType is Node.ELEMENT_NODE:
                             dct_att = dict(child_div.attributes.items())
@@ -485,17 +487,27 @@ class ExtractorView:
                     .selection
                 ).keys()
             )
+            lst_tag_support_xpath = ["xpath"]
             lst_content = [
                 b
                 for a in lst_tag_support
                 for b in mydoc.getElementsByTagName(a)
             ]
-            if not lst_content:
+            lst_content_xpath = [
+                b
+                for a in lst_tag_support_xpath
+                for b in mydoc.getElementsByTagName(a)
+            ]
+            has_content = any(lst_content + lst_content_xpath)
+            if not has_content:
                 _logger.warning(
-                    f"Cannot find a xml type from list: {lst_tag_support}."
+                    "Cannot find a xml type from list:"
+                    f" {lst_tag_support + lst_tag_support_xpath}."
                 )
             elif len(lst_content) > 1:
                 _logger.warning(f"Cannot support multiple {lst_content}.")
+            elif lst_content_xpath:
+                lst_body_xml = lst_content_xpath
             else:
                 form_xml = lst_content[0]
                 for child_form in form_xml.childNodes:
@@ -566,18 +578,31 @@ class ExtractorView:
                 "has_body_sheet": has_body_sheet,
             }
 
-            # ID
-            ir_model_data = self._module.env["ir.model.data"].search(
-                [
-                    ("model", "=", "ir.ui.view"),
-                    ("res_id", "=", view_id.id),
-                ]
-            )
-            if ir_model_data:
-                first_name = ir_model_data[0].name
-                if len(ir_model_data) > 1:
-                    _logger.warning(f"Duplicated view model id {first_name}")
-                value["id_name"] = first_name
+            # ID and inherit ID
+            inherit_view_name = None
+            if view_id.inherit_id:
+                if not view_id.inherit_id.model_data_id:
+                    _logger.error(
+                        "Missing model data id of inherit id view_name"
+                        f" {view_id.name}"
+                    )
+                else:
+                    inherit_view_name = (
+                        view_id.inherit_id.model_data_id.complete_name
+                    )
+                    value["inherit_view_name"] = inherit_view_name
+            if view_id.model_data_id:
+                id_name = view_id.model_data_id.name
+                if (
+                    inherit_view_name is None
+                    or id_name != inherit_view_name.split(".")[1]
+                ):
+                    value["id_name"] = view_id.model_data_id.name
+            else:
+                _logger.error(
+                    f"Missing model data id view_name {view_id.name}"
+                )
+
             view_code_generator = self._module.env[
                 "code.generator.view"
             ].create(value)
@@ -587,7 +612,7 @@ class ExtractorView:
         node,
         lst_view_item_id,
         section_type,
-        lst_node=[],
+        lst_node=None,
         parent=None,
         sequence=1,
     ):
@@ -653,20 +678,23 @@ class ExtractorView:
                 dct_attributes["item_type"] = "html"
             else:
                 for key, value in node.attributes.items():
-                    if key == "class" and value in lst_key_html_class:
-                        # not a real div, it's an html part
-                        dct_attributes["item_type"] = "html"
-                        dct_attributes["background_type"] = value
-                        text_html = ""
-                        for child in node.childNodes:
-                            # ignore element, only get text
-                            if child.nodeType is Node.TEXT_NODE:
-                                data = child.data.strip()
-                                if data:
-                                    text_html += data
-                            elif child.nodeType is Node.ELEMENT_NODE:
-                                continue
-                        dct_attributes["label"] = text_html
+                    if key == "class":
+                        if value in lst_key_html_class:
+                            # not a real div, it's an html part
+                            dct_attributes["item_type"] = "html"
+                            dct_attributes["background_type"] = value
+                            text_html = ""
+                            for child in node.childNodes:
+                                # ignore element, only get text
+                                if child.nodeType is Node.TEXT_NODE:
+                                    data = child.data.strip()
+                                    if data:
+                                        text_html += data
+                                elif child.nodeType is Node.ELEMENT_NODE:
+                                    continue
+                            dct_attributes["label"] = text_html
+                        else:
+                            dct_attributes["class_attr"] = value
 
         elif node.nodeName == "button":
             dct_key_keep["class"] = "button_type"
@@ -677,14 +705,20 @@ class ExtractorView:
             for key, value in node.attributes.items():
                 if key == "password":
                     dct_attributes["password"] = value
-                if key == "widget":
+                elif key == "widget":
                     field_name = dict(node.attributes.items()).get("name")
                     # TODO update dict instead of overwrite it
                     self.module_attr[self.var_model][field_name] = {
                         "force_widget": value
                     }
-                if key == "placeholder":
+                elif key == "placeholder":
                     dct_attributes["placeholder"] = value
+        elif node.nodeName in ("xpath",):
+            for key, value in node.attributes.items():
+                if key == "expr":
+                    dct_attributes["expr"] = value
+                elif key == "position":
+                    dct_attributes["position"] = value
         elif node.nodeName == "separator":
             # Accumulate nodes
             return True

@@ -13,7 +13,7 @@
         " (bluisknot@gmail.com), Mathben (mathben@technolibre.ca)"
     ),
     "category": "Extra Tools",
-    "depends": ["base"],
+    "depends": ["base", "mail"],
     "installable": True,
     "data": [
         "security/code_generator.xml",

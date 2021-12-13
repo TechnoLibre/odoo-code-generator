@@ -337,6 +337,15 @@ class IrModel(models.Model):
                 self.env["ir.model.fields"].create(lst_dct_field)
 
     @api.model
+    def has_same_model_in_inherit_model(self):
+        for inherit_model_id in self.inherit_model_ids:
+            # if inherit_model_id.ir_model_ids.ids == self.ids:
+            #     return True
+            if inherit_model_id.depend_id.id in self.ids:
+                return True
+        return False
+
+    @api.model
     def _instanciate(self, model_data):
         custommodelclass = super(IrModel, self)._instanciate(model_data)
 

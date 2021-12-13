@@ -175,7 +175,7 @@ class CodeGeneratorWriter(models.Model):
                                 '"code_generator_tree_view_sequence":'
                                 f" {code_generator_tree_view_sequence},"
                             )
-                    if model_id.inherit_model_ids:
+                    if model_id.has_same_model_in_inherit_model():
                         cw.emit('"is_show_whitelist_model_inherit": True,')
                     if "force_widget" in ast_attr.keys():
                         cw.emit(
@@ -274,7 +274,7 @@ class CodeGeneratorWriter(models.Model):
 
         if lst_force_f2exports:
             lst_force_f2exports.clear()
-        elif f2exports and not model_id.inherit_model_ids:
+        elif f2exports and not model_id.has_same_model_in_inherit_model():
             cw.emit("# Hack to solve field name")
             cw.emit(
                 'field_x_name = env["ir.model.fields"].search([("model_id",'
@@ -944,6 +944,12 @@ class CodeGeneratorWriter(models.Model):
                                     model_id = self.env["ir.model"].search(
                                         [("model", "=", model_model)]
                                     )
+                                    if not model_id:
+                                        _logger.error(
+                                            f"Model '{model_model}' not"
+                                            " existing."
+                                        )
+                                        continue
                                     if "." in model_model:
                                         (
                                             application_name,
@@ -1074,9 +1080,10 @@ class CodeGeneratorWriter(models.Model):
                                     cw, module, has_custom_view, access_ids
                                 )
 
-                            self.write_access(
-                                cw, access_ids, variable_model_model
-                            )
+                            if access_ids:
+                                self.write_access(
+                                    cw, access_ids, variable_model_model
+                                )
 
                             cw.emit("# Generate module")
                             cw.emit("value = {")
@@ -1155,7 +1162,7 @@ class CodeGeneratorWriter(models.Model):
             lambda x: x.track_visibility
         )
         cw.emit("# Check if exist or create it")
-        if model_id.inherit_model_ids:
+        if model_id.has_same_model_in_inherit_model():
             cw.emit(f"if not {variable_model_model}:")
             with cw.indent():
                 cw.emit("msg = (")
@@ -1175,7 +1182,7 @@ class CodeGeneratorWriter(models.Model):
 
         cw.emit(f"else:")
         with cw.indent():
-            if model_id.inherit_model_ids:
+            if model_id.has_same_model_in_inherit_model():
                 # TODO use variable to select variable name "code_generator_id"
                 cw.emit(
                     f"{variable_model_model}.m2o_module = code_generator_id.id"
@@ -1346,8 +1353,8 @@ class CodeGeneratorWriter(models.Model):
                     cw,
                     variable_model_model,
                     lst_keep_f2exports,
-                    module_file_sync,
-                    view_file_sync,
+                    module_file_sync=module_file_sync,
+                    view_file_sync=view_file_sync,
                 )
             else:
                 cw.emit("value_field_boolean = {")
@@ -1396,13 +1403,13 @@ class CodeGeneratorWriter(models.Model):
                 )
                 for (
                     field_id,
-                    model_id.model,
+                    model_model,
                     variable_model_model,
                 ) in lst_keep_f2exports:
                     # Finish to print one2many move at the end
                     self._write_sync_template_model(
                         module,
-                        model_id,
+                        field_id.model_id,
                         cw,
                         variable_model_model,
                         lst_keep_f2exports,

@@ -493,12 +493,10 @@ class CodeGeneratorWriter(models.Model):
                         cw, view_id, view_item, tpl_order_section, tag_name
                     )
             cw.emit()
-        cw.emit("# act_window view")
-        cw.emit("if True:")
-        with cw.indent():
-            if not view_item.code_generator_id.code_generator_act_window_id:
-                cw.emit("pass")
-            else:
+        if view_item.code_generator_id.code_generator_act_window_id:
+            cw.emit("# act_window view")
+            cw.emit("if True:")
+            with cw.indent():
                 for (
                     act_win_id
                 ) in view_item.code_generator_id.code_generator_act_window_id:
@@ -517,12 +515,10 @@ class CodeGeneratorWriter(models.Model):
                             cw.emit(f'"id_name": "{act_win_id.id_name}",')
                     cw.emit()
         cw.emit()
-        cw.emit("# menu view")
-        cw.emit("if True:")
-        with cw.indent():
-            if not view_item.code_generator_id.code_generator_menus_id:
-                cw.emit("pass")
-            else:
+        if view_item.code_generator_id.code_generator_menus_id:
+            cw.emit("# menu view")
+            cw.emit("if True:")
+            with cw.indent():
                 for (
                     menu_id
                 ) in view_item.code_generator_id.code_generator_menus_id:
@@ -954,7 +950,7 @@ class CodeGeneratorWriter(models.Model):
                                         ) = model_model.split(".", maxsplit=1)
                                     else:
                                         application_name = model_model
-                                    model_name = model_id.name
+                                    model_name = model_model.replace(".", "_")
                                     title_model_model = model_name.replace(
                                         "_", " "
                                     ).title()
@@ -1040,12 +1036,18 @@ class CodeGeneratorWriter(models.Model):
                                     and not module.force_generic_template_wizard_view
                                 )
                                 has_custom_view = False
+                                has_menu = False
+                                has_access = False
                                 if custom_view:
                                     for (
                                         view_item
                                     ) in lst_view_item_code_generator:
                                         if not view_item:
                                             continue
+                                        if (
+                                            view_item.code_generator_id.code_generator_menus_id
+                                        ):
+                                            has_menu = True
                                         i += 1
                                         cw.emit("##### Begin Views")
                                         view_id = (
@@ -1057,6 +1059,10 @@ class CodeGeneratorWriter(models.Model):
                                             has_custom_view = True
                                         cw.emit("##### End Views")
                                         cw.emit()
+                                else:
+                                    # TODO This seems wrong, need to get this variable from extractor_view
+                                    has_menu = True
+                                    has_access = True
 
                                 act_server_ids = self.env[
                                     "ir.actions.server"
@@ -1074,7 +1080,11 @@ class CodeGeneratorWriter(models.Model):
                                     )
 
                                 self.write_action_generate_view(
-                                    cw, module, has_custom_view, access_ids
+                                    cw,
+                                    module,
+                                    has_custom_view,
+                                    has_access,
+                                    has_menu,
                                 )
 
                             if access_ids:
@@ -1153,7 +1163,6 @@ class CodeGeneratorWriter(models.Model):
         len_model,
         i,
     ):
-        model_name = model_id.name
         # TODO wrong place for this code, add it in inherit_model_ids when evaluate code
         field_id_track = model_id.field_id.filtered(
             lambda x: x.track_visibility
@@ -1187,11 +1196,11 @@ class CodeGeneratorWriter(models.Model):
             else:
                 cw.emit("value = {")
                 with cw.indent():
-                    cw.emit(f'"name": "{model_name}",')
+                    cw.emit(f'"name": "{model_id.model.replace(".", "_")}",')
                     if (
                         model_id
                         and model_id.description
-                        and model_id.description != model_name
+                        and model_id.description != model_id.name
                     ):
                         cw.emit(f'"description": "{model_id.description}",')
                     cw.emit(f'"model": "{model_id.model}",')
@@ -1415,7 +1424,7 @@ class CodeGeneratorWriter(models.Model):
             cw.emit("##### End Field")
 
     def write_action_generate_view(
-        self, cw, module, has_custom_view, access_ids
+        self, cw, module, has_custom_view, has_access, has_menu_item
     ):
         cw.emit("# Action generate view")
         cw.emit(
@@ -1425,6 +1434,10 @@ class CodeGeneratorWriter(models.Model):
         with cw.indent():
             cw.emit("'code_generator_id': code_generator_id.id,")
             cw.emit("'enable_generate_all': False,")
+            if not has_menu_item:
+                cw.emit("'disable_generate_menu': True,")
+            if not has_access:
+                cw.emit("'disable_generate_access': True,")
             if has_custom_view:
                 cw.emit('"code_generator_view_ids": [(6, 0, lst_view_id)],')
             if module.enable_generate_portal:
@@ -1433,8 +1446,6 @@ class CodeGeneratorWriter(models.Model):
                     f" {module.enable_generate_portal},"
                 )
 
-            if access_ids:
-                cw.emit("'disable_generate_access': True")
         cw.emit("})")
         cw.emit("")
         cw.emit("wizard_view.button_generate_views()")
@@ -1499,7 +1510,8 @@ class CodeGeneratorWriter(models.Model):
                         if code_id.sequence:
                             cw.emit(f'"sequence": {code_id.sequence},')
                         cw.emit('"m2o_module": code_generator_id.id,')
-                        var_model_name = f"model_{model_id.name}"
+                        model_name = model_id.model.replace(".", "_")
+                        var_model_name = f"model_{model_name}"
                         cw.emit(f'"m2o_model": {var_model_name}.id,')
                     cw.emit(
                         'env["code.generator.model.code.import"].create(value)'
@@ -1558,7 +1570,8 @@ class CodeGeneratorWriter(models.Model):
                                     cw.emit(f'"returns": "{code_id.returns}",')
                                 cw.emit(f'"sequence": {code_id.sequence},')
                                 cw.emit('"m2o_module": code_generator_id.id,')
-                                var_model_name = f"model_{model_id.name}"
+                                model_name = model_id.model.replace(".", "_")
+                                var_model_name = f"model_{model_name}"
                                 cw.emit(f'"m2o_model": {var_model_name}.id,')
                             cw.emit(",")
                     cw.emit(

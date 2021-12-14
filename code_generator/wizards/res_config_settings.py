@@ -3,7 +3,7 @@
 from odoo import models, fields
 
 
-class CodeGeneratorConfigSettings(models.TransientModel):
+class ResConfigSettings(models.TransientModel):
     _inherit = "res.config.settings"
 
     s_data2export = fields.Selection(

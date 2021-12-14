@@ -1,3 +1,5 @@
+# License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl)
+
 from . import code_generator_act_window
 from . import code_generator_ir_model_dependency
 from . import code_generator_ir_model_fields

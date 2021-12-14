@@ -27,20 +27,20 @@ class CodeGeneratorModule(models.Model):
 
     code_generator_act_window_id = fields.One2many(
         comodel_name="code.generator.act_window",
-        string="Code Generator Act Window",
         inverse_name="code_generator_id",
+        string="Code Generator Act Window",
     )
 
     code_generator_menus_id = fields.One2many(
         comodel_name="code.generator.menu",
-        string="Code Generator Menus",
         inverse_name="code_generator_id",
+        string="Code Generator Menus",
     )
 
     code_generator_views_id = fields.One2many(
         comodel_name="code.generator.view",
-        string="Code Generator Views",
         inverse_name="code_generator_id",
+        string="Code Generator Views",
     )
 
     contributors = fields.Text(readonly=False)
@@ -78,8 +78,8 @@ class CodeGeneratorModule(models.Model):
 
     external_dependencies_id = fields.One2many(
         comodel_name="code.generator.module.external.dependency",
-        string="External Dependencies",
         inverse_name="module_id",
+        string="External Dependencies",
         readonly=False,
     )
 
@@ -154,13 +154,13 @@ class CodeGeneratorModule(models.Model):
         inverse_name="code_generator_id",
     )
 
-    o2m_model_rules = fields.One2many(
-        comodel_name="ir.rule",
+    o2m_model_reports = fields.One2many(
+        comodel_name="ir.actions.report",
         compute="_get_models_info",
     )
 
-    o2m_model_reports = fields.One2many(
-        comodel_name="ir.actions.report",
+    o2m_model_rules = fields.One2many(
+        comodel_name="ir.rule",
         compute="_get_models_info",
     )
 
@@ -169,14 +169,14 @@ class CodeGeneratorModule(models.Model):
         compute="_get_models_info",
     )
 
-    o2m_models = fields.One2many(
-        comodel_name="ir.model",
-        inverse_name="m2o_module",
-    )
-
     o2m_model_views = fields.One2many(
         comodel_name="ir.ui.view",
         compute="_get_models_info",
+    )
+
+    o2m_models = fields.One2many(
+        comodel_name="ir.model",
+        inverse_name="m2o_module",
     )
 
     o2m_nomenclator_blacklist_fields = fields.One2many(

@@ -1628,11 +1628,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         return view_value
 
     def _generate_timeline_views_models(
-        self,
-        model_created,
-        model_created_fields,
-        module,
-        dct_value_to_create,
+        self, model_created, model_created_fields, module, dct_value_to_create
     ):
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")
@@ -1688,10 +1684,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         return view_value
 
     def _generate_diagram_views_models(
-        self,
-        model_created,
-        module,
-        dct_value_to_create,
+        self, model_created, module, dct_value_to_create
     ):
         model_name = model_created.model
         model_name_str = model_name.replace(".", "_")

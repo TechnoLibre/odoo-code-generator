@@ -90,6 +90,20 @@ class IrModel(models.Model):
         ondelete="cascade",
     )
 
+    m2o_inherit_py_class = fields.Many2one(
+        comodel_name="code.generator.pyclass",
+        string="Python Class",
+        help="Python Class",
+        ondelete="cascade",
+    )
+
+    m2o_module = fields.Many2one(
+        comodel_name="code.generator.module",
+        string="Module",
+        help="Module",
+        ondelete="cascade",
+    )
+
     menu_group = fields.Char(
         help=(
             "If not empty, will create a group of element in menu when"
@@ -113,16 +127,15 @@ class IrModel(models.Model):
         )
     )
 
-    m2o_module = fields.Many2one(
-        comodel_name="code.generator.module",
-        string="Module",
-        help="Module",
-        ondelete="cascade",
-    )
-
     nomenclator = fields.Boolean(
         string="Nomenclator?",
         help="Set this if you want this model as a nomenclator",
+    )
+
+    o2m_act_window = fields.One2many(
+        comodel_name="ir.actions.act_window",
+        inverse_name="m2o_res_model",
+        string="Act window",
     )
 
     o2m_code_import = fields.One2many(
@@ -142,19 +155,6 @@ class IrModel(models.Model):
         inverse_name="model",
         string="Constraints",
         domain=[("type", "=", "u"), ("message", "!=", None)],
-    )
-
-    m2o_inherit_py_class = fields.Many2one(
-        comodel_name="code.generator.pyclass",
-        string="Python Class",
-        help="Python Class",
-        ondelete="cascade",
-    )
-
-    o2m_act_window = fields.One2many(
-        comodel_name="ir.actions.act_window",
-        inverse_name="m2o_res_model",
-        string="Act window",
     )
 
     o2m_reports = fields.One2many(

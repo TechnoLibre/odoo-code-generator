@@ -66,6 +66,26 @@ class CodeGeneratorViewItem(models.Model):
 
     edit_only = fields.Boolean(string="Edit only")
 
+    expr = fields.Char(help="Example: //field[@name='name']")
+
+    has_label = fields.Boolean(
+        string="Labeled",
+        help="Label for title.",
+    )
+
+    icon = fields.Char(
+        string="Icon",
+        help="Example fa-television. Only supported with button.",
+    )
+
+    is_help = fields.Boolean(string="Help")
+
+    is_invisible = fields.Boolean(string="Invisible")
+
+    is_readonly = fields.Boolean(string="Readonly")
+
+    is_required = fields.Boolean(string="Required")
+
     item_type = fields.Selection(
         [
             ("field", "Field"),
@@ -85,24 +105,6 @@ class CodeGeneratorViewItem(models.Model):
         default="field",
         help="Choose item type to generate.",
     )
-
-    has_label = fields.Boolean(
-        string="Labeled",
-        help="Label for title.",
-    )
-
-    icon = fields.Char(
-        string="Icon",
-        help="Example fa-television. Only supported with button.",
-    )
-
-    is_required = fields.Boolean(string="Required")
-
-    is_invisible = fields.Boolean(string="Invisible")
-
-    is_readonly = fields.Boolean(string="Readonly")
-
-    is_help = fields.Boolean(string="Help")
 
     # TODO create HTML for specific label
     label = fields.Char(string="Label")
@@ -126,8 +128,6 @@ class CodeGeneratorViewItem(models.Model):
             ("move", "Move"),
         ]
     )
-
-    expr = fields.Char(help="Example: //field[@name='name']")
 
     section_type = fields.Selection(
         [

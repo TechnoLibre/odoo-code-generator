@@ -112,15 +112,6 @@ class IrModelFields(models.Model):
         default=-1,
     )
 
-    code_generator_ir_model_fields_ids = fields.One2many(
-        comodel_name="code.generator.ir.model.fields",
-        inverse_name="m2o_fields",
-        help=(
-            "Link to update field when generate, because it cannot update"
-            " ir.model.fields in runtime"
-        ),
-    )
-
     code_generator_compute = fields.Char(
         string="Compute Code Generator",
         help="Compute method to code_generator_writer.",
@@ -139,6 +130,15 @@ class IrModelFields(models.Model):
         string="graph view sequence",
         help="Sequence to write this field in graph view from Code Generator.",
         default=-1,
+    )
+
+    code_generator_ir_model_fields_ids = fields.One2many(
+        comodel_name="code.generator.ir.model.fields",
+        inverse_name="m2o_fields",
+        help=(
+            "Link to update field when generate, because it cannot update"
+            " ir.model.fields in runtime"
+        ),
     )
 
     code_generator_kanban_view_sequence = fields.Integer(
@@ -197,14 +197,14 @@ class IrModelFields(models.Model):
         help="Enable this to ignore it when write code."
     )
 
-    is_date_start_view = fields.Boolean(
-        string="Show start date view",
-        help="View timeline only, start field.",
-    )
-
     is_date_end_view = fields.Boolean(
         string="Show end date view",
         help="View timeline only, end field.",
+    )
+
+    is_date_start_view = fields.Boolean(
+        string="Show start date view",
+        help="View timeline only, start field.",
     )
 
     is_hide_blacklist_calendar_view = fields.Boolean(
@@ -250,40 +250,40 @@ class IrModelFields(models.Model):
     is_show_whitelist_calendar_view = fields.Boolean(
         string="Show in whitelist calendar view",
         help=(
-            "If a field in model is in whitelist, all is not will be hide. "
-            "View calendar only."
+            "If a field in model is in whitelist, all is not will be hide."
+            " View calendar only."
         ),
     )
 
     is_show_whitelist_form_view = fields.Boolean(
         string="Show in whitelist form view",
         help=(
-            "If a field in model is in whitelist, all is not will be hide. "
-            "View form only."
+            "If a field in model is in whitelist, all is not will be hide."
+            " View form only."
         ),
     )
 
     is_show_whitelist_graph_view = fields.Boolean(
         string="Show in whitelist graph view",
         help=(
-            "If a field in model is in whitelist, all is not will be hide. "
-            "View graph only."
+            "If a field in model is in whitelist, all is not will be hide."
+            " View graph only."
         ),
     )
 
     is_show_whitelist_kanban_view = fields.Boolean(
         string="Show in whitelist kanban view",
         help=(
-            "If a field in model is in whitelist, all is not will be hide. "
-            "View kanban only."
+            "If a field in model is in whitelist, all is not will be hide."
+            " View kanban only."
         ),
     )
 
     is_show_whitelist_list_view = fields.Boolean(
         string="Show in whitelist list view",
         help=(
-            "If a field in model is in whitelist, all is not will be hide. "
-            "View list only."
+            "If a field in model is in whitelist, all is not will be hide."
+            " View list only."
         ),
     )
 
@@ -298,16 +298,16 @@ class IrModelFields(models.Model):
     is_show_whitelist_pivot_view = fields.Boolean(
         string="Show in whitelist pivot view",
         help=(
-            "If a field in model is in whitelist, all is not will be hide. "
-            "View pivot only."
+            "If a field in model is in whitelist, all is not will be hide."
+            " View pivot only."
         ),
     )
 
     is_show_whitelist_search_view = fields.Boolean(
         string="Show in whitelist search view",
         help=(
-            "If a field in model is in whitelist, all is not will be hide. "
-            "View search only."
+            "If a field in model is in whitelist, all is not will be hide."
+            " View search only."
         ),
     )
 
@@ -344,6 +344,7 @@ class IrModelFields(models.Model):
 
     @api.model
     def create(self, vals):
+        model_data = None
         if "model_id" in vals:
             model_data = self.env["ir.model"].browse(vals["model_id"])
             vals["model"] = model_data.model
@@ -362,7 +363,7 @@ class IrModelFields(models.Model):
         if vals.get("state", "manual") == "manual":
 
             check_relation = True
-            if vals.get("relation") and vals.get("model_id"):
+            if vals.get("relation") and vals.get("model_id") and model_data:
                 check_relation = not model_data.m2o_module
 
             if (

@@ -112,6 +112,15 @@ class IrModelFields(models.Model):
         default=-1,
     )
 
+    code_generator_ir_model_fields_ids = fields.One2many(
+        comodel_name="code.generator.ir.model.fields",
+        inverse_name="m2o_fields",
+        help=(
+            "Link to update field when generate, because it cannot update"
+            " ir.model.fields in runtime"
+        ),
+    )
+
     code_generator_compute = fields.Char(
         string="Compute Code Generator",
         help="Compute method to code_generator_writer.",
@@ -324,6 +333,14 @@ class IrModelFields(models.Model):
                     " underscores (up to 63)."
                 )
                 raise ValidationError(msg)
+
+    @api.model
+    def is_show_whitelist_model_inherit_call(self):
+        if self.code_generator_ir_model_fields_ids:
+            return (
+                self.code_generator_ir_model_fields_ids.is_show_whitelist_model_inherit
+            )
+        return self.is_show_whitelist_model_inherit
 
     @api.model
     def create(self, vals):

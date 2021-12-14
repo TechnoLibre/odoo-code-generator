@@ -2194,7 +2194,7 @@ class CodeGeneratorWriter(models.Model):
 
         if model.inherit_model_ids:
             is_whitelist = any(
-                [a.is_show_whitelist_model_inherit for a in f2exports]
+                [a.is_show_whitelist_model_inherit_call() for a in f2exports]
             )
             if is_whitelist:
                 f2exports = f2exports.filtered(
@@ -2204,7 +2204,7 @@ class CodeGeneratorWriter(models.Model):
                         not is_whitelist
                         or (
                             is_whitelist
-                            and field.is_show_whitelist_model_inherit
+                            and field.is_show_whitelist_model_inherit_call()
                         )
                     )
                 )

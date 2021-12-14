@@ -139,137 +139,37 @@ class CodeGeneratorWriter(models.Model):
             dct_var_id_view[var_id_view] = field_id
 
             ast_attr = dct_field_ast.get(field_id.name)
-            with cw.block(
-                before=f"{var_value_field_name} =", delim=("{", "}")
-            ):
-                cw.emit(f'"name": "{field_id.name}",')
-                cw.emit(f'"model": "{model_model}",')
-                cw.emit(
-                    f'"field_description": "{field_id.field_description}",'
+            model_name = model_model.replace(".", "_")
+            variable_model_field = f"field_id_{model_name}_{field_id.name}"
+            cw.emit(
+                f"{variable_model_field} ="
+                ' env["ir.model.fields"].search([("model", "=",'
+                f' "{model_model}"), ("name", "=", "{field_id.name}")])'
+            )
+            cw.emit(f"if not {variable_model_field}:")
+            with cw.indent():
+                self._write_field_from_template(
+                    cw,
+                    module,
+                    field_id,
+                    model_id,
+                    model_model,
+                    ast_attr,
+                    var_value_field_name,
+                    var_model_model,
+                    view_file_sync,
                 )
-                if ast_attr:
-                    if not module.disable_fix_code_generator_sequence:
-                        code_generator_sequence = ast_attr.get(
-                            "code_generator_sequence"
-                        )
-                        code_generator_form_simple_view_sequence = (
-                            ast_attr.get(
-                                "code_generator_form_simple_view_sequence"
-                            )
-                        )
-                        code_generator_tree_view_sequence = ast_attr.get(
-                            "code_generator_tree_view_sequence"
-                        )
-                        if code_generator_sequence:
-                            cw.emit(
-                                '"code_generator_sequence":'
-                                f" {code_generator_sequence},"
-                            )
-                        if code_generator_form_simple_view_sequence:
-                            cw.emit(
-                                '"code_generator_form_simple_view_sequence":'
-                                f" {code_generator_form_simple_view_sequence},"
-                            )
-                        if code_generator_tree_view_sequence:
-                            cw.emit(
-                                '"code_generator_tree_view_sequence":'
-                                f" {code_generator_tree_view_sequence},"
-                            )
-                    if model_id.has_same_model_in_inherit_model():
+            if model_id.has_same_model_in_inherit_model():
+                cw.emit("else:")
+                with cw.indent():
+                    with cw.block(
+                        before=f"{var_value_field_name} =", delim=("{", "}")
+                    ):
+                        cw.emit(f'"m2o_fields": {variable_model_field}.id,')
                         cw.emit('"is_show_whitelist_model_inherit": True,')
-                    if "force_widget" in ast_attr.keys():
-                        cw.emit(
-                            '"force_widget":'
-                            f' "{ast_attr.get("force_widget")}",'
-                        )
-                if view_file_sync:
-                    dct_field = view_file_sync.dct_field.get(field_id.name)
-                    if dct_field and dct_field.get("is_date_start_view"):
-                        cw.emit(f'"is_date_start_view": True,')
-                if view_file_sync:
-                    dct_field = view_file_sync.dct_field.get(field_id.name)
-                    if dct_field and dct_field.get("is_date_end_view"):
-                        cw.emit(f'"is_date_end_view": True,')
-                cw.emit(f'"ttype": "{field_id.ttype}",')
-                if field_id.ttype in ["many2one", "many2many", "one2many"]:
-                    # cw.emit(f'"comodel_name": "{field_id.relation}",')
-                    cw.emit(f'"relation": "{field_id.relation}",')
-                    if field_id.ttype == "one2many":
-                        # field_many2one_ids = self.env[
-                        #     "ir.model.fields"
-                        # ].search(
-                        #     [
-                        #         ("model", "=", field_id.relation),
-                        #         ("ttype", "=", "many2one"),
-                        #         ("name", "not in", MAGIC_FIELDS),
-                        #     ]
-                        # )
-                        field_many2one_ids = self.env[
-                            "ir.model.fields"
-                        ].search(
-                            [
-                                ("model", "=", field_id.relation),
-                                ("ttype", "=", "many2one"),
-                                ("name", "=", field_id.relation_field),
-                            ]
-                        )
-                        if len(field_many2one_ids) == 1:
-                            cw.emit(
-                                '"relation_field":'
-                                f' "{field_many2one_ids.name}",'
-                            )
-                        else:
-                            _logger.error(
-                                "Cannot support this situation, where is the"
-                                " many2one?"
-                            )
-                elif field_id.ttype == "selection":
-                    field_selection = (
-                        self.env[model_model]
-                        .fields_get(field_id.name)
-                        .get(field_id.name)
-                    )
                     cw.emit(
-                        '"selection":'
-                        f' "{str(field_selection.get("selection"))}",'
+                        f'env["code.generator.ir.model.fields"].create({var_value_field_name})'
                     )
-                cw.emit(f'"model_id": {var_model_model}.id,')
-                field_default = ast_attr.get("default") if ast_attr else None
-                if field_default:
-                    if type(field_default) is str and "\n" in field_default:
-                        cw.emit_raw(
-                            f'{" " * cw.cur_indent}"default":'
-                            f' """{field_default}""",\n'
-                        )
-                    elif field_id.ttype in ("char", "selection"):
-                        cw.emit(f'"default": "{field_default}",')
-                    else:
-                        cw.emit(f'"default": {field_default},')
-                if ast_attr and "track_visibility" in ast_attr.keys():
-                    cw.emit(
-                        '"track_visibility":'
-                        f' "{ast_attr.get("track_visibility")}",'
-                    )
-                # field_id.compute always output False, use ast research instead
-                compute = ast_attr.get("compute") if ast_attr else None
-                if compute:
-                    if field_id.store:
-                        cw.emit(f'"store": {field_id.store},')
-                    cw.emit(f'"code_generator_compute": "{compute}",')
-                if field_id.required:
-                    cw.emit(f'"required": {field_id.required},')
-                if field_id.help:
-                    if "\n" in field_id.help:
-                        cw.emit_raw(
-                            f'{" " * cw.cur_indent}"help":'
-                            f' """{field_id.help}""",\n'
-                        )
-                    else:
-                        new_help = field_id.help.replace('"', '\\"')
-                        cw.emit(f'"help": "{new_help}",')
-            # If need a variable, uncomment next line
-            # cw.emit(f'{var_id_view} = env["ir.model.fields"].create({var_value_field_name})')
-            cw.emit(f'env["ir.model.fields"].create({var_value_field_name})')
             cw.emit()
 
         if lst_force_f2exports:
@@ -285,6 +185,140 @@ class CodeGeneratorWriter(models.Model):
                 cw.emit("field_x_name.unlink()")
             else:
                 cw.emit('field_x_name.name = "name"')
+
+    def _write_field_from_template(
+        self,
+        cw,
+        module,
+        field_id,
+        model_id,
+        model_model,
+        ast_attr,
+        var_value_field_name,
+        var_model_model,
+        view_file_sync,
+    ):
+        with cw.block(before=f"{var_value_field_name} =", delim=("{", "}")):
+            cw.emit(f'"name": "{field_id.name}",')
+            cw.emit(f'"model": "{model_model}",')
+            cw.emit(f'"field_description": "{field_id.field_description}",')
+            if ast_attr:
+                if not module.disable_fix_code_generator_sequence:
+                    code_generator_sequence = ast_attr.get(
+                        "code_generator_sequence"
+                    )
+                    code_generator_form_simple_view_sequence = ast_attr.get(
+                        "code_generator_form_simple_view_sequence"
+                    )
+                    code_generator_tree_view_sequence = ast_attr.get(
+                        "code_generator_tree_view_sequence"
+                    )
+                    if code_generator_sequence:
+                        cw.emit(
+                            '"code_generator_sequence":'
+                            f" {code_generator_sequence},"
+                        )
+                    if code_generator_form_simple_view_sequence:
+                        cw.emit(
+                            '"code_generator_form_simple_view_sequence":'
+                            f" {code_generator_form_simple_view_sequence},"
+                        )
+                    if code_generator_tree_view_sequence:
+                        cw.emit(
+                            '"code_generator_tree_view_sequence":'
+                            f" {code_generator_tree_view_sequence},"
+                        )
+                if model_id.has_same_model_in_inherit_model():
+                    cw.emit('"is_show_whitelist_model_inherit": True,')
+                if "force_widget" in ast_attr.keys():
+                    cw.emit(
+                        f'"force_widget": "{ast_attr.get("force_widget")}",'
+                    )
+            if view_file_sync:
+                dct_field = view_file_sync.dct_field.get(field_id.name)
+                if dct_field and dct_field.get("is_date_start_view"):
+                    cw.emit(f'"is_date_start_view": True,')
+            if view_file_sync:
+                dct_field = view_file_sync.dct_field.get(field_id.name)
+                if dct_field and dct_field.get("is_date_end_view"):
+                    cw.emit(f'"is_date_end_view": True,')
+            cw.emit(f'"ttype": "{field_id.ttype}",')
+            if field_id.ttype in ["many2one", "many2many", "one2many"]:
+                # cw.emit(f'"comodel_name": "{field_id.relation}",')
+                cw.emit(f'"relation": "{field_id.relation}",')
+                if field_id.ttype == "one2many":
+                    # field_many2one_ids = self.env[
+                    #     "ir.model.fields"
+                    # ].search(
+                    #     [
+                    #         ("model", "=", field_id.relation),
+                    #         ("ttype", "=", "many2one"),
+                    #         ("name", "not in", MAGIC_FIELDS),
+                    #     ]
+                    # )
+                    field_many2one_ids = self.env["ir.model.fields"].search(
+                        [
+                            ("model", "=", field_id.relation),
+                            ("ttype", "=", "many2one"),
+                            ("name", "=", field_id.relation_field),
+                        ]
+                    )
+                    if len(field_many2one_ids) == 1:
+                        cw.emit(
+                            f'"relation_field": "{field_many2one_ids.name}",'
+                        )
+                    else:
+                        _logger.error(
+                            "Cannot support this situation, where is the"
+                            " many2one?"
+                        )
+            elif field_id.ttype == "selection":
+                field_selection = (
+                    self.env[model_model]
+                    .fields_get(field_id.name)
+                    .get(field_id.name)
+                )
+                cw.emit(
+                    f'"selection": "{str(field_selection.get("selection"))}",'
+                )
+            cw.emit(f'"model_id": {var_model_model}.id,')
+            field_default = ast_attr.get("default") if ast_attr else None
+            if field_default:
+                if type(field_default) is str and "\n" in field_default:
+                    cw.emit_raw(
+                        f'{" " * cw.cur_indent}"default":'
+                        f' """{field_default}""",\n'
+                    )
+                elif field_id.ttype in ("char", "selection"):
+                    cw.emit(f'"default": "{field_default}",')
+                else:
+                    cw.emit(f'"default": {field_default},')
+            if ast_attr and "track_visibility" in ast_attr.keys():
+                cw.emit(
+                    '"track_visibility":'
+                    f' "{ast_attr.get("track_visibility")}",'
+                )
+            # field_id.compute always output False, use ast research instead
+            compute = ast_attr.get("compute") if ast_attr else None
+            if compute:
+                if field_id.store:
+                    cw.emit(f'"store": {field_id.store},')
+                cw.emit(f'"code_generator_compute": "{compute}",')
+            if field_id.required:
+                cw.emit(f'"required": {field_id.required},')
+            if field_id.help:
+                if "\n" in field_id.help:
+                    cw.emit_raw(
+                        f'{" " * cw.cur_indent}"help":'
+                        f' """{field_id.help}""",\n'
+                    )
+                else:
+                    new_help = field_id.help.replace('"', '\\"')
+                    cw.emit(f'"help": "{new_help}",')
+        # If need a variable, uncomment next line
+        # cw.emit(f'{var_id_view} = env["ir.model.fields"].create({var_value_field_name})')
+        cw.emit(f'env["ir.model.fields"].create({var_value_field_name})')
+        cw.emit()
 
     def _write_sync_view_component(self, view_item_ids, cw, parent=None):
         for view_item_id in view_item_ids:
@@ -971,6 +1005,7 @@ class CodeGeneratorWriter(models.Model):
                                     self.write_model(
                                         cw,
                                         model_id,
+                                        model_model,
                                         application_name,
                                         variable_model_model,
                                         module,
@@ -1154,6 +1189,7 @@ class CodeGeneratorWriter(models.Model):
         self,
         cw,
         model_id,
+        model_model,
         application_name,
         variable_model_model,
         module,
@@ -1328,6 +1364,7 @@ class CodeGeneratorWriter(models.Model):
                             f"{variable_model_model}.add_model_inherit(lst_depend_model)"
                         )
                 cw.emit()
+
             if module.external_dependencies_id:
                 cw.emit("# External dependencies")
                 for ext_depend in module.external_dependencies_id:
@@ -1347,81 +1384,104 @@ class CodeGeneratorWriter(models.Model):
                     )
                     cw.emit()
             self._write_generated_template(module, model_id.model, cw)
+
             cw.emit("##### Begin Field")
-            if module.enable_sync_template:
-                module_file_sync = module.module_file_sync.get(model_id.model)
-                view_file_sync = module.view_file_sync.get(model_id.model)
-                if view_file_sync:
-                    lst_view_item_code_generator.append(view_file_sync)
+            self._write_field(
+                cw,
+                module,
+                model_id,
+                lst_view_item_code_generator,
+                variable_model_model,
+                lst_keep_f2exports,
+                i,
+                len_model,
+            )
+            cw.emit("##### End Field")
+
+    def _write_field(
+        self,
+        cw,
+        module,
+        model_id,
+        lst_view_item_code_generator,
+        variable_model_model,
+        lst_keep_f2exports,
+        i,
+        len_model,
+    ):
+        if module.enable_sync_template:
+            module_file_sync = module.module_file_sync.get(model_id.model)
+            view_file_sync = module.view_file_sync.get(model_id.model)
+            if view_file_sync:
+                lst_view_item_code_generator.append(view_file_sync)
+            self._write_sync_template_model(
+                module,
+                model_id,
+                cw,
+                variable_model_model,
+                lst_keep_f2exports,
+                module_file_sync=module_file_sync,
+                view_file_sync=view_file_sync,
+            )
+        else:
+            cw.emit("value_field_boolean = {")
+            with cw.indent():
+                cw.emit('"name": "field_boolean",')
+                cw.emit('"model": "demo.model",')
+                cw.emit('"field_description": "field description",')
+                cw.emit('"ttype": "boolean",')
+                cw.emit(f'"model_id": {variable_model_model}.id,')
+            cw.emit("}")
+            cw.emit('env["ir.model.fields"].create(value_field_boolean)')
+            cw.emit()
+            cw.emit("# FIELD TYPE Many2one")
+            cw.emit("#value_field_many2one = {")
+            with cw.indent():
+                cw.emit('#"name": "field_many2one",')
+                cw.emit('#"model": "demo.model",')
+                cw.emit('#"field_description": "field description",')
+                cw.emit('#"ttype": "many2one",')
+                # cw.emit(
+                #     '#"comodel_name":'
+                #     ' "model.name",'
+                # )
+                cw.emit('#"relation": "model.name",')
+                cw.emit(f'#"model_id": {variable_model_model}.id,')
+            cw.emit("#}")
+            cw.emit('#env["ir.model.fields"].create(value_field_many2one)')
+            cw.emit("")
+            cw.emit("# Hack to solve field name")
+            cw.emit(
+                "field_x_name ="
+                " env[\"ir.model.fields\"].search([('model_id',"
+                " '=',"
+                f" {variable_model_model}.id),"
+                " ('name', '=', 'x_name')])"
+            )
+            cw.emit('field_x_name.name = "name"')
+            cw.emit(f'{variable_model_model}.rec_name = "name"')
+            cw.emit("")
+        if i >= len_model - 1 and lst_keep_f2exports:
+            cw.emit("")
+            cw.emit(
+                "# Added one2many field,"
+                " many2many need to be create"
+                " before add one2many"
+            )
+            for (
+                field_id,
+                model_model,
+                variable_model_model,
+            ) in lst_keep_f2exports:
+                # Finish to print one2many move at the end
                 self._write_sync_template_model(
                     module,
-                    model_id,
+                    field_id.model_id,
                     cw,
                     variable_model_model,
                     lst_keep_f2exports,
-                    module_file_sync=module_file_sync,
-                    view_file_sync=view_file_sync,
+                    lst_force_f2exports=[field_id],
                 )
-            else:
-                cw.emit("value_field_boolean = {")
-                with cw.indent():
-                    cw.emit('"name": "field_boolean",')
-                    cw.emit('"model": "demo.model",')
-                    cw.emit('"field_description": "field description",')
-                    cw.emit('"ttype": "boolean",')
-                    cw.emit(f'"model_id": {variable_model_model}.id,')
-                cw.emit("}")
-                cw.emit('env["ir.model.fields"].create(value_field_boolean)')
-                cw.emit()
-                cw.emit("# FIELD TYPE Many2one")
-                cw.emit("#value_field_many2one = {")
-                with cw.indent():
-                    cw.emit('#"name": "field_many2one",')
-                    cw.emit('#"model": "demo.model",')
-                    cw.emit('#"field_description": "field description",')
-                    cw.emit('#"ttype": "many2one",')
-                    # cw.emit(
-                    #     '#"comodel_name":'
-                    #     ' "model.name",'
-                    # )
-                    cw.emit('#"relation": "model.name",')
-                    cw.emit(f'#"model_id": {variable_model_model}.id,')
-                cw.emit("#}")
-                cw.emit('#env["ir.model.fields"].create(value_field_many2one)')
-                cw.emit("")
-                cw.emit("# Hack to solve field name")
-                cw.emit(
-                    "field_x_name ="
-                    " env[\"ir.model.fields\"].search([('model_id',"
-                    " '=',"
-                    f" {variable_model_model}.id),"
-                    " ('name', '=', 'x_name')])"
-                )
-                cw.emit('field_x_name.name = "name"')
-                cw.emit(f'{variable_model_model}.rec_name = "name"')
-                cw.emit("")
-            if i >= len_model - 1 and lst_keep_f2exports:
-                cw.emit("")
-                cw.emit(
-                    "# Added one2many field,"
-                    " many2many need to be create"
-                    " before add one2many"
-                )
-                for (
-                    field_id,
-                    model_model,
-                    variable_model_model,
-                ) in lst_keep_f2exports:
-                    # Finish to print one2many move at the end
-                    self._write_sync_template_model(
-                        module,
-                        field_id.model_id,
-                        cw,
-                        variable_model_model,
-                        lst_keep_f2exports,
-                        lst_force_f2exports=[field_id],
-                    )
-            cw.emit("##### End Field")
 
     def write_action_generate_view(
         self, cw, module, has_custom_view, has_access, has_menu_item

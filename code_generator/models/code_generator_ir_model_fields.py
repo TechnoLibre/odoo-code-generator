@@ -11,6 +11,14 @@ class CodeGeneratorIrModelFields(models.Model):
         compute="_change_m2o_fields",
     )
 
+    is_show_whitelist_model_inherit = fields.Boolean(
+        string="Show in whitelist model inherit",
+        help=(
+            "If a field in model is in whitelist, will be show in generated"
+            " model."
+        ),
+    )
+
     m2o_fields = fields.Many2one(
         comodel_name="ir.model.fields",
         string="Fields",

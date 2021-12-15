@@ -495,6 +495,7 @@ class CodeGeneratorData:
         max_col = 79
         use_prettier = True
         use_format_black = True  # Else, oca-autopep8
+        use_clean_import_isort = True
         use_html5print = False
         enable_xml_formatter = False  # Else, prettier-xml
         # Manual format with def with programmer style
@@ -617,6 +618,17 @@ class CodeGeneratorData:
                     result = self.subprocess_cmd(cmd)
                     if result:
                         _logger.info(result)
+
+        # Optimize import python
+        if use_clean_import_isort:
+            cmd = (
+                f"cd {workspace_path};./.venv/bin/isort"
+                f" {self.module_path}"
+            )
+            result = self.subprocess_cmd(cmd)
+
+            if result:
+                _logger.info(str(result))
 
         # Automatic format
         # TODO check diff before and after format to auto improvement of generation

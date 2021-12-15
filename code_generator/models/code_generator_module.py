@@ -1,10 +1,12 @@
-from odoo import models, fields, api, modules, tools
-import logging
 import base64
-import lxml
+import logging
 import os
-from odoo.addons.base.models.ir_module import MyWriter
+
+import lxml
 from docutils.core import publish_string
+
+from odoo import api, fields, models, modules, tools
+from odoo.addons.base.models.ir_module import MyWriter
 
 _logger = logging.getLogger(__name__)
 

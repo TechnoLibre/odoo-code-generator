@@ -1,5 +1,5 @@
-from odoo import models, fields, api, _, tools
-from odoo.exceptions import ValidationError, UserError
+from odoo import _, api, fields, models, tools
+from odoo.exceptions import UserError, ValidationError
 
 FORCE_WIDGET_TYPES = [
     ("barcode_handler", "Barcode handler"),

@@ -1,7 +1,7 @@
-import logging
 import ast
-import astor
+import logging
 
+import astor
 
 _logger = logging.getLogger(__name__)
 

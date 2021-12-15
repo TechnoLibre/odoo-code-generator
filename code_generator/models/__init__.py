@@ -1,29 +1,31 @@
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl)
 
-from . import code_generator_act_window
-from . import code_generator_ir_model_dependency
-from . import code_generator_ir_model_fields
-from . import code_generator_menu
-from . import code_generator_model_code
-from . import code_generator_model_code_import
-from . import code_generator_module
-from . import code_generator_module_dependency
-from . import code_generator_module_external_dependency
-from . import code_generator_module_template_dependency
-from . import code_generator_pyclass
-from . import code_generator_view
-from . import code_generator_view_item
-from . import code_generator_writer
-from . import ir_actions_act_url
-from . import ir_actions_act_window
-from . import ir_actions_report
-from . import ir_actions_server
-from . import ir_actions_todo
-from . import ir_model
-from . import ir_model_constraint
-from . import ir_model_fields
-from . import ir_model_server_constrain
-from . import ir_module_module
-from . import ir_ui_menu
-from . import ir_ui_view
-from . import res_groups
+from . import (
+    code_generator_act_window,
+    code_generator_ir_model_dependency,
+    code_generator_ir_model_fields,
+    code_generator_menu,
+    code_generator_model_code,
+    code_generator_model_code_import,
+    code_generator_module,
+    code_generator_module_dependency,
+    code_generator_module_external_dependency,
+    code_generator_module_template_dependency,
+    code_generator_pyclass,
+    code_generator_view,
+    code_generator_view_item,
+    code_generator_writer,
+    ir_actions_act_url,
+    ir_actions_act_window,
+    ir_actions_report,
+    ir_actions_server,
+    ir_actions_todo,
+    ir_model,
+    ir_model_constraint,
+    ir_model_fields,
+    ir_model_server_constrain,
+    ir_module_module,
+    ir_ui_menu,
+    ir_ui_view,
+    res_groups,
+)

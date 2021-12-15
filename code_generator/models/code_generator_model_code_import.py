@@ -1,4 +1,4 @@
-from odoo import models, fields, api, modules, tools
+from odoo import api, fields, models, modules, tools
 
 
 class CodeGeneratorModelCodeImport(models.Model):

@@ -1,8 +1,7 @@
 import importlib
 import logging
 
-from odoo import models, fields, api, _, tools
-
+from odoo import _, api, fields, models, tools
 from odoo.exceptions import ValidationError
 from odoo.models import MAGIC_COLUMNS
 
@@ -32,6 +31,7 @@ class IrModel(models.Model):
             " default form."
         )
     )
+
     diagram_arrow_label = fields.Char(
         help="Diagram label, data to show when draw a line.",
         default="['name']",

@@ -1,8 +1,8 @@
 import re
 
-from odoo import models, fields, api, modules, tools, _
-from odoo.exceptions import ValidationError
+from odoo import _, api, fields, models, modules, tools
 from odoo.addons.base.models.ir_model import SAFE_EVAL_BASE
+from odoo.exceptions import ValidationError
 from odoo.tools.safe_eval import safe_eval
 
 CONSTRAINEDLS = _(

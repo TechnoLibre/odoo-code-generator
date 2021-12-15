@@ -1,26 +1,26 @@
-from odoo import models, fields, api
-
 import ast
+import base64
+import glob
+import io
+import logging
 import os
 import shutil
 import tempfile
-import logging
 import uuid
-import base64
-import glob
-from lxml.builder import E
-from lxml import etree as ET
 from collections import defaultdict
-from odoo.tools.misc import mute_logger
-from PIL import Image
-import io
-
-from ..extractor_module import ExtractorModule
-from ..extractor_view import ExtractorView
-from ..code_generator_data import CodeGeneratorData
 
 from code_writer import CodeWriter
+from lxml import etree as ET
+from lxml.builder import E
+from PIL import Image
+
+from odoo import api, fields, models
 from odoo.models import MAGIC_COLUMNS
+from odoo.tools.misc import mute_logger
+
+from ..code_generator_data import CodeGeneratorData
+from ..extractor_module import ExtractorModule
+from ..extractor_view import ExtractorView
 
 _logger = logging.getLogger(__name__)
 

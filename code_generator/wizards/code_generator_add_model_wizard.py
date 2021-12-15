@@ -1,4 +1,4 @@
-from odoo import _, models, fields, api
+from odoo import _, api, fields, models
 
 
 class CodeGeneratorAddModelWizard(models.TransientModel):

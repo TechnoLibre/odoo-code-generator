@@ -1,7 +1,8 @@
+import ast
+import glob
 import logging
 import os
-import glob
-import ast
+
 from .extractor_module_file import ExtractorModuleFile
 
 _logger = logging.getLogger(__name__)

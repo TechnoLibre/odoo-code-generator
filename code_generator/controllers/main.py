@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
-
 import io
 import shutil
-from zipfile import ZipFile, ZIP_DEFLATED
+from zipfile import ZIP_DEFLATED, ZipFile
 
 from odoo import http
-from odoo.http import request, content_disposition
+from odoo.http import content_disposition, request
 
 
 def _get_l_map(fn, collection):

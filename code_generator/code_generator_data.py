@@ -1,12 +1,12 @@
 import logging
 import os
 import shutil
-
-from collections import defaultdict
 import subprocess
+from collections import defaultdict
+
 import html5print
-from code_writer import CodeWriter
 import xmlformatter
+from code_writer import CodeWriter
 
 _logger = logging.getLogger(__name__)
 
@@ -621,10 +621,7 @@ class CodeGeneratorData:
 
         # Optimize import python
         if use_clean_import_isort:
-            cmd = (
-                f"cd {workspace_path};./.venv/bin/isort"
-                f" {self.module_path}"
-            )
+            cmd = f"cd {workspace_path};./.venv/bin/isort {self.module_path}"
             result = self.subprocess_cmd(cmd)
 
             if result:

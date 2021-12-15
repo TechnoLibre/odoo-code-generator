@@ -1,11 +1,9 @@
+import glob
 import logging
 import os
-import glob
-
 import xml.dom.minicompat
-from xml.dom import minidom, Node
 from collections import defaultdict
-
+from xml.dom import Node, minidom
 
 _logger = logging.getLogger(__name__)
 

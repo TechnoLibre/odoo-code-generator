@@ -19,6 +19,16 @@ class CodeGeneratorIrModelFields(models.Model):
         ),
     )
 
+    selection = fields.Char(
+        string="Selection Options",
+        default="",
+        help=(
+            "List of options for a selection field, specified as a Python"
+            " expression defining a list of (key, label) pairs. For example:"
+            " [('blue','Blue'),('yellow','Yellow')]"
+        ),
+    )
+
     m2o_fields = fields.Many2one(
         comodel_name="ir.model.fields",
         string="Fields",

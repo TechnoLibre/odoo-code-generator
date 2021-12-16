@@ -2245,23 +2245,9 @@ class CodeGeneratorWriter(models.Model):
 
             # Respect sequence in list, order listed by human preference
 
-            if (
-                f2export.ttype == "reference" or f2export.ttype == "selection"
-            ) and f2export.selection:
-                if f2export.selection != "[]":
-                    try:
-                        # Transform string in list
-                        lst_selection = ast.literal_eval(f2export.selection)
-                        # lst_selection = [f"'{a}'" for a in lst_selection]
-                        dct_field_attribute["selection"] = lst_selection
-                    except Exception as e:
-                        dct_field_attribute["selection"] = []
-                        _logger.error(
-                            f"The selection of field {f2export.name} is not a"
-                            f" list: '{f2export.selection}'."
-                        )
-                else:
-                    dct_field_attribute["selection"] = []
+            str_selection = f2export.get_selection()
+            if str_selection:
+                dct_field_attribute["selection"] = str_selection
 
             if f2export.ttype in ["many2one", "one2many", "many2many"]:
                 if f2export.relation:

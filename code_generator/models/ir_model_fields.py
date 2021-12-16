@@ -1,5 +1,9 @@
 from odoo import _, api, fields, models, tools
 from odoo.exceptions import UserError, ValidationError
+import ast
+import logging
+
+_logger = logging.getLogger(__name__)
 
 FORCE_WIDGET_TYPES = [
     ("barcode_handler", "Barcode handler"),
@@ -341,6 +345,40 @@ class IrModelFields(models.Model):
                 self.code_generator_ir_model_fields_ids.is_show_whitelist_model_inherit
             )
         return self.is_show_whitelist_model_inherit
+
+    @api.model
+    def get_selection(self):
+        return_value = []
+
+        if self.ttype == "reference" or self.ttype == "selection":
+            if self.selection and self.selection != "[]":
+                try:
+                    # Transform string in list
+                    lst_selection = ast.literal_eval(self.selection)
+                    # lst_selection = [f"'{a}'" for a in lst_selection]
+                    return_value = lst_selection
+                except Exception as e:
+                    _logger.error(
+                        f"The selection of field {self.name} is not a"
+                        f" list: '{self.selection}'."
+                    )
+            elif (
+                self.code_generator_ir_model_fields_ids
+                and self.code_generator_ir_model_fields_ids.selection
+                and self.code_generator_ir_model_fields_ids.selection != "[()]"
+            ):
+                try:
+                    # Transform string in list
+                    lst_selection = ast.literal_eval(
+                        self.code_generator_ir_model_fields_ids.selection
+                    )
+                    return_value = lst_selection
+                except Exception as e:
+                    _logger.error(
+                        f"The selection of field {self.name} is not a"
+                        f" list: '{self.selection}'."
+                    )
+        return return_value
 
     @api.model
     def create(self, vals):

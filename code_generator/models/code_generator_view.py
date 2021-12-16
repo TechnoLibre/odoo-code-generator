@@ -42,7 +42,7 @@ class CodeGeneratorView(models.Model):
     view_name = fields.Char(string="View name")
 
     view_type = fields.Selection(
-        [
+        selection=[
             ("activity", "Activity"),
             ("calendar", "Calendar"),
             ("diagram", "Diagram"),

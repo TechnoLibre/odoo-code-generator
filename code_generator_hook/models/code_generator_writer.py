@@ -1,5 +1,6 @@
 import logging
 
+import isort
 from code_writer import CodeWriter
 
 from odoo import api, fields, models
@@ -1547,26 +1548,36 @@ class CodeGeneratorWriter(models.Model):
         ):
             # No need to write with these default value
             dct_code_id = {}
+        # Prepare code
+        dct_new_code = {}
         if dct_code_id:
+            for code_id in dct_code_id.values():
+                # use isort to optimize it!
+                sorted_code = isort.code(
+                    code_id.code.strip().replace("\\b", "\\\\b")
+                ).strip()
+                if sorted_code != "from odoo import _, api, fields, models":
+                    lst_line = sorted_code.split("\n")
+                    dct_new_code[code_id] = lst_line
+
+        if dct_new_code:
             cw.emit("# Generate code")
             cw.emit("if True:")
             with cw.indent():
                 cw.emit("# Generate code header")
-                for code_id in dct_code_id.values():
+                str_line = f"\"code\": '''"
+                for code_id, lst_line in dct_new_code.items():
                     with cw.block(
                         before="value =",
                         delim=("{", "}"),
                     ):
-                        str_line = f"\"code\": '''"
-                        lst_line = code_id.code.replace("\\b", "\\\\b").split(
-                            "\n"
-                        )
-                        cw.emit(str_line + lst_line[0])
-                        for line in lst_line[1:-1]:
-                            # str_line += line
-                            cw.emit_raw(line + "\n")
-                            # str_line = ""
-                        cw.emit_raw(f"{lst_line[-1]}''',\n")
+                        if len(lst_line) > 1:
+                            cw.emit(str_line + lst_line[0])
+                            for line in lst_line[1:-1]:
+                                cw.emit_raw(line + "\n")
+                            cw.emit_raw(f"{lst_line[-1]}''',\n")
+                        elif lst_line:
+                            cw.emit(f"{str_line}{lst_line[0]}''',")
                         cw.emit(f'"name": "{code_id.name}",')
                         if code_id.sequence:
                             cw.emit(f'"sequence": {code_id.sequence},')

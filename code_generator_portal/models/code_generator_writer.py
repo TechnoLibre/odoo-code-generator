@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models, fields, api, modules, tools
-
 from code_writer import CodeWriter
+
+from odoo import api, fields, models, modules, tools
 
 BREAK_LINE = ["\n"]
 

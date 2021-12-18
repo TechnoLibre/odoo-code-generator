@@ -1,8 +1,10 @@
-from odoo import _, models, fields, api
-from odoo.models import MAGIC_COLUMNS
-from lxml.builder import E
-from lxml import etree as ET
 import logging
+
+from lxml import etree as ET
+from lxml.builder import E
+
+from odoo import _, api, fields, models
+from odoo.models import MAGIC_COLUMNS
 
 _logger = logging.getLogger(__name__)
 

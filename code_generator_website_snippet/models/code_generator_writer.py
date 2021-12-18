@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models, fields, api, modules, tools
+import os
 
 from code_writer import CodeWriter
-from lxml.builder import E
 from lxml import etree as ET
-import os
+from lxml.builder import E
+
+from odoo import api, fields, models, modules, tools
 
 BREAK_LINE = ["\n"]
 BREAK_LINE_OFF = "\n"

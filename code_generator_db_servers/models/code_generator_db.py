@@ -1,8 +1,9 @@
-import psycopg2
-from odoo import _, models, fields, api
-from odoo.exceptions import ValidationError
-
 import logging
+
+import psycopg2
+
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
 

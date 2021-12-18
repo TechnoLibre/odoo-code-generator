@@ -2,7 +2,7 @@
 
 import base64
 
-from odoo import api, models, fields, tools
+from odoo import api, fields, models, tools
 from odoo.modules import get_module_resource
 
 CURRENTTARGETDOMAIN = [

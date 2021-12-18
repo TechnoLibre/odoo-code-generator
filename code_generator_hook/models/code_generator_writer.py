@@ -1,8 +1,9 @@
-from odoo import models, fields, api
+import logging
 
 from code_writer import CodeWriter
+
+from odoo import api, fields, models
 from odoo.models import MAGIC_COLUMNS
-import logging
 
 MAGIC_FIELDS = MAGIC_COLUMNS + [
     "display_name",

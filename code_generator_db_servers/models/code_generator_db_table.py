@@ -1,16 +1,16 @@
+import base64
+import logging
+import os
 import re
+import time
+from collections import defaultdict
 
 import psycopg2
-from odoo import _, models, fields, api
-from odoo.exceptions import ValidationError
-from collections import defaultdict
-from odoo.models import MAGIC_COLUMNS
-import time
-import base64
-import os
 import unidecode
 
-import logging
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
+from odoo.models import MAGIC_COLUMNS
 
 _logger = logging.getLogger(__name__)
 

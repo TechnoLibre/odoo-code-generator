@@ -280,9 +280,9 @@ class CodeGeneratorWriter(models.Model):
                     .fields_get(field_id.name)
                     .get(field_id.name)
                 )
-                cw.emit(
-                    f'"selection": "{str(field_selection.get("selection"))}",'
-                )
+                selection_txt = str(field_selection.get("selection"))
+                selection_txt = selection_txt.replace('"', '\\"')
+                cw.emit(f'"selection": "{selection_txt}",')
             cw.emit(f'"model_id": {var_model_model}.id,')
             field_default = ast_attr.get("default") if ast_attr else None
             if field_default:

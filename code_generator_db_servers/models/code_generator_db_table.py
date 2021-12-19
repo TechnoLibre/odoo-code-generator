@@ -818,11 +818,14 @@ class CodeGeneratorDbTable(models.Model):
         return query + f" table_name = '{table_name}' "
 
     @staticmethod
-    def get_q_4constraints(table_name, column_name, fkey=False, sgdb=None):
+    def get_q_4constraints(
+        table_name, column_name, database, fkey=False, sgdb=None
+    ):
         """
         Function to obtain the SELECT query for a table constraints
         :param table_name:
         :param column_name:
+        :param database:
         :param fkey:
         :param sgdb:
         :return:
@@ -833,19 +836,19 @@ class CodeGeneratorDbTable(models.Model):
                 return f""" SELECT ccu.table_name, ccu.COLUMN_NAME FROM {'information_schema.table_constraints'} AS tc
                 JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
                 JOIN {'information_schema.constraint_column_usage'} AS ccu ON ccu.constraint_name = tc.constraint_name
-                WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table_name}'
+                WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table_name}' AND tc.table_schema = '{database}'
                 AND kcu.column_name = '{column_name}' """
 
             else:
                 return f""" SELECT kcu.referenced_table_name, kcu.REFERENCED_COLUMN_NAME FROM {'information_schema.table_constraints'} AS tc
                 JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
-                WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table_name}'
+                WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table_name}' AND tc.table_schema = '{database}'
                 AND kcu.column_name = '{column_name}' """
 
         else:
             return f""" SELECT * FROM {'information_schema.table_constraints'} AS tc
             JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
-            WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_name = '{table_name}'
+            WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_name = '{table_name}' AND tc.table_schema = '{database}'
             AND kcu.column_name = '{column_name}' """
 
     @staticmethod
@@ -963,7 +966,7 @@ class CodeGeneratorDbTable(models.Model):
                 #     column_name = slice_column_name
 
                 str_query_4_constraints = self.get_q_4constraints(
-                    origin_table_name, column_name
+                    origin_table_name, column_name, database
                 )
                 cr.execute(str_query_4_constraints)
                 if (
@@ -971,7 +974,11 @@ class CodeGeneratorDbTable(models.Model):
                 ):  # if it is not a primary key
 
                     str_query_4_constraints_fkey = self.get_q_4constraints(
-                        origin_table_name, column_name, fkey=True, sgdb=sgdb
+                        origin_table_name,
+                        column_name,
+                        database,
+                        fkey=True,
+                        sgdb=sgdb,
                     )
                     cr.execute(str_query_4_constraints_fkey)
                     is_m2o = cr.fetchone()

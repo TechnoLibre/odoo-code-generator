@@ -2246,7 +2246,7 @@ class CodeGeneratorWriter(models.Model):
             # Respect sequence in list, order listed by human preference
 
             str_selection = f2export.get_selection()
-            if str_selection:
+            if f2export.ttype in ("selection", "reference"):
                 dct_field_attribute["selection"] = str_selection
 
             if f2export.ttype in ["many2one", "one2many", "many2many"]:

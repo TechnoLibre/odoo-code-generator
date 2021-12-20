@@ -11,12 +11,24 @@ class CodeGeneratorIrModelFields(models.Model):
         compute="_change_m2o_fields",
     )
 
+    code_generator_compute = fields.Char(
+        string="Compute Code Generator",
+        help="Compute method to code_generator_writer.",
+    )
+
     is_show_whitelist_model_inherit = fields.Boolean(
         string="Show in whitelist model inherit",
         help=(
             "If a field in model is in whitelist, will be show in generated"
             " model."
         ),
+    )
+
+    filter_field_attribute = fields.Char(
+        help=(
+            "Separate by ; to enumerate your attribute to filter, like a"
+            " whitelist of attributes field."
+        )
     )
 
     selection = fields.Char(

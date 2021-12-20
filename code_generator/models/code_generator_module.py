@@ -392,6 +392,172 @@ class CodeGeneratorModule(models.Model):
                     module.icon_image = base64.b64encode(image_file.read())
 
     @api.model
+    def add_update_model(
+        self,
+        model_model,
+        model_name,
+        dct_field=None,
+        dct_model=None,
+        lst_depend_model=None,
+    ):
+        model_id = self.env["ir.model"].search([("model", "=", model_model)])
+        # Check if exist or create it
+        if model_id:
+            model_id.m2o_module = self.id
+
+            if dct_field:
+                for field_name, field_info in dct_field.items():
+                    field_id = self.env["ir.model.fields"].search(
+                        [
+                            ("model", "=", model_model),
+                            ("name", "=", field_name),
+                        ]
+                    )
+                    if not field_id:
+                        value_ir_model_fields = {
+                            "name": field_name,
+                            "model": model_model,
+                            "model_id": model_id.id,
+                        }
+                        for key in field_info.keys():
+                            self._update_dict(
+                                key,
+                                field_info,
+                                value_ir_model_fields,
+                            )
+                        self.env["ir.model.fields"].create(
+                            value_ir_model_fields
+                        )
+                    else:
+                        value_ir_model_fields = {
+                            "m2o_fields": field_id.id,
+                        }
+                        # TODO update all field with getter
+                        self._update_dict(
+                            "filter_field_attribute",
+                            field_info,
+                            value_ir_model_fields,
+                        )
+                        self._update_dict(
+                            "code_generator_compute",
+                            field_info,
+                            value_ir_model_fields,
+                        )
+
+                        self.env["code.generator.ir.model.fields"].create(
+                            value_ir_model_fields
+                        )
+        else:
+            has_field_name = False
+            # Update model values
+            value = {
+                "name": model_name,
+                "model": model_model,
+                "m2o_module": self.id,
+            }
+            if dct_model:
+                for key in dct_model.keys():
+                    self._update_dict(
+                        key,
+                        dct_model,
+                        value,
+                    )
+
+            # Update fields values
+            lst_field_value = []
+            if dct_field:
+                for field_name, field_info in dct_field.items():
+                    if field_name == "name":
+                        has_field_name = True
+
+                    field_id = self.env["ir.model.fields"].search(
+                        [
+                            ("model", "=", model_model),
+                            ("name", "=", field_name),
+                        ]
+                    )
+                    if not field_id:
+                        value_field_id = {
+                            "name": field_name,
+                        }
+                        for key in field_info.keys():
+                            self._update_dict(
+                                key,
+                                field_info,
+                                value_field_id,
+                            )
+
+                        lst_field_value.append((0, 0, value_field_id))
+                    else:
+                        _logger.error("What to do with existing field?")
+
+            if lst_field_value:
+                value["field_id"] = lst_field_value
+
+            if "rec_name" not in value.keys():
+                if has_field_name:
+                    value["rec_name"] = "name"
+                else:
+                    _logger.error(
+                        f"Cannot found rec_name for model {model_model}."
+                    )
+
+            model_id = self.env["ir.model"].create(value)
+
+        # Model inherit
+        if lst_depend_model:
+            model_id.add_model_inherit(lst_depend_model)
+
+        return model_id
+
+    @api.model
+    def add_update_model_one2many(
+        self,
+        model_model,
+        dct_field,
+    ):
+        model_id = self.env["ir.model"].search([("model", "=", model_model)])
+        # Check if exist or create it
+        if model_id:
+            model_id.m2o_module = self.id
+            for field_name, field_info in dct_field.items():
+                field_id = self.env["ir.model.fields"].search(
+                    [
+                        ("model", "=", model_model),
+                        ("name", "=", field_name),
+                    ]
+                )
+                if not field_id:
+                    value_field_one2many = {
+                        "name": field_name,
+                        "model": model_model,
+                        "model_id": model_id.id,
+                    }
+
+                    for key in field_info.keys():
+                        self._update_dict(
+                            key,
+                            field_info,
+                            value_field_one2many,
+                        )
+
+                    self.env["ir.model.fields"].create(value_field_one2many)
+                else:
+                    _logger.error("What to do to update a one2many?")
+        else:
+            _logger.error(
+                f"The model '{model_model}' is not existing, need to be create"
+                " before call add_update_model_one2many from"
+                " CodeGeneratorModule."
+            )
+
+    @api.model
+    def _update_dict(self, key_name, field_info, value_field_id):
+        filter_field_attribute = field_info.get(key_name)
+        if filter_field_attribute:
+            value_field_id[key_name] = filter_field_attribute
+
+    @api.model
     def create(self, vals):
         if "icon" in vals.keys():
             icon_path = vals["icon"]

@@ -2356,10 +2356,10 @@ class CodeGeneratorWriter(models.Model):
                 )
 
             compute = f2export.compute and f2export.depends
-            if f2export.code_generator_compute:
-                dct_field_attribute[
-                    "compute"
-                ] = f2export.code_generator_compute
+
+            code_generator_compute = f2export.get_code_generator_compute()
+            if code_generator_compute:
+                dct_field_attribute["compute"] = code_generator_compute
             elif compute:
                 dct_field_attribute["compute"] = f"_compute_{f2export.name}"
 
@@ -2399,10 +2399,28 @@ class CodeGeneratorWriter(models.Model):
             # elif f2export.ttype != 'one2many' and not f2export.related and not compute and not f2export.copied:
             #     dct_field_attribute["copy"] = False
 
+            lst_attribute_to_filter = []
+            if (
+                f2export.code_generator_ir_model_fields_ids
+                and f2export.code_generator_ir_model_fields_ids.filter_field_attribute
+            ):
+                # Filter list of attribute
+                lst_attribute_to_filter = f2export.code_generator_ir_model_fields_ids.filter_field_attribute.split(
+                    ";"
+                )
+                lst_attribute_to_filter = [
+                    a.strip() for a in lst_attribute_to_filter if a.strip()
+                ]
+
             lst_first_field_attribute = []
             lst_field_attribute = []
             lst_last_field_attribute = []
             for key, value in dct_field_attribute.items():
+                if (
+                    lst_attribute_to_filter
+                    and key not in lst_attribute_to_filter
+                ):
+                    continue
                 if type(value) is str:
                     # TODO find another solution than removing \n, this cause error with cw.CodeWriter
                     value = value.replace("\n", " ").replace("'", "\\'")

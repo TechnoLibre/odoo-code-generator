@@ -348,6 +348,14 @@ class IrModelFields(models.Model):
         return self.is_show_whitelist_model_inherit
 
     @api.model
+    def get_code_generator_compute(self):
+        if self.code_generator_ir_model_fields_ids:
+            return (
+                self.code_generator_ir_model_fields_ids.code_generator_compute
+            )
+        return self.code_generator_compute
+
+    @api.model
     def get_selection(self):
         return_value = []
 

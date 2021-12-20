@@ -320,12 +320,14 @@ class ExtractorModuleFile:
                 ast.BoolOp,
                 ast.Dict,
                 ast.Tuple,
+                ast.Yield,
                 bool,
             ):
                 # Check type, but in fact, can accept all type.
                 # This check is only to understand what style of code we read
                 self._get_recursive_lineno(lst_attr_item, set_lineno, lst_line)
             else:
+                # TODO robot study me by updating ast
                 try:
                     self._get_recursive_lineno(
                         lst_attr_item, set_lineno, lst_line

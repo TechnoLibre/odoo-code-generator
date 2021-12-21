@@ -621,7 +621,10 @@ class CodeGeneratorData:
 
         # Optimize import python
         if use_clean_import_isort:
-            cmd = f"cd {workspace_path};./.venv/bin/isort {self.module_path}"
+            cmd = (
+                f"cd {workspace_path};./.venv/bin/isort --profile black -l 79"
+                f" {self.module_path}"
+            )
             result = self.subprocess_cmd(cmd)
 
             if result:

@@ -570,7 +570,7 @@ class ExtractorView:
             value = {
                 "code_generator_id": self.code_generator_id.id,
                 "view_type": view_id.type,
-                # "view_name": "view_backup_conf_form",
+                "view_name": view_id.name,
                 # "m2o_model": model_db_backup.id,
                 "view_item_ids": [(6, 0, lst_view_item_id)],
                 "has_body_sheet": has_body_sheet,
@@ -722,6 +722,9 @@ class ExtractorView:
             return True
         elif node.nodeName == "templates":
             _logger.warning(f"Node template is not supported, ignore it.")
+            return
+        elif node.nodeName in ("node", "arrow", "label"):
+            # Ignore it, this is the diagram, it's supported somewhere else
             return
         else:
             _logger.warning(f"Unknown this case '{node.nodeName}'.")

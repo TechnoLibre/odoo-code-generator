@@ -172,7 +172,8 @@ class CodeGeneratorWriter(models.Model):
         with cw.block(delim=("{", "}")):
             cw.emit('"code_generator_id": code_generator_id.id,')
             cw.emit(f'"view_type": "{view_type}",')
-            # cw.emit(f'# "view_name": "view_backup_conf_form",')
+            if view_id.view_name:
+                cw.emit(f'"view_name": "{view_id.view_name}",')
             cw.emit(f'"m2o_model": {view_item.var_model_name}.id,')
             cw.emit('"view_item_ids": [(6, 0, lst_item_view)],')
             if view_id.has_body_sheet:
@@ -188,7 +189,6 @@ class CodeGeneratorWriter(models.Model):
         cw.emit("# action_server view")
         cw.emit("if True:")
         with cw.indent():
-            # TODO support ir_cron here, update _write_generated_template
             if act_server_ids:
                 for act_server in act_server_ids:
                     var_act_server_id = self.env["ir.model.data"].search(

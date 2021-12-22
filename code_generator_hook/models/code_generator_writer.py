@@ -666,15 +666,23 @@ class CodeGeneratorWriter(models.Model):
                                 ' env["code.generator.module"].create(value)'
                             )
                             cw.emit()
+                            lst_module_depend = []
                             if (
                                 module.template_module_id
                                 and module.template_module_id.dependencies_id
                             ):
-                                cw.emit("# Add dependencies")
                                 lst_module_depend = [
                                     a.name
                                     for a in module.template_module_id.dependencies_id
                                 ]
+                            elif module.dependencies_id:
+                                lst_module_depend = [
+                                    a.depend_id.name
+                                    for a in module.dependencies_id
+                                ]
+
+                            if lst_module_depend:
+                                cw.emit("# Add dependencies")
                                 lst_module_depend = sorted(lst_module_depend)
                                 if len(lst_module_depend) > 1:
                                     cw.emit(
@@ -724,6 +732,7 @@ class CodeGeneratorWriter(models.Model):
                                     cw.emit()
 
                             lst_view_item_code_generator = []
+                            lst_model_id = []
                             if module.template_model_name:
                                 lst_model = [
                                     a.strip()
@@ -733,7 +742,6 @@ class CodeGeneratorWriter(models.Model):
                                     if a.strip()
                                 ]
 
-                                lst_model_id = []
                                 # Filter model and get model_id
                                 for model_model in lst_model:
                                     model_id = self.env["ir.model"].search(

@@ -252,7 +252,7 @@ class CodeGeneratorWriter(models.Model):
         is_first = True
         for tag_name in lst_tag_support:
             view_ids = code_generator_views_id.filtered(
-                lambda view_id: view_id.view_type == tag_name
+                lambda a: a.view_type == tag_name
             )
             if not view_ids:
                 continue
@@ -783,9 +783,6 @@ class CodeGeneratorWriter(models.Model):
                                     title_model_model = model_name.replace(
                                         "_", " "
                                     ).title()
-                                    variable_model_model = (
-                                        f"model_{model_name}"
-                                    )
 
                                     cw.emit()
                                     cw.emit(

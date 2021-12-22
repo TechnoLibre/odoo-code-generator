@@ -323,6 +323,7 @@ class CodeGeneratorWriter(models.Model):
             # self.code_generator_data.write_file_binary(static_description_icon_path,
             # base64.b64decode(module.icon_image))
             # TODO temp solution with icon from menu
+            icon_path = ""
             if module.icon and os.path.isfile(module.icon):
                 with open(module.icon, "rb") as file:
                     content = file.read()
@@ -487,13 +488,14 @@ class CodeGeneratorWriter(models.Model):
                 file.write(data)
 
     def copy_missing_file(
-        self, module_name, module_path, template_dir, lst_file_extra=[]
+        self, module_name, module_path, template_dir, lst_file_extra=None
     ):
         """
         This function will create and copy file into template module.
         :param module_name:
         :param module_path:
         :param template_dir:
+        :param lst_file_extra:
         :return:
         """
         # TODO bad conception, this method not suppose to be here, move this before generate code
@@ -530,17 +532,18 @@ class CodeGeneratorWriter(models.Model):
         target_tests_dir_path = os.path.join(template_copied_dir, "tests")
         shutil.copytree(tests_dir_path, target_tests_dir_path)
 
-        for file_extra in lst_file_extra:
-            # Special if exist, mail_message_subtype.xml
-            mail_data_xml_path = os.path.join(module_path, file_extra)
-            target_mail_data_xml_path = os.path.join(
-                template_copied_dir, file_extra
-            )
-            if os.path.isfile(mail_data_xml_path):
-                CodeGeneratorData.check_mkdir_and_create(
-                    target_mail_data_xml_path
+        if lst_file_extra:
+            for file_extra in lst_file_extra:
+                # Special if existing, mail_message_subtype.xml
+                mail_data_xml_path = os.path.join(module_path, file_extra)
+                target_mail_data_xml_path = os.path.join(
+                    template_copied_dir, file_extra
                 )
-                shutil.copy(mail_data_xml_path, target_mail_data_xml_path)
+                if os.path.isfile(mail_data_xml_path):
+                    CodeGeneratorData.check_mkdir_and_create(
+                        target_mail_data_xml_path
+                    )
+                    shutil.copy(mail_data_xml_path, target_mail_data_xml_path)
 
     def _set_manifest_file(self, module):
         """
@@ -935,6 +938,7 @@ class CodeGeneratorWriter(models.Model):
                 if rfield.id in lst_field_id_blacklist:
                     continue
                 record_value = getattr(record, rfield.name)
+                child = None
                 if record_value or (
                     not record_value
                     and rfield.ttype == "boolean"
@@ -963,17 +967,17 @@ class CodeGeneratorWriter(models.Model):
                         # TODO do we need to export one2many relation data, it's better to export many2one
                         # TODO maybe check if many2one is exported or export this one
                         continue
-                        field_eval = ", ".join(
-                            record_value.mapped(
-                                lambda rvalue: "(4, ref('%s'))"
-                                % self._get_ir_model_data(
-                                    rvalue, give_a_default=True
-                                )
-                            )
-                        )
-                        child = E.field(
-                            {"name": rfield.name, "eval": f"[{field_eval}]"}
-                        )
+                        # field_eval = ", ".join(
+                        #     record_value.mapped(
+                        #         lambda rvalue: "(4, ref('%s'))"
+                        #         % self._get_ir_model_data(
+                        #             rvalue, give_a_default=True
+                        #         )
+                        #     )
+                        # )
+                        # child = E.field(
+                        #     {"name": rfield.name, "eval": f"[{field_eval}]"}
+                        # )
 
                     elif rfield.ttype == "many2many":
                         # TODO add dependencies id in lst_depend
@@ -1020,7 +1024,7 @@ class CodeGeneratorWriter(models.Model):
                             {"name": rfield.name}, str(record_value)
                         )
 
-                    if not delete_node:
+                    if not delete_node and child is not None:
                         lst_field.append(child)
 
             # TODO delete this comment, check why no need anymore rec_name
@@ -1102,13 +1106,13 @@ class CodeGeneratorWriter(models.Model):
             if lst_item_cache:
                 lst_item_cache = sorted(
                     lst_item_cache,
-                    key=lambda menu: self._get_menu_data_name(menu),
+                    key=lambda a: self._get_menu_data_name(a),
                 )
                 lst_menu += lst_item_cache
 
             if not has_update:
                 lst_sorted_item = sorted(
-                    lst_items, key=lambda menu: self._get_menu_data_name(menu)
+                    lst_items, key=lambda a: self._get_menu_data_name(a)
                 )
                 for item in lst_sorted_item:
                     lst_menu.append(item)
@@ -1208,7 +1212,8 @@ class CodeGeneratorWriter(models.Model):
 
         return application_icon
 
-    def _setup_xml_indent(self, content, indent=0, is_end=False):
+    @staticmethod
+    def _setup_xml_indent(content, indent=0, is_end=False):
         # return "\n".join([f"{'    ' * indent}{a}" for a in content.split("\n")])
         str_content = content.rstrip().replace("\n", f"\n{'  ' * indent}")
         super_content = f"\n{'  ' * indent}{str_content}"
@@ -1218,7 +1223,8 @@ class CodeGeneratorWriter(models.Model):
             super_content += f"\n{'  ' * (indent - 1)}"
         return super_content
 
-    def _change_xml_2_to_4_spaces(self, content):
+    @staticmethod
+    def _change_xml_2_to_4_spaces(content):
         new_content = ""
         # Change 2 space for 4 space
         for line in content.split("\n"):
@@ -1611,11 +1617,8 @@ class CodeGeneratorWriter(models.Model):
         #
         for server_action in server_action_ids:
 
-            lst_field = []
-
-            lst_field.append(E.field({"name": "name"}, server_action.name))
-
-            lst_field.append(
+            lst_field = [
+                E.field({"name": "name"}, server_action.name),
                 E.field(
                     {
                         "name": "model_id",
@@ -1623,17 +1626,14 @@ class CodeGeneratorWriter(models.Model):
                             server_action.model_id
                         ),
                     }
-                )
-            )
-
-            lst_field.append(
+                ),
                 E.field(
                     {
                         "name": "binding_model_id",
                         "ref": self._get_model_data_name(model),
                     }
-                )
-            )
+                ),
+            ]
 
             if server_action.state == "code":
                 lst_field.append(E.field({"name": "state"}, "code"))

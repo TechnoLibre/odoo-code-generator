@@ -228,7 +228,10 @@ class CodeGeneratorData:
                     # Need to break or crash on loop because dict has change
                     break
         if dct_hold_file:
-            _logger.error(f"Cannot reorder all manifest file: '{dct_hold_file}', origin '{origin_dct_hold_file}'")
+            _logger.error(
+                f"Cannot reorder all manifest file: '{dct_hold_file}', origin"
+                f" '{origin_dct_hold_file}'"
+            )
             # Try to solve it
             for new_ele, lst_depend in dct_hold_file.items():
                 lst_manifest.append(new_ele)
@@ -252,7 +255,7 @@ class CodeGeneratorData:
         source_file_path,
         file_path,
         data_file=False,
-        search_and_replace=[],
+        search_and_replace=None,
     ):
         # TODO if no search_and_replace, use system copy instead of read file and write
         # TODO problem, we need to add the filename in the system when calling write_file_*

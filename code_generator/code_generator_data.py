@@ -1,3 +1,4 @@
+import copy
 import logging
 import os
 import shutil
@@ -192,15 +193,22 @@ class CodeGeneratorData:
         dct_hold_file = {}
         for manifest_data in self._lst_manifest_data_files:
             if manifest_data in self.dct_data_depend.keys():
-                # find depend and report until order is right
+                # find dependence and report until order is right
                 lst_meta = self.dct_data_depend.get(manifest_data)
                 lst_files_depends = self._get_lst_files_data_depends(lst_meta)
-                dct_hold_file[manifest_data] = lst_files_depends
+                if manifest_data in lst_files_depends:
+                    # Remove itself depends
+                    lst_files_depends.remove(manifest_data)
+                if lst_files_depends:
+                    dct_hold_file[manifest_data] = lst_files_depends
+                else:
+                    lst_manifest.append(manifest_data)
             else:
                 lst_manifest.append(manifest_data)
 
         i = 0
         max_i = len(dct_hold_file) + 1
+        origin_dct_hold_file = copy.deepcopy(dct_hold_file)
         while dct_hold_file and i < max_i:
             i += 1
             for new_ele, lst_depend in dct_hold_file.items():
@@ -220,7 +228,10 @@ class CodeGeneratorData:
                     # Need to break or crash on loop because dict has change
                     break
         if dct_hold_file:
-            _logger.error(f"Cannot reorder all manifest file: {dct_hold_file}")
+            _logger.error(f"Cannot reorder all manifest file: '{dct_hold_file}', origin '{origin_dct_hold_file}'")
+            # Try to solve it
+            for new_ele, lst_depend in dct_hold_file.items():
+                lst_manifest.append(new_ele)
         self._lst_manifest_data_files = lst_manifest
 
     def copy_directory(self, source_directory_path, directory_path):

@@ -1076,6 +1076,8 @@ class CodeGeneratorWriter(models.Model):
             dct_model_data["menu_name_keep_application"] = True
         if model_id.enable_activity or field_id_track:
             dct_model_data["enable_activity"] = True
+        if model_id.rec_name and model_id.rec_name != "name":
+            dct_model_data["rec_name"] = model_id.rec_name
         if (
             model_id.diagram_node_object
             and model_id.diagram_node_xpos_field

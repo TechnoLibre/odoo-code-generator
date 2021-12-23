@@ -404,6 +404,9 @@ class ExtractorModuleFile:
                     if node.targets[0].id == "_description":
                         value = self._fill_search_field(node.value)
                         self.model_id.description = value
+                    elif node.targets[0].id == "_rec_name":
+                        value = self._fill_search_field(node.value)
+                        self.model_id.rec_name = value
                     elif node.targets[0].id == "_inherit":
                         value = self._fill_search_field(node.value)
                         if type(value) is list:

@@ -129,7 +129,10 @@ class CodeGeneratorWriter(models.Model):
                                 f' "{view_item_id.background_type}",'
                             )
 
-                    if view_item_id.label:
+                    if (
+                        view_item_id.label
+                        and view_item_id.label != view_item_id.action_name
+                    ):
                         if "\n" in view_item_id.label:
                             cw.emit('"label": """')
                             for label in view_item_id.label.split("\n"):

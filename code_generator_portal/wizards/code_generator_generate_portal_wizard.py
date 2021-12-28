@@ -132,8 +132,17 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
     def _add_portal_python_code(self, o2m_models):
         lst_code = []
         for model_id in o2m_models:
-            var_name = model_id.model.replace(".", "_")
             method_name = "_compute_access_url"
+            actual_code = self.env["code.generator.model.code"].search(
+                [
+                    ("m2o_module", "=", self.code_generator_id.id),
+                    ("m2o_model", "=", model_id.id),
+                    ("name", "=", method_name),
+                ]
+            )
+            if actual_code:
+                continue
+            var_name = model_id.model.replace(".", "_")
             str_code = f"""super({self._get_class_name(model_id.model)}, self)._compute_access_url()
 for {var_name} in self:
     {var_name}.access_url = '/my/{var_name}/%s' % {var_name}.id

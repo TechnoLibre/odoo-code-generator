@@ -872,18 +872,25 @@ class CodeGeneratorWriter(models.Model):
         """
         return f"action_{self._lower_replace(action.name)}"
 
-    def _get_menu_data_name(self, menu):
+    def _get_menu_data_name(
+        self, menu, ignore_module=False, ignore_module_name=None
+    ):
         """
         Function to obtain the res_id-like menu name
         :param menu:
         :return:
         """
 
-        return (
-            self._get_ir_model_data(menu)
-            if self._get_ir_model_data(menu)
-            else self._lower_replace(menu.name)
-        )
+        menu_name = self._get_ir_model_data(menu)
+        if menu_name:
+            if "." in menu_name:
+                module_name, menu_name_short = menu_name.split(".")
+                if ignore_module or (
+                    ignore_module_name and ignore_module_name == module_name
+                ):
+                    return menu_name_short
+            return menu_name
+        return self._lower_replace(menu.name)
 
     def _set_model_xmldata_file(self, module, model, model_model):
         """
@@ -1124,7 +1131,7 @@ class CodeGeneratorWriter(models.Model):
 
         for menu in lst_menu:
 
-            menu_id = self._get_menu_data_name(menu)
+            menu_id = self._get_menu_data_name(menu, ignore_module=True)
             menu_name = menu.name
             dct_menu_item = {"id": menu_id}
             if menu_name != menu_id:
@@ -1150,7 +1157,7 @@ class CodeGeneratorWriter(models.Model):
 
             if menu.parent_id:
                 dct_menu_item["parent"] = self._get_menu_data_name(
-                    menu.parent_id
+                    menu.parent_id, ignore_module_name=module.name
                 )
 
             if menu.groups_id:
@@ -2497,11 +2504,15 @@ class CodeGeneratorWriter(models.Model):
         module.module_file_sync = {}
 
         if module.template_model_name:
+            i = -1
             lst_model = module.template_model_name.split(";")
             for model in lst_model:
+                i += 1
                 model = model.strip()
                 if model:
-                    module.view_file_sync[model] = ExtractorView(module, model)
+                    module.view_file_sync[model] = ExtractorView(
+                        module, model, i
+                    )
                     module.module_file_sync[model] = ExtractorModule(
                         module, model, module.view_file_sync[model]
                     )

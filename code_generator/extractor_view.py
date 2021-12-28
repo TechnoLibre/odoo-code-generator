@@ -5,11 +5,13 @@ import xml.dom.minicompat
 from collections import defaultdict
 from xml.dom import Node, minidom
 
+import unidecode
+
 _logger = logging.getLogger(__name__)
 
 
 class ExtractorView:
-    def __init__(self, module, model_model):
+    def __init__(self, module, model_model, number_view):
         self._module = module
         model_name = model_model.replace(".", "_")
         self.view_ids = (
@@ -47,8 +49,9 @@ class ExtractorView:
                 "code.generator.module"
             ].create(value)
             self._parse_view_ids()
-            self._parse_menu()
-            self._parse_action_server()
+            if number_view == 0:
+                self._parse_menu()
+                self._parse_action_server()
 
     def _parse_action_server(self):
         # Search comment node associated to action_server
@@ -116,8 +119,9 @@ class ExtractorView:
                         ("res_id", "=", menu_id.action.id),
                     ]
                 )
+                menu_name = unidecode.unidecode(menu_data_id.name)
                 dct_act_value = {
-                    "id_name": menu_data_id.name,
+                    "id_name": menu_name,
                     "name": menu_id.action.name,
                     "code_generator_id": self.code_generator_id.id,
                 }
@@ -128,9 +132,10 @@ class ExtractorView:
             menu_data_id = self._module.env["ir.model.data"].search(
                 [("model", "=", "ir.ui.menu"), ("res_id", "=", menu_id.id)]
             )
+            menu_name = unidecode.unidecode(menu_data_id.name)
             dct_menu_value = {
                 "code_generator_id": self.code_generator_id.id,
-                "id_name": menu_data_id.name,
+                "id_name": menu_name,
             }
             if menu_id.sequence != 10:
                 dct_menu_value["sequence"] = menu_id.sequence

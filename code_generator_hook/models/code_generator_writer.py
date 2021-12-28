@@ -236,7 +236,9 @@ class CodeGeneratorWriter(models.Model):
                 cw.emit("pass")
         cw.emit()
 
-    def _write_sync_template_views(self, cw, view_item):
+    def _write_sync_template_views(
+        self, cw, view_item, lst_menu_id_create, is_first
+    ):
         if not view_item.code_generator_id:
             return
         code_generator_views_id = (
@@ -249,16 +251,15 @@ class CodeGeneratorWriter(models.Model):
                 self.env["code.generator.view"]._fields["view_type"].selection
             ).keys()
         )
-        is_first = True
+        if is_first:
+            cw.emit("lst_view_id = []")
         for tag_name in lst_tag_support:
             view_ids = code_generator_views_id.filtered(
                 lambda a: a.view_type == tag_name
             )
             if not view_ids:
                 continue
-            if is_first:
-                cw.emit("lst_view_id = []")
-                is_first = False
+
             if tag_name == "form":
                 tpl_order_section = tlp_order_section_form
             else:
@@ -301,6 +302,12 @@ class CodeGeneratorWriter(models.Model):
                 for (
                     menu_id
                 ) in view_item.code_generator_id.code_generator_menus_id:
+                    if menu_id.id not in lst_menu_id_create:
+                        lst_menu_id_create.append(menu_id.id)
+                    else:
+                        # TODO this is a bug, lst_menu_id_create patch the bug, for each view, recreate all menu
+                        # TODO need to associate menu to his view, or find a way to not associate like this
+                        continue
                     # env["code.generator.menu"].create(
                     #     {
                     #         "code_generator_id": code_generator_id.id,
@@ -318,7 +325,7 @@ class CodeGeneratorWriter(models.Model):
                             )
                             cw.emit(f'"id_name": "{menu_id.id_name}",')
                             if menu_id.sequence != 10:
-                                cw.emit(f'"sequence": "{menu_id.sequence}",')
+                                cw.emit(f'"sequence": {menu_id.sequence},')
                             if menu_id.parent_id_name:
                                 cw.emit(
                                     '"parent_id_name":'
@@ -772,14 +779,18 @@ class CodeGeneratorWriter(models.Model):
                                                 view_file_sync
                                             )
 
-                                    if "." in model_model:
+                                    if "." in model_id.model:
                                         (
                                             application_name,
                                             _,
-                                        ) = model_model.split(".", maxsplit=1)
+                                        ) = model_id.model.split(
+                                            ".", maxsplit=1
+                                        )
                                     else:
-                                        application_name = model_model
-                                    model_name = model_model.replace(".", "_")
+                                        application_name = model_id.model
+                                    model_name = model_id.model.replace(
+                                        ".", "_"
+                                    )
                                     title_model_model = model_name.replace(
                                         "_", " "
                                     ).title()
@@ -863,7 +874,7 @@ class CodeGeneratorWriter(models.Model):
                                     #     cw.emit("\"field_boolean\": True,")
                                     #     cw.emit("\"name\": \"demo\",")
                                     # cw.emit("}")
-                                    # cw.emit(f"env[\"{model_model}\"].create(value)")
+                                    # cw.emit(f"env[\"{model_id.model}\"].create(value)")
                                     # cw.emit()
                                     # Generate code
                                     self.write_code(cw, model_id, module)
@@ -872,7 +883,11 @@ class CodeGeneratorWriter(models.Model):
                                         "ir.actions.server"
                                     ].search(
                                         [
-                                            ("model_name", "=", model_model),
+                                            (
+                                                "model_name",
+                                                "=",
+                                                model_id.model,
+                                            ),
                                             (
                                                 "usage",
                                                 "=",
@@ -924,22 +939,32 @@ class CodeGeneratorWriter(models.Model):
                                 has_custom_view = False
                                 has_menu = False
                                 has_access = False
+                                lst_menu_id_create = []
+                                is_first = True
+                                no_view = -1
                                 if custom_view:
                                     for (
                                         view_item
                                     ) in lst_view_item_code_generator:
-                                        if not view_item:
+                                        if (
+                                            not view_item
+                                            or not view_item.code_generator_id
+                                        ):
                                             continue
+                                        no_view += 1
                                         if (
                                             view_item.code_generator_id.code_generator_menus_id
                                         ):
                                             has_menu = True
-                                        i += 1
                                         view_id = (
                                             self._write_sync_template_views(
-                                                cw, view_item
+                                                cw,
+                                                view_item,
+                                                lst_menu_id_create,
+                                                is_first,
                                             )
                                         )
+                                        is_first = False
                                         if view_id:
                                             has_custom_view = True
                                         cw.emit()
@@ -963,7 +988,9 @@ class CodeGeneratorWriter(models.Model):
                                     and not module.force_generic_template_wizard_view
                                     and not module.disable_generate_access
                                 ):
-                                    model_name = model_model.replace(".", "_")
+                                    model_name = model_id.model.replace(
+                                        ".", "_"
+                                    )
                                     variable_model_model = (
                                         f"model_{model_name}"
                                     )
@@ -1411,11 +1438,35 @@ class CodeGeneratorWriter(models.Model):
                 if sorted_code != "from odoo import _, api, fields, models":
                     lst_line = sorted_code.split("\n")
                     dct_new_code[code_id] = lst_line
+        code_ids = (
+            self.env["code.generator.model.code"]
+            .search(
+                [
+                    (
+                        "m2o_module",
+                        "=",
+                        module.id,
+                    ),
+                    (
+                        "is_templated",
+                        "=",
+                        True,
+                    ),
+                    (
+                        "m2o_model",
+                        "=",
+                        model_id.id,
+                    ),
+                ]
+            )
+            .sorted(lambda code: code.sequence)
+        )
 
-        if dct_new_code:
+        if dct_new_code or code_ids:
             cw.emit("# Generate code")
             cw.emit("if True:")
-            with cw.indent():
+        with cw.indent():
+            if dct_new_code:
                 cw.emit("# Generate code header")
                 str_line = f"\"code\": '''"
                 for code_id, lst_line in dct_new_code.items():
@@ -1441,67 +1492,40 @@ class CodeGeneratorWriter(models.Model):
                         'env["code.generator.model.code.import"].create(value)'
                     )
                     cw.emit()
-                code_ids = (
-                    self.env["code.generator.model.code"]
-                    .search(
-                        [
-                            (
-                                "m2o_module",
-                                "=",
-                                module.id,
-                            ),
-                            (
-                                "is_templated",
-                                "=",
-                                True,
-                            ),
-                            (
-                                "m2o_model",
-                                "=",
-                                model_id.id,
-                            ),
-                        ]
-                    )
-                    .sorted(lambda code: code.sequence)
-                )
-                # TODO est-ce que le code est bien connecté à tous les modèles?
 
-                if code_ids:
-                    cw.emit("# Generate code model")
-                    with cw.block(
-                        before="lst_value =",
-                        delim=("[", "]"),
-                    ):
-                        for code_id in code_ids:
-                            with cw.block(delim=("{", "}")):
-                                lst_line = code_id.code.split("\n")
-                                if len(lst_line) == 1:
-                                    cw.emit(f"\"code\": '''{lst_line[0]}''',")
-                                else:
-                                    cw.emit(f"\"code\": '''{lst_line[0]}")
-                                for line in lst_line[1:-1]:
-                                    cw.emit_raw(line + "\n")
-                                if len(lst_line) > 1:
-                                    cw.emit_raw(f"{lst_line[-1]}''',\n")
-                                cw.emit(f'"name": "{code_id.name}",')
-                                if code_id.decorator:
-                                    cw.emit(
-                                        f'"decorator": "{code_id.decorator}",'
-                                    )
-                                if code_id.param:
-                                    cw.emit(f'"param": "{code_id.param}",')
-                                if code_id.returns:
-                                    cw.emit(f'"returns": "{code_id.returns}",')
-                                cw.emit(f'"sequence": {code_id.sequence},')
-                                cw.emit('"m2o_module": code_generator_id.id,')
-                                model_name = model_id.model.replace(".", "_")
-                                var_model_name = f"model_{model_name}"
-                                cw.emit(f'"m2o_model": {var_model_name}.id,')
-                            cw.emit(",")
-                    cw.emit(
-                        'env["code.generator.model.code"].create(lst_value)'
-                    )
-                    cw.emit()
+            # TODO est-ce que le code est bien connecté à tous les modèles?
+            if code_ids:
+                cw.emit("# Generate code model")
+                with cw.block(
+                    before="lst_value =",
+                    delim=("[", "]"),
+                ):
+                    for code_id in code_ids:
+                        with cw.block(delim=("{", "}")):
+                            lst_line = code_id.code.split("\n")
+                            if len(lst_line) == 1:
+                                cw.emit(f"\"code\": '''{lst_line[0]}''',")
+                            else:
+                                cw.emit(f"\"code\": '''{lst_line[0]}")
+                            for line in lst_line[1:-1]:
+                                cw.emit_raw(line + "\n")
+                            if len(lst_line) > 1:
+                                cw.emit_raw(f"{lst_line[-1]}''',\n")
+                            cw.emit(f'"name": "{code_id.name}",')
+                            if code_id.decorator:
+                                cw.emit(f'"decorator": "{code_id.decorator}",')
+                            if code_id.param:
+                                cw.emit(f'"param": "{code_id.param}",')
+                            if code_id.returns:
+                                cw.emit(f'"returns": "{code_id.returns}",')
+                            cw.emit(f'"sequence": {code_id.sequence},')
+                            cw.emit('"m2o_module": code_generator_id.id,')
+                            model_name = model_id.model.replace(".", "_")
+                            var_model_name = f"model_{model_name}"
+                            cw.emit(f'"m2o_model": {var_model_name}.id,')
+                        cw.emit(",")
+                cw.emit('env["code.generator.model.code"].create(lst_value)')
+                cw.emit()
 
     def write_constraint(self, cw, constraint_ids, model_id):
         if not constraint_ids:

@@ -1807,9 +1807,10 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     def _generate_xml_button(self, item, model_id):
         button_attributes = {
             "name": item.action_name,
-            "string": item.label,
             "type": "object",
         }
+        if item.label:
+            button_attributes["string"] = item.label
         if item.button_type:
             button_attributes["class"] = item.button_type
         if item.icon:
@@ -1857,7 +1858,9 @@ pass''',
         item_xml = E.div({}, uid)
         return item_xml
 
-    def _generate_xml_object(self, item, model_id, lst_child=[]):
+    def _generate_xml_object(self, item, model_id, lst_child=None):
+        lst_child_update = [] if not lst_child else lst_child
+        item_xml = None
         if item.item_type == "field":
             dct_item = {"name": item.action_name}
             if item.placeholder:
@@ -1865,7 +1868,11 @@ pass''',
             if item.password:
                 dct_item["password"] = "True"
             item_xml = E.field(dct_item)
-            return item_xml
+        elif item.item_type == "filter":
+            dct_item = {"name": item.label}
+            # TODO domain
+            # TODO context
+            item_xml = E.filter(dct_item)
         elif item.item_type == "button":
             return self._generate_xml_button(item, model_id)
         elif item.item_type == "html":
@@ -1883,25 +1890,36 @@ pass''',
                     lst_html_child.append(E.h3({}, "Danger:"))
             lst_html_child.append(item.label)
             item_xml = E.div(dct_item, *lst_html_child)
-            return item_xml
         elif item.item_type == "group":
             dct_item = {}
             if item.label:
                 dct_item["string"] = item.label
             if item.attrs:
                 dct_item["attrs"] = item.attrs
-            item_xml = E.group(dct_item, *lst_child)
-            return item_xml
+            item_xml = E.group(dct_item, *lst_child_update)
         elif item.item_type == "li":
             dct_item = {}
             if item.class_attr:
                 dct_item["class"] = item.class_attr
-            item_xml = E.li(dct_item, *lst_child)
-            return item_xml
+            item_xml = E.li(dct_item, *lst_child_update)
+        elif item.item_type == "ul":
+            dct_item = {}
+            if item.class_attr:
+                dct_item["class"] = item.class_attr
+            item_xml = E.ul(dct_item, *lst_child_update)
+        elif item.item_type == "i":
+            dct_item = {}
+            if item.class_attr:
+                dct_item["class"] = item.class_attr
+            item_xml = E.i(dct_item, *lst_child_update)
+        elif item.item_type == "t":
+            dct_item = {}
+            if item.class_attr:
+                dct_item["class"] = item.class_attr
+            item_xml = E.t(dct_item, *lst_child_update)
         elif item.item_type == "strong":
             dct_item = {}
-            item_xml = E.strong(dct_item, *lst_child)
-            return item_xml
+            item_xml = E.strong(dct_item, *lst_child_update)
         elif item.item_type == "xpath":
             dct_item = {}
             if not item.expr:
@@ -1915,16 +1933,20 @@ pass''',
             else:
                 dct_item["expr"] = item.expr
                 dct_item["position"] = item.position
-                item_xml = E.xpath(dct_item, *lst_child)
-                return item_xml
+                item_xml = E.xpath(dct_item, *lst_child_update)
         elif item.item_type == "div":
             dct_item = {}
             if item.attrs:
                 dct_item["attrs"] = item.attrs
-            item_xml = E.div(dct_item, *lst_child)
-            return item_xml
+            item_xml = E.div(dct_item, *lst_child_update)
+        elif item.item_type == "templates":
+            dct_item = {}
+            if item.attrs:
+                dct_item["attrs"] = item.attrs
+            item_xml = E.templates(dct_item, *lst_child_update)
         else:
             _logger.warning(f"View item '{item.item_type}' is not supported.")
+        return item_xml
 
     def _generate_xml_group_div(self, item, lst_xml, dct_replace, model_id):
         """
@@ -1934,14 +1956,20 @@ pass''',
         :param dct_replace: need it to replace html in xml without validation
         :return:
         """
-        lst_child = sorted(item.child_id, key=lambda item: item.sequence)
+        lst_child = sorted(item.child_id, key=lambda a: a.sequence)
         lst_item_child = []
         if lst_child:
             for item_child_id in lst_child:
                 item_child = self._generate_xml_group_div(
                     item_child_id, lst_xml, dct_replace, model_id
                 )
-                lst_item_child.append(item_child)
+                if item_child is not None:
+                    lst_item_child.append(item_child)
+                else:
+                    _logger.warning(
+                        "Missing item xml group div about view item"
+                        f" '{item_child_id.item_type}'"
+                    )
             item_xml = self._generate_xml_object(
                 item, model_id, lst_child=lst_item_child
             )
@@ -2016,9 +2044,7 @@ pass''',
         lst_item_form_sheet = []
 
         if lst_item_header:
-            lst_item_header = sorted(
-                lst_item_header, key=lambda item: item.sequence
-            )
+            lst_item_header = sorted(lst_item_header, key=lambda a: a.sequence)
             lst_child = []
             for item_header in lst_item_header:
                 if item_header.item_type == "field":
@@ -2037,9 +2063,7 @@ pass''',
             lst_item_form.append(header_xml)
 
         if lst_item_title:
-            lst_item_title = sorted(
-                lst_item_title, key=lambda item: item.sequence
-            )
+            lst_item_title = sorted(lst_item_title, key=lambda a: a.sequence)
             lst_child = []
             i = 0
             for item_title in lst_item_title:
@@ -2066,7 +2090,7 @@ pass''',
         if lst_item_body:
             lst_item_root_body = [a for a in lst_item_body if not a.parent_id]
             lst_item_root_body = sorted(
-                lst_item_root_body, key=lambda item: item.sequence
+                lst_item_root_body, key=lambda a: a.sequence
             )
             for item_body in lst_item_root_body:
                 if item_body.is_help:
@@ -2074,16 +2098,17 @@ pass''',
                         item_body, lst_item_form_sheet, dct_replace
                     )
                     lst_item_form_sheet.append(item_xml)
-                elif item_body.item_type in ("div", "group"):
+                elif item_body.item_type in ("div", "group", "templates"):
                     if not item_body.child_id:
                         _logger.warning(
-                            f"Item type div or group missing child."
+                            f"Item type '{item_body.item_type}' missing child."
                         )
                         continue
                     item_xml = self._generate_xml_group_div(
                         item_body, lst_item_form_sheet, dct_replace, model_id
                     )
-                    lst_item_form_sheet.append(item_xml)
+                    if item_xml is not None:
+                        lst_item_form_sheet.append(item_xml)
                 elif item_body.item_type in ("xpath",):
                     # TODO maybe move this in lst_item_xpath with view_item.section_type == 'xpath'
                     if not item_body.child_id:
@@ -2092,18 +2117,17 @@ pass''',
                     item_xml = self._generate_xml_group_div(
                         item_body, lst_item_form_sheet, dct_replace, model_id
                     )
-
-                    lst_item_form_sheet.append(item_xml)
-                elif item_body.item_type in ("field",):
+                    if item_xml is not None:
+                        lst_item_form_sheet.append(item_xml)
+                elif item_body.item_type in ("field", "filter"):
                     item_xml = self._generate_xml_object(item_body, model_id)
-                    lst_item_form_sheet.append(item_xml)
+                    if item_xml is not None:
+                        lst_item_form_sheet.append(item_xml)
                 else:
                     _logger.warning(f"Unknown type xml {item_body.item_type}")
 
         if lst_item_footer:
-            lst_item_footer = sorted(
-                lst_item_footer, key=lambda item: item.sequence
-            )
+            lst_item_footer = sorted(lst_item_footer, key=lambda a: a.sequence)
             lst_child = []
             for item_footer in lst_item_footer:
                 if item_footer.item_type == "field":
@@ -2117,7 +2141,8 @@ pass''',
                         " supported."
                     )
                     continue
-                lst_child.append(item)
+                if item:
+                    lst_child.append(item)
             footer_xml = E.footer({}, *lst_child)
             lst_item_form.append(footer_xml)
 
@@ -2439,7 +2464,44 @@ pass''',
         elif not is_generic_menu:
             cg_menu_ids = model_created.m2o_module.code_generator_menus_id
             # TODO check different case, with act_window, without, multiple menu, single menu
-            for menu_id in cg_menu_ids:
+            # Sort parent first
+
+            lst_menu_to_sort = [a for a in cg_menu_ids]
+            lst_menu = []
+            lst_inserted_menu_name = []
+            i = -1
+            while lst_menu_to_sort:
+                i += 1
+                lst_added_menu = []
+                if len(lst_menu_to_sort) <= i:
+                    # Re loop
+                    i = 0
+                menu_id = lst_menu_to_sort[i]
+                menu_name = menu_id.id_name
+                if not menu_id.parent_id_name:
+                    lst_inserted_menu_name.append(menu_name)
+                    lst_added_menu.append(menu_id)
+                else:
+                    parent_module_name = None
+                    if "." in menu_id.parent_id_name:
+                        (
+                            parent_module_name,
+                            parent_menu_name,
+                        ) = menu_id.parent_id_name.split(".")
+                    else:
+                        parent_menu_name = menu_id.parent_id_name
+                    if (
+                        parent_module_name != module.name
+                        or parent_menu_name in lst_inserted_menu_name
+                    ):
+                        lst_inserted_menu_name.append(menu_name)
+                        lst_added_menu.append(menu_id)
+                for added_menu in lst_added_menu:
+                    lst_menu.append(added_menu)
+                    lst_menu_to_sort.remove(added_menu)
+                    i = -1
+
+            for menu_id in lst_menu:
                 if menu_id.m2o_act_window:
                     # Create action
                     v = {
@@ -2502,4 +2564,13 @@ pass''',
                             f" {menu_id.id_name} to associate parent_id."
                         )
 
-                access_value = self.env["ir.ui.menu"].create(v)
+                new_menu_id = self.env["ir.ui.menu"].create(v)
+
+                v_ir_model_data = {
+                    "name": menu_name,
+                    "model": "ir.ui.menu",
+                    "module": module.name,
+                    "res_id": new_menu_id.id,
+                    "noupdate": True,
+                }
+                self.env["ir.model.data"].create(v_ir_model_data)

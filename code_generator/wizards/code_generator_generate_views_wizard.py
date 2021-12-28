@@ -1869,7 +1869,12 @@ pass''',
                 dct_item["password"] = "True"
             item_xml = E.field(dct_item)
         elif item.item_type == "filter":
-            dct_item = {"name": item.label}
+            dct_item = {}
+            if item.label:
+                dct_item["name"] = item.label
+            else:
+                _logger.error("A filter cannot be empty")
+                return
             # TODO domain
             # TODO context
             item_xml = E.filter(dct_item)
@@ -2502,6 +2507,7 @@ pass''',
                     i = -1
 
             for menu_id in lst_menu:
+                action_id = None
                 if menu_id.m2o_act_window:
                     # Create action
                     v = {
@@ -2528,7 +2534,7 @@ pass''',
                                 # If it's False, target record (res_id) will be removed while module update
                             }
                         )
-                else:
+                elif not menu_id.ignore_act_window:
                     # Create action
                     v = {
                         "name": f"{model_name_str}_action_view",
@@ -2544,13 +2550,20 @@ pass''',
                     action_id = self.env["ir.actions.act_window"].create(v)
 
                 v = {
-                    "name": menu_id.id_name,
-                    "action": "ir.actions.act_window,%s" % action_id.id,
+                    "name": menu_id.name,
                     # 'group_id': group_id.id,
                     "m2o_module": module.id,
                 }
+                if menu_id.ignore_act_window:
+                    v["ignore_act_window"] = True
+                else:
+                    v["action"] = "ir.actions.act_window,%s" % action_id.id
+
                 if menu_id.sequence != 10:
                     v["sequence"] = menu_id.sequence
+
+                if menu_id.web_icon:
+                    v["web_icon"] = menu_id.web_icon
 
                 if menu_id.parent_id_name:
                     # TODO crash when create empty module and template to read this empty module
@@ -2567,7 +2580,7 @@ pass''',
                 new_menu_id = self.env["ir.ui.menu"].create(v)
 
                 v_ir_model_data = {
-                    "name": menu_name,
+                    "name": menu_id.id_name,
                     "model": "ir.ui.menu",
                     "module": module.name,
                     "res_id": new_menu_id.id,

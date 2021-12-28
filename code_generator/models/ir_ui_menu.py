@@ -10,3 +10,7 @@ class IrUiMenu(models.Model):
         help="Module",
         ondelete="cascade",
     )
+
+    ignore_act_window = fields.Boolean(
+        help="Set True to force no act_window, like a parent menu."
+    )

@@ -137,6 +137,10 @@ class ExtractorView:
                 "code_generator_id": self.code_generator_id.id,
                 "id_name": menu_name,
             }
+            if menu_id.name:
+                dct_menu_value["name"] = menu_id.name
+            if menu_id.web_icon:
+                dct_menu_value["web_icon"] = menu_id.web_icon
             if menu_id.sequence != 10:
                 dct_menu_value["sequence"] = menu_id.sequence
             if menu_id.parent_id:
@@ -152,6 +156,8 @@ class ExtractorView:
 
             if menu_action:
                 dct_menu_value["m2o_act_window"] = menu_action.id
+            else:
+                dct_menu_value["ignore_act_window"] = True
 
             self._module.env["code.generator.menu"].create(dct_menu_value)
             # If need to associated
@@ -716,6 +722,8 @@ class ExtractorView:
                     }
                 elif key == "placeholder":
                     dct_attributes["placeholder"] = value
+                elif key == "name":
+                    dct_attributes["label"] = value
         elif node.nodeName in ("xpath",):
             for key, value in node.attributes.items():
                 if key == "expr":

@@ -1132,22 +1132,24 @@ class CodeGeneratorWriter(models.Model):
         for menu in lst_menu:
 
             menu_id = self._get_menu_data_name(menu, ignore_module=True)
-            menu_name = menu.name
             dct_menu_item = {"id": menu_id}
-            if menu_name != menu_id:
-                dct_menu_item["name"] = menu_name
+            if menu.name != menu_id:
+                dct_menu_item["name"] = menu.name
 
-            try:
-                menu.action
-            except Exception as e:
-                # missing action on menu
-                _logger.error(f"Missing action window on menu {menu.name}.")
-                continue
+            if not menu.ignore_act_window:
+                try:
+                    menu.action
+                except Exception as e:
+                    # missing action on menu
+                    _logger.error(
+                        f"Missing action window on menu {menu.name}."
+                    )
+                    continue
 
-            if menu.action:
-                dct_menu_item["action"] = self._get_action_data_name(
-                    menu.action, module=module
-                )
+                if menu.action:
+                    dct_menu_item["action"] = self._get_action_data_name(
+                        menu.action, module=module
+                    )
 
             if not menu.active:
                 dct_menu_item["active"] = "False"
@@ -1167,9 +1169,13 @@ class CodeGeneratorWriter(models.Model):
                 # TODO move application_icon in code_generator_data
                 application_icon = menu.web_icon
                 # ignore actual icon, force a new icon
-                dct_menu_item[
-                    "web_icon"
-                ] = f"{module.name},static/description/icon.png"
+                new_icon = f"{module.name},static/description/icon.png"
+                dct_menu_item["web_icon"] = new_icon
+                if new_icon != menu.web_icon:
+                    _logger.warning(
+                        f"Difference between menu icon '{menu.web_icon}' and"
+                        f" new icon '{new_icon}'"
+                    )
 
             menu_xml = E.menuitem(dct_menu_item)
             lst_menu_xml.append(ET.Comment("end line"))

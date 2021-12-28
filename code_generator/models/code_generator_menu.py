@@ -31,4 +31,12 @@ class CodeGeneratorMenu(models.Model):
         help="Specify id name of parent menu, optional.",
     )
 
+    name = fields.Char(help="Menu name")
+
+    web_icon = fields.Char(help="Icon menu")
+
+    ignore_act_window = fields.Boolean(
+        help="Set True to force no act_window, like a parent menu."
+    )
+
     sequence = fields.Integer(default=10)

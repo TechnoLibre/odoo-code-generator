@@ -323,6 +323,10 @@ class CodeGeneratorWriter(models.Model):
                             cw.emit(
                                 '"code_generator_id": code_generator_id.id,'
                             )
+                            if menu_id.name:
+                                cw.emit(f'"name": "{menu_id.name}",')
+                            if menu_id.web_icon:
+                                cw.emit(f'"web_icon": "{menu_id.web_icon}",')
                             cw.emit(f'"id_name": "{menu_id.id_name}",')
                             if menu_id.sequence != 10:
                                 cw.emit(f'"sequence": {menu_id.sequence},')
@@ -336,6 +340,8 @@ class CodeGeneratorWriter(models.Model):
                                     '"m2o_act_window":'
                                     f" {menu_id.m2o_act_window.id_name}.id,"
                                 )
+                            if menu_id.ignore_act_window:
+                                cw.emit('"ignore_act_window": True,')
 
         # TODO implement portal
         # cw.emit()

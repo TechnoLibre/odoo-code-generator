@@ -344,6 +344,12 @@ class CodeGeneratorWriter(models.Model):
                 module.template_module_id
                 and module.template_module_id.icon_image
             ):
+                if not icon_path:
+                    _logger.error("Icon path is empty.")
+                    return ""
+                if not os.path.exists(icon_path):
+                    _logger.error(f"Icon path {icon_path} doesn't exist.")
+                    return ""
                 # It's a template generator
                 minimal_size_width = 350
                 # Add logo in small corner

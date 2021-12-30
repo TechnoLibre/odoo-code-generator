@@ -1225,7 +1225,8 @@ class CodeGeneratorWriter(models.Model):
                     cw.emit("dct_field=dct_field,")
                 if dct_model_data:
                     cw.emit("dct_model=dct_model,")
-                cw.emit("lst_depend_model=lst_depend_model,")
+                if lst_dependency:
+                    cw.emit("lst_depend_model=lst_depend_model,")
 
     @staticmethod
     def _write_dict_key(cw, key, value):

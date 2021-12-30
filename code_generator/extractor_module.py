@@ -35,13 +35,21 @@ class ExtractorModule:
                 "'", ""
             ).replace(", ", "/")
         )
-        template_directory = os.path.normpath(
-            os.path.join(
-                module.path_sync_code,
-                relative_path_generated_module,
-                module.template_module_name,
+        if relative_path_generated_module == module.path_sync_code:
+            template_directory = os.path.normpath(
+                os.path.join(
+                    module.path_sync_code,
+                    module.template_module_name,
+                )
             )
-        )
+        else:
+            template_directory = os.path.normpath(
+                os.path.join(
+                    module.path_sync_code,
+                    relative_path_generated_module,
+                    module.template_module_name,
+                )
+            )
         manifest_file_path = os.path.normpath(
             os.path.join(
                 template_directory,
@@ -107,17 +115,30 @@ class ExtractorModule:
                 f" '{template_directory}' to extract information."
             )
 
-        path_generated_module = os.path.normpath(
-            os.path.join(
-                module.path_sync_code,
-                relative_path_generated_module,
-                module.template_module_name,
-                "**",
-                "*.py",
+        if module.path_sync_code == relative_path_generated_module:
+            path_generated_module = os.path.normpath(
+                os.path.join(
+                    module.path_sync_code,
+                    module.template_module_name,
+                    "**",
+                    "*.py",
+                )
             )
-        )
+        else:
+            path_generated_module = os.path.normpath(
+                os.path.join(
+                    module.path_sync_code,
+                    relative_path_generated_module,
+                    module.template_module_name,
+                    "**",
+                    "*.py",
+                )
+            )
         lst_py_file = glob.glob(path_generated_module)
         if not lst_py_file:
+            _logger.warning(
+                f"Find no python file with pattern '{path_generated_module}'"
+            )
             return
         for py_file in lst_py_file:
             filename = py_file.split("/")[-1]

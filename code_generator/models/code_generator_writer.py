@@ -2620,7 +2620,8 @@ class CodeGeneratorWriter(models.Model):
             path += "/modules"
             CodeGeneratorData.os_make_dirs(path)
 
-        os.chdir(path=path)
+        # TODO is it necessary? os.chdir into sync_code to be back to normal
+        # os.chdir(path=path)
 
         basename = (
             "modules" if morethanone else modules[0].name.lower().strip()

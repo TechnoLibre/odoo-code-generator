@@ -374,11 +374,11 @@ class CodeGeneratorWriter(models.Model):
             str_line = line.strip()
             cw.emit(str_line)
 
+        cw.emit("import os")
         if module.template_module_id and module.template_module_id.icon_image:
             # TODO need logging when has inherit
             cw.emit("import logging")
             # TODO this case need import os, find another dynamic way to specify import before write code
-            cw.emit("import os")
             cw.emit()
             cw.emit("_logger = logging.getLogger(__name__)")
             cw.emit()
@@ -430,17 +430,26 @@ class CodeGeneratorWriter(models.Model):
                         with cw.indent():
                             cw.emit()
                             cw.emit("# The path of the actual file")
-                            if (
+                            path_cg_module = (
                                 module.template_module_path_generated_extension
-                                and module.template_module_path_generated_extension
-                                != "."
-                            ):
-                                cw.emit(
-                                    "path_module_generate ="
-                                    " os.path.normpath(os.path.join(os.path.dirname"
-                                    "(__file__), '..',"
-                                    f" {module.template_module_path_generated_extension}))"
-                                )
+                            )
+                            if path_cg_module and path_cg_module != ".":
+                                if path_cg_module[0] == "/":
+                                    cw.emit(
+                                        "path_module_generate ="
+                                        f" '{path_cg_module}'"
+                                    )
+                                elif path_cg_module[0] in ("'", '"'):
+                                    cw.emit(
+                                        "path_module_generate ="
+                                        " os.path.normpath(os.path.join(os.path.dirname(__file__),"
+                                        f" '..', {path_cg_module}))"
+                                    )
+                                else:
+                                    cw.emit(
+                                        "path_module_generate ="
+                                        f" '{path_cg_module}'"
+                                    )
                             else:
                                 cw.emit(
                                     "# path_module_generate ="
@@ -579,6 +588,19 @@ class CodeGeneratorWriter(models.Model):
                                     f" = {enable_template_code_generator_demo}"
                                 )
                                 cw.emit('value["template_model_name"] = ""')
+                                if (
+                                    module.template_module_path_generated_extension
+                                    != "."
+                                ):
+                                    cw.emit(
+                                        'value["template_module_path_generated_extension"]'
+                                        f' = "{module.template_module_path_generated_extension}"'
+                                    )
+                                else:
+                                    cw.emit(
+                                        '# value["template_module_path_generated_extension"]'
+                                        ' = "."'
+                                    )
                                 cw.emit(
                                     'value["enable_template_wizard_view"] ='
                                     " False"

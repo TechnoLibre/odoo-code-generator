@@ -221,6 +221,11 @@ class CodeGeneratorDbColumn(models.Model):
         help="Add field one2many to related model on this field.",
     )
 
+    one2many_description = fields.Char(
+        string="One2many string label",
+        help="When add_one2many is enable, use this description string.",
+    )
+
     sql_select_modify = fields.Char(
         string="SQL selection modify",
         help="Change field name with this query",
@@ -361,6 +366,7 @@ class CodeGeneratorDbColumn(models.Model):
         is_date_end_view=None,
         compute_data_function=None,
         add_one2many=False,
+        one2many_description=None,
     ):
         """
 
@@ -398,6 +404,7 @@ class CodeGeneratorDbColumn(models.Model):
         :param is_hide_blacklist_calendar_view:
         :param compute_data_function: function, in string, to run with data in argument and overwrite data
         :param add_one2many:
+        :param one2many_description: string label of one2many
         :return:
         """
         table_id = self.env["code.generator.db.table"].search(
@@ -501,6 +508,8 @@ class CodeGeneratorDbColumn(models.Model):
             column_id.is_date_end_view = is_date_end_view
         if add_one2many:
             column_id.add_one2many = add_one2many
+        if one2many_description:
+            column_id.one2many_description = one2many_description
         if compute_data_function:
             column_id.compute_data_function = compute_data_function
         if sql_select_modify:

@@ -773,9 +773,12 @@ class CodeGeneratorDbTable(models.Model):
                                     f"{original_new_name_one2many}_{j}_ids"
                                 )
 
-                        description_name = new_name_one2many.replace(
-                            "_", " "
-                        ).title()
+                        if column_id.one2many_description:
+                            description_name = column_id.one2many_description
+                        else:
+                            description_name = new_name_one2many.replace(
+                                "_", " "
+                            ).title()
 
                         dct_one2many = {
                             "name": new_name_one2many,

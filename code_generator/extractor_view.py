@@ -13,9 +13,10 @@ _logger = logging.getLogger(__name__)
 class ExtractorView:
     def __init__(self, module, model_model, number_view):
         self._module = module
+        self.env = module.env
         model_name = model_model.replace(".", "_")
         self.view_ids = (
-            module.env["ir.ui.view"]
+            self.env["ir.ui.view"]
             .search([("model", "=", model_model)])
             .filtered(
                 lambda i: i.xml_id.startswith(
@@ -24,7 +25,7 @@ class ExtractorView:
             )
         )
         self.code_generator_id = None
-        self.model_id = module.env["ir.model"].search(
+        self.model_id = self.env["ir.model"].search(
             [("model", "=", model_model)]
         )
         self.dct_model = defaultdict(dict)
@@ -36,7 +37,7 @@ class ExtractorView:
             # create temporary module
             name = f"TEMP_{model_name}"
             i = 1
-            while module.env["code.generator.module"].search(
+            while self.env["code.generator.module"].search(
                 [("name", "=", name)]
             ):
                 name = f"TEMP_{i}_{model_name}"
@@ -45,9 +46,9 @@ class ExtractorView:
                 "name": name,
                 "shortdesc": "None",
             }
-            self.code_generator_id = module.env[
-                "code.generator.module"
-            ].create(value)
+            self.code_generator_id = self.env["code.generator.module"].create(
+                value
+            )
             self._parse_view_ids()
             if number_view == 0:
                 self._parse_menu()
@@ -90,14 +91,12 @@ class ExtractorView:
                             )
                             continue
                         xml_id = f"{module.template_module_name}.{record_id}"
-                        result = self._module.env.ref(
-                            xml_id, raise_if_not_found=False
-                        )
+                        result = self.env.ref(xml_id, raise_if_not_found=False)
                         if result:
                             result.comment = last_record.data.strip()
 
     def _parse_menu(self):
-        ir_model_data_ids = self._module.env["ir.model.data"].search(
+        ir_model_data_ids = self.env["ir.model.data"].search(
             [
                 ("model", "=", "ir.ui.menu"),
                 ("module", "=", self._module.template_module_name),
@@ -106,14 +105,14 @@ class ExtractorView:
         if not ir_model_data_ids:
             return
         lst_id_menu = [a.res_id for a in ir_model_data_ids]
-        menu_ids = self._module.env["ir.ui.menu"].browse(lst_id_menu)
+        menu_ids = self.env["ir.ui.menu"].browse(lst_id_menu)
         for menu_id in menu_ids:
 
             # TODO optimise request ir.model.data, this is duplicated
             menu_action = None
             if menu_id.action:
                 # Create act_window
-                menu_data_id = self._module.env["ir.model.data"].search(
+                menu_data_id = self.env["ir.model.data"].search(
                     [
                         ("model", "=", "ir.actions.act_window"),
                         ("res_id", "=", menu_id.action.id),
@@ -125,11 +124,11 @@ class ExtractorView:
                     "name": menu_id.action.name,
                     "code_generator_id": self.code_generator_id.id,
                 }
-                menu_action = self._module.env[
-                    "code.generator.act_window"
-                ].create(dct_act_value)
+                menu_action = self.env["code.generator.act_window"].create(
+                    dct_act_value
+                )
             # Create menu
-            menu_data_id = self._module.env["ir.model.data"].search(
+            menu_data_id = self.env["ir.model.data"].search(
                 [("model", "=", "ir.ui.menu"), ("res_id", "=", menu_id.id)]
             )
             menu_name = unidecode.unidecode(menu_data_id.name)
@@ -144,7 +143,7 @@ class ExtractorView:
             if menu_id.sequence != 10:
                 dct_menu_value["sequence"] = menu_id.sequence
             if menu_id.parent_id:
-                menu_data_parent_id = self._module.env["ir.model.data"].search(
+                menu_data_parent_id = self.env["ir.model.data"].search(
                     [
                         ("model", "=", "ir.ui.menu"),
                         ("res_id", "=", menu_id.parent_id.id),
@@ -159,7 +158,7 @@ class ExtractorView:
             else:
                 dct_menu_value["ignore_act_window"] = True
 
-            self._module.env["code.generator.menu"].create(dct_menu_value)
+            self.env["code.generator.menu"].create(dct_menu_value)
             # If need to associated
             # menu_id.m2o_module = self._module.id
 
@@ -169,9 +168,67 @@ class ExtractorView:
 
             lst_view_item_id = []
 
+            dct_view_attr = {}
+
+            # Search graph
+            lst_graph_xml = mydoc.getElementsByTagName("graph")
+            if lst_graph_xml:
+                if len(lst_graph_xml) != 1:
+                    _logger.warning(
+                        "Cannot support multiple graph in view name"
+                        f" {view_id.name}"
+                    )
+                else:
+                    graph_view = lst_graph_xml[0]
+                    dct_view_attr.update(dict(graph_view.attributes.items()))
+
+            # Search search
+            lst_search_xml = mydoc.getElementsByTagName("search")
+            if lst_search_xml:
+                if len(lst_search_xml) != 1:
+                    _logger.warning(
+                        "Cannot support multiple search in view name"
+                        f" {view_id.name}"
+                    )
+                else:
+                    search_view = lst_search_xml[0]
+                    dct_view_attr.update(dict(search_view.attributes.items()))
+
+            # Search pivot
+            lst_pivot_xml = mydoc.getElementsByTagName("pivot")
+            if lst_pivot_xml:
+                if len(lst_pivot_xml) != 1:
+                    _logger.warning(
+                        "Cannot support multiple pivot in view name"
+                        f" {view_id.name}"
+                    )
+                else:
+                    pivot_view = lst_pivot_xml[0]
+                    dct_view_attr.update(dict(pivot_view.attributes.items()))
+
+            # Search kanban
+            lst_kanban_xml = mydoc.getElementsByTagName("kanban")
+            if lst_kanban_xml:
+                if len(lst_kanban_xml) != 1:
+                    _logger.warning(
+                        "Cannot support multiple kanban in view name"
+                        f" {view_id.name}"
+                    )
+                else:
+                    kanban_view = lst_kanban_xml[0]
+                    dct_view_attr.update(dict(kanban_view.attributes.items()))
+
             # Search form
             lst_form_xml = mydoc.getElementsByTagName("form")
             if lst_form_xml:
+                if len(lst_form_xml) != 1:
+                    _logger.warning(
+                        "Cannot support multiple form in view name"
+                        f" {view_id.name}"
+                    )
+                else:
+                    form_view = lst_form_xml[0]
+                    dct_view_attr.update(dict(form_view.attributes.items()))
                 sequence_form = 10
                 lst_form_field_xml = mydoc.getElementsByTagName("field")
                 for field_xml in lst_form_field_xml:
@@ -189,6 +246,14 @@ class ExtractorView:
             # Search tree
             lst_tree_xml = mydoc.getElementsByTagName("tree")
             if lst_tree_xml:
+                if len(lst_tree_xml) != 1:
+                    _logger.warning(
+                        "Cannot support multiple tree in view name"
+                        f" {view_id.name}"
+                    )
+                else:
+                    tree_view = lst_tree_xml[0]
+                    dct_view_attr.update(dict(tree_view.attributes.items()))
                 sequence_tree = 10
                 lst_tree_field_xml = mydoc.getElementsByTagName("field")
                 for field_xml in lst_tree_field_xml:
@@ -206,6 +271,16 @@ class ExtractorView:
             # Search timeline
             lst_timeline_xml = mydoc.getElementsByTagName("timeline")
             if lst_timeline_xml:
+                if len(lst_timeline_xml) != 1:
+                    _logger.warning(
+                        "Cannot support multiple timeline in view name"
+                        f" {view_id.name}"
+                    )
+                else:
+                    timeline_view = lst_timeline_xml[0]
+                    dct_view_attr.update(
+                        dict(timeline_view.attributes.items())
+                    )
                 for timeline_xml in lst_timeline_xml:
                     if "date_start" in timeline_xml.attributes.keys():
                         field_name = (
@@ -482,7 +557,7 @@ class ExtractorView:
                                     "item_type": "field",
                                     "sequence": no_sequence,
                                 }
-                                view_item_id = self._module.env[
+                                view_item_id = self.env[
                                     "code.generator.view.item"
                                 ].create(dct_attributes)
                                 lst_view_item_id.append(view_item_id.id)
@@ -491,7 +566,7 @@ class ExtractorView:
             lst_body_xml = []
             lst_tag_support = list(
                 dict(
-                    self._module.env["code.generator.view"]
+                    self.env["code.generator.view"]
                     ._fields["view_type"]
                     .selection
                 ).keys()
@@ -587,6 +662,20 @@ class ExtractorView:
                 "has_body_sheet": has_body_sheet,
             }
 
+            # Update attributes
+            lst_view_attr_copy = list(dct_view_attr.keys())[:]
+            if "string" in dct_view_attr.keys():
+                value["view_attr_string"] = dct_view_attr.get("string")
+                lst_view_attr_copy.remove("string")
+            if "class" in dct_view_attr.keys():
+                value["view_attr_class"] = dct_view_attr.get("class")
+                lst_view_attr_copy.remove("class")
+            if lst_view_attr_copy:
+                _logger.warning(
+                    "Not support multiple attr dct view, keys:"
+                    f" {lst_view_attr_copy}"
+                )
+
             # ID and inherit ID
             inherit_view_name = None
             if view_id.inherit_id:
@@ -612,9 +701,7 @@ class ExtractorView:
                     f"Missing model data id view_name {view_id.name}"
                 )
 
-            view_code_generator = self._module.env[
-                "code.generator.view"
-            ].create(value)
+            view_code_generator = self.env["code.generator.view"].create(value)
 
     def _extract_child_xml(
         self,
@@ -657,6 +744,32 @@ class ExtractorView:
             "item_type": node.nodeName,
             "sequence": sequence,
         }
+
+        for key, value in node.attributes.items():
+            if key == "t-name":
+                dct_attributes["t_name"] = value
+            elif key == "t-attf-class":
+                dct_attributes["t_attf_class"] = value
+            elif key == "t-if":
+                dct_attributes["t_if"] = value
+            elif key == "title":
+                dct_attributes["title"] = value
+            elif key == "aria-label":
+                dct_attributes["aria_label"] = value
+            elif key == "role":
+                dct_attributes["role"] = value
+            elif key == "name":
+                dct_attributes["name"] = value
+            elif key == "widget":
+                dct_attributes["widget"] = value
+            elif key == "domain":
+                dct_attributes["domain"] = value
+            elif key == "context":
+                dct_attributes["context"] = value
+            elif key == "class":
+                dct_attributes["class_attr"] = value
+            elif key == "string":
+                dct_attributes["label"] = value
 
         if parent:
             dct_attributes["parent_id"] = parent.id
@@ -702,8 +815,6 @@ class ExtractorView:
                                 elif child.nodeType is Node.ELEMENT_NODE:
                                     continue
                             dct_attributes["label"] = text_html
-                        else:
-                            dct_attributes["class_attr"] = value
 
         elif node.nodeName == "button":
             dct_key_keep["class"] = "button_type"
@@ -723,7 +834,9 @@ class ExtractorView:
                 elif key == "placeholder":
                     dct_attributes["placeholder"] = value
                 elif key == "name":
-                    dct_attributes["label"] = value
+                    dct_attributes["name"] = value
+                elif key == "type":
+                    dct_attributes["type"] = value
         elif node.nodeName in ("xpath",):
             for key, value in node.attributes.items():
                 if key == "expr":
@@ -763,7 +876,7 @@ class ExtractorView:
                         "Cannot support multiple value in button_type, value"
                         f" : {button_type_value}"
                     )
-        view_item_id = self._module.env["code.generator.view.item"].create(
+        view_item_id = self.env["code.generator.view.item"].create(
             dct_attributes
         )
         lst_view_item_id.append(view_item_id.id)

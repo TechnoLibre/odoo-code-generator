@@ -83,6 +83,45 @@ class CodeGeneratorWriter(models.Model):
                 with cw.block(delim=("{", "}")):
                     cw.emit(f'"section_type": "{view_item_id.section_type}",')
                     cw.emit(f'"item_type": "{view_item_id.item_type}",')
+
+                    if view_item_id.type:
+                        cw.emit(f'"type": "{view_item_id.type}",')
+
+                    if view_item_id.title:
+                        cw.emit(f'"title": "{view_item_id.title}",')
+
+                    if view_item_id.t_name:
+                        cw.emit(f'"t_name": "{view_item_id.t_name}",')
+
+                    if view_item_id.t_attf_class:
+                        cw.emit(
+                            f'"t_attf_class": "{view_item_id.t_attf_class}",'
+                        )
+
+                    if view_item_id.t_if:
+                        cw.emit(f'"t_if": "{view_item_id.t_if}",')
+
+                    if view_item_id.aria_label:
+                        cw.emit(f'"aria_label": "{view_item_id.aria_label}",')
+
+                    if view_item_id.role:
+                        cw.emit(f'"role": "{view_item_id.role}",')
+
+                    if view_item_id.name:
+                        cw.emit(f'"name": "{view_item_id.name}",')
+
+                    if view_item_id.widget:
+                        cw.emit(f'"widget": "{view_item_id.widget}",')
+
+                    if view_item_id.domain:
+                        cw.emit(f'"domain": "{view_item_id.domain}",')
+
+                    if view_item_id.context:
+                        cw.emit(f'"context": "{view_item_id.context}",')
+
+                    if view_item_id.class_attr:
+                        cw.emit(f'"class_attr": "{view_item_id.class_attr}",')
+
                     if view_item_id.item_type == "button":
                         cw.emit(
                             f'"action_name": "{view_item_id.action_name}",'
@@ -93,11 +132,8 @@ class CodeGeneratorWriter(models.Model):
                             )
                         if view_item_id.icon:
                             cw.emit(f'"icon": "{view_item_id.icon}",')
-                    elif view_item_id.item_type == "li":
-                        if view_item_id.class_attr:
-                            cw.emit(
-                                f'"class_attr": "{view_item_id.class_attr}",'
-                            )
+                    # elif view_item_id.item_type == "li":
+
                     elif view_item_id.item_type == "field":
                         cw.emit(
                             f'"action_name": "{view_item_id.action_name}",'
@@ -177,6 +213,10 @@ class CodeGeneratorWriter(models.Model):
             cw.emit(f'"view_type": "{view_type}",')
             if view_id.view_name:
                 cw.emit(f'"view_name": "{view_id.view_name}",')
+            if view_id.view_attr_string:
+                cw.emit(f'"view_attr_string": "{view_id.view_attr_string}",')
+            if view_id.view_attr_class:
+                cw.emit(f'"view_attr_class": "{view_id.view_attr_class}",')
             cw.emit(f'"m2o_model": {view_item.var_model_name}.id,')
             cw.emit('"view_item_ids": [(6, 0, lst_item_view)],')
             if view_id.has_body_sheet:

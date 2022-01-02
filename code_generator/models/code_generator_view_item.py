@@ -141,3 +141,32 @@ class CodeGeneratorViewItem(models.Model):
     )
 
     sequence = fields.Integer(default=1)
+
+    type = fields.Selection(
+        [
+            ("row", "Row"),
+            ("col", "Col"),
+            ("measure", "Measure"),
+        ],
+        help="Statistique type.",
+    )
+
+    t_name = fields.Char(help="t_name attribute")
+
+    t_attf_class = fields.Char(help="t-attf-class attribute")
+
+    t_if = fields.Char(help="t-if attribute")
+
+    title = fields.Char(help="title attribute")
+
+    aria_label = fields.Char(help="aria-label attribute")
+
+    role = fields.Char(help="role attribute")
+
+    name = fields.Char(help="name attribute")
+
+    widget = fields.Char(help="widget attribute")
+
+    domain = fields.Char(help="domain attribute")
+
+    context = fields.Char(help="context attribute")

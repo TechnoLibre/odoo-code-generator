@@ -1824,7 +1824,9 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 ("m2o_module", "=", self.code_generator_id.id),
             ]
         )
-        if not items:
+        # TODO get this list from module base
+        lst_ignore_code = ["toggle_active"]
+        if not items and item.action_name not in lst_ignore_code:
             value = {
                 "code": '''"""TODO what to run"""
 pass''',
@@ -1861,29 +1863,57 @@ pass''',
     def _generate_xml_object(self, item, model_id, lst_child=None):
         lst_child_update = [] if not lst_child else lst_child
         item_xml = None
+        dct_item = {}
+        # TODO duplicate code here with function _generate_xml_title_field
+        if item.name:
+            dct_item["name"] = item.name
+        elif item.action_name:
+            dct_item["name"] = item.action_name
+
+        if item.t_name:
+            dct_item["t-name"] = item.t_name
+        if item.t_attf_class:
+            dct_item["t-attf-class"] = item.t_attf_class
+        if item.t_if:
+            dct_item["t-if"] = item.t_if
+        if item.title:
+            dct_item["title"] = item.title
+        if item.aria_label:
+            dct_item["aria-label"] = item.aria_label
+        if item.role:
+            dct_item["role"] = item.role
+        if item.type:
+            dct_item["type"] = item.type
+        if item.widget:
+            dct_item["widget"] = item.widget
+        if item.label:
+            dct_item["string"] = item.label
+        if item.domain:
+            dct_item["domain"] = item.domain
+        if item.context:
+            dct_item["context"] = item.context
+        if item.class_attr:
+            dct_item["class"] = item.class_attr
+
         if item.item_type == "field":
-            dct_item = {"name": item.action_name}
             if item.placeholder:
                 dct_item["placeholder"] = item.placeholder
             if item.password:
                 dct_item["password"] = "True"
             item_xml = E.field(dct_item)
         elif item.item_type == "filter":
-            dct_item = {}
-            if item.label:
-                dct_item["name"] = item.label
-            else:
-                _logger.error("A filter cannot be empty")
-                return
-            # TODO domain
-            # TODO context
             item_xml = E.filter(dct_item)
         elif item.item_type == "button":
             return self._generate_xml_button(item, model_id)
         elif item.item_type == "html":
             lst_html_child = []
-            dct_item = {}
             if item.background_type:
+                old_class = dct_item.get("class")
+                if old_class != item.background_type:
+                    _logger.error(
+                        f"Duplicate class for model {model_id}, old class:"
+                        f" {old_class}, background_type {item.background_type}"
+                    )
                 dct_item["class"] = item.background_type
                 if item.background_type.startswith("bg-warning"):
                     lst_html_child.append(E.h3({}, "Warning:"))
@@ -1896,37 +1926,23 @@ pass''',
             lst_html_child.append(item.label)
             item_xml = E.div(dct_item, *lst_html_child)
         elif item.item_type == "group":
-            dct_item = {}
             if item.label:
                 dct_item["string"] = item.label
             if item.attrs:
                 dct_item["attrs"] = item.attrs
             item_xml = E.group(dct_item, *lst_child_update)
         elif item.item_type == "li":
-            dct_item = {}
-            if item.class_attr:
-                dct_item["class"] = item.class_attr
+
             item_xml = E.li(dct_item, *lst_child_update)
         elif item.item_type == "ul":
-            dct_item = {}
-            if item.class_attr:
-                dct_item["class"] = item.class_attr
             item_xml = E.ul(dct_item, *lst_child_update)
         elif item.item_type == "i":
-            dct_item = {}
-            if item.class_attr:
-                dct_item["class"] = item.class_attr
             item_xml = E.i(dct_item, *lst_child_update)
         elif item.item_type == "t":
-            dct_item = {}
-            if item.class_attr:
-                dct_item["class"] = item.class_attr
             item_xml = E.t(dct_item, *lst_child_update)
         elif item.item_type == "strong":
-            dct_item = {}
             item_xml = E.strong(dct_item, *lst_child_update)
         elif item.item_type == "xpath":
-            dct_item = {}
             if not item.expr:
                 _logger.error(
                     f"Missing expr for item action_name {item.action_name}"
@@ -1940,12 +1956,10 @@ pass''',
                 dct_item["position"] = item.position
                 item_xml = E.xpath(dct_item, *lst_child_update)
         elif item.item_type == "div":
-            dct_item = {}
             if item.attrs:
                 dct_item["attrs"] = item.attrs
             item_xml = E.div(dct_item, *lst_child_update)
         elif item.item_type == "templates":
-            dct_item = {}
             if item.attrs:
                 dct_item["attrs"] = item.attrs
             item_xml = E.templates(dct_item, *lst_child_update)
@@ -2001,7 +2015,14 @@ pass''',
                 dct_item_label["class"] = "oe_edit_only"
             item_label = E.label(dct_item_label)
             lst_child.append(item_label)
-        dct_item_field = {"name": item.action_name}
+        dct_item_field = {}
+        if item.name:
+            dct_item_field["name"] = item.name
+        else:
+            dct_item_field["name"] = item.action_name
+
+        if item.type:
+            dct_item_field["type"] = item.type
 
         if item.is_required:
             dct_item_field["required"] = "1"
@@ -2158,23 +2179,30 @@ pass''',
             else:
                 lst_item_form += lst_item_form_sheet
 
+        dct_attr_view = {}
+        if code_generator_view_id.view_attr_string:
+            dct_attr_view["string"] = code_generator_view_id.view_attr_string
+
+        if code_generator_view_id.view_attr_class:
+            dct_attr_view["class"] = code_generator_view_id.view_attr_class
+
         if code_generator_view_id.inherit_view_name:
             if len(lst_item_form) > 1:
-                form_xml = E.data({}, *lst_item_form)
+                form_xml = E.data(dct_attr_view, *lst_item_form)
             else:
                 form_xml = lst_item_form[0]
         elif view_type == "form":
-            form_xml = E.form({}, *lst_item_form)
+            form_xml = E.form(dct_attr_view, *lst_item_form)
         elif view_type == "search":
-            form_xml = E.search({}, *lst_item_form)
+            form_xml = E.search(dct_attr_view, *lst_item_form)
         elif view_type == "tree":
-            form_xml = E.tree({}, *lst_item_form)
+            form_xml = E.tree(dct_attr_view, *lst_item_form)
         elif view_type == "kanban":
-            form_xml = E.kanban({}, *lst_item_form)
+            form_xml = E.kanban(dct_attr_view, *lst_item_form)
         elif view_type == "graph":
-            form_xml = E.graph({}, *lst_item_form)
+            form_xml = E.graph(dct_attr_view, *lst_item_form)
         elif view_type == "pivot":
-            form_xml = E.pivot({}, *lst_item_form)
+            form_xml = E.pivot(dct_attr_view, *lst_item_form)
         else:
             _logger.warning(f"Unknown xml view_type {view_type}")
             return

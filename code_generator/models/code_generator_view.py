@@ -57,3 +57,7 @@ class CodeGeneratorView(models.Model):
         default="form",
         help="Choose view type to generate.",
     )
+
+    view_attr_string = fields.Char(string="String attribute")
+
+    view_attr_class = fields.Char(string="Class attribute")

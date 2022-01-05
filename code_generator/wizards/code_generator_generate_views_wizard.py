@@ -1909,10 +1909,10 @@ pass''',
             lst_html_child = []
             if item.background_type:
                 old_class = dct_item.get("class")
-                if old_class != item.background_type:
+                if old_class and old_class != item.background_type:
                     _logger.error(
-                        f"Duplicate class for model {model_id}, old class:"
-                        f" {old_class}, background_type {item.background_type}"
+                        "Duplicate class, old class: {old_class},"
+                        " background_type {item.background_type}"
                     )
                 dct_item["class"] = item.background_type
                 if item.background_type.startswith("bg-warning"):

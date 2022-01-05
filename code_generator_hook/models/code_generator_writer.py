@@ -71,7 +71,7 @@ class CodeGeneratorWriter(models.Model):
             var_create_view_item = (
                 "view_item"
                 if not view_item_id.child_id
-                else f"view_item_{view_item_id.section_type}_{view_item_id.sequence}"
+                else f"view_item_{view_item_id.section_type}_{view_item_id.item_type}_{view_item_id.sequence}"
             )
             with cw.block(
                 before=(

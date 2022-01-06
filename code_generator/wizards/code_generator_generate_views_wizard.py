@@ -1865,35 +1865,36 @@ pass''',
         item_xml = None
         dct_item = {}
         # TODO duplicate code here with function _generate_xml_title_field
-        if item.name:
-            dct_item["name"] = item.name
-        elif item.action_name:
-            dct_item["name"] = item.action_name
+        if not item.item_type == "html":
+            if item.name:
+                dct_item["name"] = item.name
+            elif item.action_name:
+                dct_item["name"] = item.action_name
 
-        if item.t_name:
-            dct_item["t-name"] = item.t_name
-        if item.t_attf_class:
-            dct_item["t-attf-class"] = item.t_attf_class
-        if item.t_if:
-            dct_item["t-if"] = item.t_if
-        if item.title:
-            dct_item["title"] = item.title
-        if item.aria_label:
-            dct_item["aria-label"] = item.aria_label
-        if item.role:
-            dct_item["role"] = item.role
-        if item.type:
-            dct_item["type"] = item.type
-        if item.widget:
-            dct_item["widget"] = item.widget
-        if item.label:
-            dct_item["string"] = item.label
-        if item.domain:
-            dct_item["domain"] = item.domain
-        if item.context:
-            dct_item["context"] = item.context
-        if item.class_attr:
-            dct_item["class"] = item.class_attr
+            if item.t_name:
+                dct_item["t-name"] = item.t_name
+            if item.t_attf_class:
+                dct_item["t-attf-class"] = item.t_attf_class
+            if item.t_if:
+                dct_item["t-if"] = item.t_if
+            if item.title:
+                dct_item["title"] = item.title
+            if item.aria_label:
+                dct_item["aria-label"] = item.aria_label
+            if item.role:
+                dct_item["role"] = item.role
+            if item.type:
+                dct_item["type"] = item.type
+            if item.widget:
+                dct_item["widget"] = item.widget
+            if item.label:
+                dct_item["string"] = item.label
+            if item.domain:
+                dct_item["domain"] = item.domain
+            if item.context:
+                dct_item["context"] = item.context
+            if item.class_attr:
+                dct_item["class"] = item.class_attr
 
         if item.item_type == "field":
             if item.placeholder:

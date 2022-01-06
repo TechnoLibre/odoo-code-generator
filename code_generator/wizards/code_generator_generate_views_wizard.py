@@ -229,6 +229,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     @api.multi
     def generic_generate_view(self, dct_value_to_create):
         # before_time = time.process_time()
+        # TODO rename list to tree
         o2m_models_view_list = (
             self.code_generator_id.o2m_models
             if self.all_model
@@ -720,6 +721,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             dct_value = {"name": field_id.name}
             if field_id.force_widget:
                 dct_value["widget"] = field_id.force_widget
+            dct_value = dict(sorted(dct_value.items(), key=lambda kv: kv[0]))
             lst_field.append(E.field(dct_value))
         arch_xml = E.tree(
             {
@@ -834,10 +836,10 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 )
                 item_button = E.button(
                     {
-                        "name": "toggle_active",
-                        "type": "object",
                         "class": "oe_stat_button",
                         "icon": "fa-archive",
+                        "name": "toggle_active",
+                        "type": "object",
                     },
                     item_field,
                 )
@@ -875,18 +877,18 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 {"class": "oe_chatter"},
                 E.field(
                     {
+                        # "groups": "base.group_user",
+                        # "help": "",
                         "name": "message_follower_ids",
                         "widget": "mail_followers",
-                        # "help": "",
-                        # "groups": "base.group_user",
                     }
                 ),
                 E.field({"name": "activity_ids", "widget": "mail_activity"}),
                 E.field(
                     {
                         "name": "message_ids",
-                        "widget": "mail_thread",
                         "options": "{'post_refresh': 'recipients'}",
+                        "widget": "mail_thread",
                     }
                 ),
             )
@@ -1006,7 +1008,6 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         # lst_field = [E.field({"name": a.name}) for a in model_created_fields]
         lst_field = []
         lst_field_template = []
-        lst_item_kanban = []
         for field_id in lst_field_sorted:
             if field_id.name in lst_field_to_remove:
                 continue
@@ -1015,6 +1016,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             dct_value = {"name": field_id.name}
             if field_id.force_widget:
                 dct_value["widget"] = field_id.force_widget
+            dct_value = dict(sorted(dct_value.items(), key=lambda kv: kv[0]))
             lst_field.append(E.field(dct_value))
 
             if field_id.ttype == "boolean":
@@ -1026,9 +1028,9 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                     },
                     E.i(
                         {
+                            "aria-label": "Ok",
                             "class": "fa fa-circle",
                             "role": "img",
-                            "aria-label": "Ok",
                             "title": "Ok",
                         }
                     ),
@@ -1042,9 +1044,9 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                     },
                     E.i(
                         {
+                            "aria-label": "Invalid",
                             "class": "fa fa-circle",
                             "role": "img",
-                            "aria-label": "Invalid",
                             "title": "Invalid",
                         }
                     ),
@@ -1181,9 +1183,9 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 # Add inactive
                 dct_templates_value = E.filter(
                     {
+                        "domain": f"[('{field_id.name}','=',False)]",
                         "name": "Inactive",
                         "string": f"Inactive {model_name_display_str}",
-                        "domain": f"[('{field_id.name}','=',False)]",
                     }
                 )
                 lst_field_filter.append(dct_templates_value)
@@ -1194,18 +1196,18 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             if field_id.ttype == "boolean":
                 dct_templates_value = E.filter(
                     {
+                        "domain": f"[('{field_id.name}','=',True)]",
                         "name": field_id.name,
                         "string": field_id.field_description,
-                        "domain": f"[('{field_id.name}','=',True)]",
                     }
                 )
                 lst_field_filter.append(dct_templates_value)
             else:
                 dct_templates_value = E.filter(
                     {
+                        "domain": f"[('{field_id.name}','!=',False)]",
                         "name": field_id.name,
                         "string": field_id.field_description,
-                        "domain": f"[('{field_id.name}','!=',False)]",
                     }
                 )
                 lst_field_filter.append(dct_templates_value)
@@ -1472,9 +1474,9 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         lst_item_calendar = lst_field
         arch_xml = E.calendar(
             {
-                "string": model_name_display_str,
-                "date_start": date_start.name,
                 "color": model_created.rec_name,
+                "date_start": date_start.name,
+                "string": model_name_display_str,
             },
             *lst_item_calendar,
         )
@@ -1655,11 +1657,11 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         # lst_item_timeline = lst_field
         arch_xml = E.timeline(
             {
-                "string": model_name_display_str,
                 "date_start": start_date.name,
                 "date_stop": end_date.name,
-                "event_open_popup": "True",
                 "default_group_by": model_created.rec_name,
+                "event_open_popup": "True",
+                "string": model_name_display_str,
             }
         )
         str_arch = ET.tostring(arch_xml, pretty_print=True)
@@ -1757,34 +1759,34 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             {},
             E.node(
                 {
-                    "object": model_created.diagram_node_object,
-                    "xpos": model_created.diagram_node_xpos_field,
-                    "ypos": model_created.diagram_node_ypos_field,
-                    "shape": "rectangle:True",
                     # "bgcolor":"",
                     "form_view_ref": node_xml_id.name,
+                    "object": model_created.diagram_node_object,
+                    "shape": "rectangle:True",
+                    "xpos": model_created.diagram_node_xpos_field,
+                    "ypos": model_created.diagram_node_ypos_field,
                 },
                 *lst_field_node,
             ),
             E.arrow(
                 {
+                    "destination": model_created.diagram_arrow_dst_field,
+                    "form_view_ref": arrow_xml_id.name,
+                    "label": f"['{model_arrow.rec_name}']",
                     "object": model_created.diagram_arrow_object,
                     "source": model_created.diagram_arrow_src_field,
-                    "destination": model_created.diagram_arrow_dst_field,
-                    "label": f"['{model_arrow.rec_name}']",
-                    "form_view_ref": arrow_xml_id.name,
                 },
                 *lst_field_arrow,
             ),
             E.label(
                 {
+                    "for": "",
                     "string": (
                         "Caution, all modification is live. Diagram model:"
                         f" {model_created.model}, node model:"
                         f" {model_created.diagram_node_object} and arrow"
                         f" model: {model_created.diagram_arrow_object}"
                     ),
-                    "for": "",
                 }
             ),
         )
@@ -1838,6 +1840,9 @@ pass''',
                 "is_wip": True,
             }
             self.env["code.generator.model.code"].create(value)
+        button_attributes = dict(
+            sorted(button_attributes.items(), key=lambda kv: kv[0])
+        )
         return E.button(button_attributes)
 
     @staticmethod
@@ -1852,6 +1857,7 @@ pass''',
         dct_item = {"string": "Help"}
         if item.colspan > 1:
             dct_item["colspan"] = str(item.colspan)
+        dct_item = dict(sorted(dct_item.items(), key=lambda kv: kv[0]))
         item_xml = E.separator(dct_item)
         lst_child.append(item_xml)
 
@@ -1901,8 +1907,10 @@ pass''',
                 dct_item["placeholder"] = item.placeholder
             if item.password:
                 dct_item["password"] = "True"
+            dct_item = dict(sorted(dct_item.items(), key=lambda kv: kv[0]))
             item_xml = E.field(dct_item)
         elif item.item_type == "filter":
+            dct_item = dict(sorted(dct_item.items(), key=lambda kv: kv[0]))
             item_xml = E.filter(dct_item)
         elif item.item_type == "button":
             return self._generate_xml_button(item, model_id)
@@ -1925,23 +1933,29 @@ pass''',
                 elif item.background_type.startswith("bg-danger"):
                     lst_html_child.append(E.h3({}, "Danger:"))
             lst_html_child.append(item.label)
+            dct_item = dict(sorted(dct_item.items(), key=lambda kv: kv[0]))
             item_xml = E.div(dct_item, *lst_html_child)
         elif item.item_type == "group":
             if item.label:
                 dct_item["string"] = item.label
             if item.attrs:
                 dct_item["attrs"] = item.attrs
+            dct_item = dict(sorted(dct_item.items(), key=lambda kv: kv[0]))
             item_xml = E.group(dct_item, *lst_child_update)
         elif item.item_type == "li":
-
+            dct_item = dict(sorted(dct_item.items(), key=lambda kv: kv[0]))
             item_xml = E.li(dct_item, *lst_child_update)
         elif item.item_type == "ul":
+            dct_item = dict(sorted(dct_item.items(), key=lambda kv: kv[0]))
             item_xml = E.ul(dct_item, *lst_child_update)
         elif item.item_type == "i":
+            dct_item = dict(sorted(dct_item.items(), key=lambda kv: kv[0]))
             item_xml = E.i(dct_item, *lst_child_update)
         elif item.item_type == "t":
+            dct_item = dict(sorted(dct_item.items(), key=lambda kv: kv[0]))
             item_xml = E.t(dct_item, *lst_child_update)
         elif item.item_type == "strong":
+            dct_item = dict(sorted(dct_item.items(), key=lambda kv: kv[0]))
             item_xml = E.strong(dct_item, *lst_child_update)
         elif item.item_type == "xpath":
             if not item.expr:
@@ -1955,14 +1969,17 @@ pass''',
             else:
                 dct_item["expr"] = item.expr
                 dct_item["position"] = item.position
+                dct_item = dict(sorted(dct_item.items(), key=lambda kv: kv[0]))
                 item_xml = E.xpath(dct_item, *lst_child_update)
         elif item.item_type == "div":
             if item.attrs:
                 dct_item["attrs"] = item.attrs
+            dct_item = dict(sorted(dct_item.items(), key=lambda kv: kv[0]))
             item_xml = E.div(dct_item, *lst_child_update)
         elif item.item_type == "templates":
             if item.attrs:
                 dct_item["attrs"] = item.attrs
+            dct_item = dict(sorted(dct_item.items(), key=lambda kv: kv[0]))
             item_xml = E.templates(dct_item, *lst_child_update)
         else:
             _logger.warning(f"View item '{item.item_type}' is not supported.")
@@ -2029,6 +2046,9 @@ pass''',
             dct_item_field["required"] = "1"
         if item.is_readonly:
             dct_item_field["readonly"] = "1"
+        dct_item_field = dict(
+            sorted(dct_item_field.items(), key=lambda kv: kv[0])
+        )
         item_field = E.field(dct_item_field)
         if level == 0:
             result = E.h1({}, item_field)
@@ -2187,8 +2207,12 @@ pass''',
         if code_generator_view_id.view_attr_class:
             dct_attr_view["class"] = code_generator_view_id.view_attr_class
 
+        dct_attr_view = dict(
+            sorted(dct_attr_view.items(), key=lambda kv: kv[0])
+        )
         if code_generator_view_id.inherit_view_name:
             if len(lst_item_form) > 1:
+
                 form_xml = E.data(dct_attr_view, *lst_item_form)
             else:
                 form_xml = lst_item_form[0]
@@ -2205,7 +2229,9 @@ pass''',
         elif view_type == "pivot":
             form_xml = E.pivot(dct_attr_view, *lst_item_form)
         else:
-            _logger.warning(f"Unknown xml view_type {view_type}")
+            _logger.warning(
+                f"Unknown xml view_type {view_type}, attribute {dct_attr_view}"
+            )
             return
 
         str_arch = ET.tostring(form_xml, pretty_print=True)

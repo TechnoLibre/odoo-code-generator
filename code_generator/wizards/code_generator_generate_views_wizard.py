@@ -1806,7 +1806,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
         return view_value
 
-    def _generate_xml_button(self, item, model_id):
+    def _generate_xml_button(self, item, model_id, lst_child_update=None):
         button_attributes = {
             "name": item.action_name,
             "type": "object",
@@ -1843,6 +1843,9 @@ pass''',
         button_attributes = dict(
             sorted(button_attributes.items(), key=lambda kv: kv[0])
         )
+        if lst_child_update:
+            return E.button(button_attributes, *lst_child_update)
+
         return E.button(button_attributes)
 
     @staticmethod
@@ -1913,7 +1916,9 @@ pass''',
             dct_item = dict(sorted(dct_item.items(), key=lambda kv: kv[0]))
             item_xml = E.filter(dct_item)
         elif item.item_type == "button":
-            return self._generate_xml_button(item, model_id)
+            return self._generate_xml_button(
+                item, model_id, lst_child_update=lst_child_update
+            )
         elif item.item_type == "html":
             lst_html_child = []
             if item.background_type:

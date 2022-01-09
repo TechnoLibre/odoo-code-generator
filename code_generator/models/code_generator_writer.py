@@ -1496,7 +1496,10 @@ class CodeGeneratorWriter(models.Model):
                         E.field({"name": "target"}, act_window.target)
                     )
 
-                if act_window.view_mode != "tree,form":
+                if (
+                    act_window.view_mode != "tree,form"
+                    and act_window.view_mode != "form,tree"
+                ):
                     lst_field.append(
                         E.field({"name": "view_mode"}, act_window.view_mode)
                     )

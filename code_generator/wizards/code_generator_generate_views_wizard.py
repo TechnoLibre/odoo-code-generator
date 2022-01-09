@@ -31,7 +31,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     #     code_generator_id = self.env["code.generator.module"].browse(result.get("code_generator_id"))
     #     lst_model_id = [a.id for a in code_generator_id.o2m_models]
     # Don't need that solution
-    #     result["selected_model_list_view_ids"] = [(6, 0, lst_model_id)]
+    #     result["selected_model_tree_view_ids"] = [(6, 0, lst_model_id)]
     #     result["selected_model_form_view_ids"] = [(6, 0, lst_model_id)]
     #     return result
 
@@ -127,10 +127,10 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         string="Selected Model Kanban View",
     )
 
-    selected_model_list_view_ids = fields.Many2many(
+    selected_model_tree_view_ids = fields.Many2many(
         comodel_name="ir.model",
-        relation="selected_model_list_view_ids_ir_model",
-        string="Selected Model List View",
+        relation="selected_model_tree_view_ids_ir_model",
+        string="Selected Model Tree View",
     )
 
     selected_model_pivot_view_ids = fields.Many2many(
@@ -229,11 +229,10 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     @api.multi
     def generic_generate_view(self, dct_value_to_create):
         # before_time = time.process_time()
-        # TODO rename list to tree
-        o2m_models_view_list = (
+        o2m_models_view_tree = (
             self.code_generator_id.o2m_models
             if self.all_model
-            else self.selected_model_list_view_ids
+            else self.selected_model_tree_view_ids
         )
         o2m_models_view_form = (
             self.code_generator_id.o2m_models
@@ -285,7 +284,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         # Get unique list order by name of all model to generate
         lst_model = sorted(
             set(
-                o2m_models_view_list
+                o2m_models_view_tree
                 + o2m_models_view_form
                 + o2m_models_view_kanban
                 + o2m_models_view_search
@@ -310,11 +309,11 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 lst_view_generated.append("activity")
 
             # Different view
-            if model_id in o2m_models_view_list:
+            if model_id in o2m_models_view_tree:
                 is_whitelist = any(
                     [a.is_show_whitelist_list_view for a in model_id.field_id]
                 )
-                # model_created_fields_list = list(
+                # model_created_fields_tree = list(
                 #     filter(
                 #         lambda x: x.name not in MAGIC_FIELDS
                 #                   and not x.is_hide_blacklist_list_view
@@ -325,7 +324,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 #         [a for a in model_id.field_id],
                 #     )
                 # )
-                model_created_fields_list = model_id.field_id.filtered(
+                model_created_fields_tree = model_id.field_id.filtered(
                     lambda field: field.name not in MAGIC_FIELDS
                     and not field.is_hide_blacklist_list_view
                     and (
@@ -333,16 +332,16 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                         or (is_whitelist and field.is_show_whitelist_list_view)
                     )
                 )
-                model_created_fields_list = self._update_model_field_tree_view(
-                    model_created_fields_list
+                model_created_fields_tree = self._update_model_field_tree_view(
+                    model_created_fields_tree
                 )
                 self._generate_list_views_models(
                     model_id,
-                    model_created_fields_list,
+                    model_created_fields_tree,
                     model_id.m2o_module,
                     dct_value_to_create,
                 )
-                lst_view_generated.append("list")
+                lst_view_generated.append("tree")
 
             if model_id in o2m_models_view_form:
                 is_whitelist = any(
@@ -636,8 +635,8 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
             code_generator.add_module_dependency("mail")
 
-    def _update_model_field_tree_view(self, model_created_fields_list):
-        return model_created_fields_list
+    def _update_model_field_tree_view(self, model_created_fields_tree):
+        return model_created_fields_tree
 
     def _generate_list_views_models(
         self, model_created, model_created_fields, module, dct_value_to_create

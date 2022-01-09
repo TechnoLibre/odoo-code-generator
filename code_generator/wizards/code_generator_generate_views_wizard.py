@@ -2443,25 +2443,25 @@ pass''',
           </p>
         """
 
-        # Special case, cannot support search view type in action_view
-        try:
-            lst_view_generated.remove("search")
-        except:
-            pass
-
         # TODO change sequence of view mode
         # Kanban first by default
         if "kanban" in lst_view_generated:
             lst_first_view_generated = ["kanban"]
-            lst_second_view_generated = lst_view_generated[:]
+            lst_second_view_generated = list(set(lst_view_generated[:]))
             lst_second_view_generated.remove("kanban")
         else:
             lst_first_view_generated = []
-            lst_second_view_generated = lst_view_generated
+            lst_second_view_generated = list(set(lst_view_generated))
+
+        # Special case, cannot support search view type in action_view
+        try:
+            lst_second_view_generated.remove("search")
+        except:
+            pass
 
         view_mode = ",".join(
             lst_first_view_generated
-            + sorted(set(lst_second_view_generated), reverse=True)
+            + sorted(lst_second_view_generated, reverse=True)
         )
         view_type = (
             "form" if "form" in lst_view_generated else lst_view_generated[0]

@@ -336,6 +336,10 @@ class CodeGeneratorWriter(models.Model):
                             )
                             cw.emit(f'"name": "{act_win_id.name}",')
                             cw.emit(f'"id_name": "{act_win_id.id_name}",')
+                            if act_win_id.model_name:
+                                cw.emit(
+                                    f'"model_name": "{act_win_id.model_name}",'
+                                )
                     cw.emit()
         cw.emit()
         if view_item.code_generator_id.code_generator_menus_id:

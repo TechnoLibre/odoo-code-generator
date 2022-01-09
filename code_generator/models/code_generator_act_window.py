@@ -19,3 +19,7 @@ class CodeGeneratorActWindow(models.Model):
         string="Action id",
         help="Specify id name of this action window.",
     )
+
+    model_name = fields.Char(
+        help="The associate model, if empty, no association."
+    )

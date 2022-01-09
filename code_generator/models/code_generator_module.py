@@ -311,6 +311,7 @@ class CodeGeneratorModule(models.Model):
 
     @api.depends("o2m_models")
     def _get_models_info(self):
+        # TODO not use anymore (soon), mapping has some problem with update
         for module in self:
             module.o2m_model_access = module.o2m_models.mapped("access_ids")
             module.o2m_model_rules = module.o2m_models.mapped("rule_ids")

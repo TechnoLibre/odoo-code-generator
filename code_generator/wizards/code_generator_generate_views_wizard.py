@@ -2571,7 +2571,6 @@ pass''',
                     # Create action
                     v = {
                         "name": menu_id.m2o_act_window.name,
-                        "res_model": model_name,
                         "type": "ir.actions.act_window",
                         "view_mode": view_mode,
                         "view_type": view_type,
@@ -2580,6 +2579,15 @@ pass''',
                         "context": {},
                         "m2o_res_model": model_created.id,
                     }
+                    if menu_id.m2o_act_window.model_name:
+                        v["res_model"] = menu_id.m2o_act_window.model_name
+                    else:
+                        _logger.warning(
+                            "Missing model_name into m2o_act_window"
+                            f" '{menu_id.m2o_act_window.name}', force another"
+                            f" model name '{model_name}'"
+                        )
+                        v["res_model"] = model_name
                     action_id = self.env["ir.actions.act_window"].create(v)
                     if menu_id.m2o_act_window.id_name:
                         # Write id name

@@ -124,6 +124,8 @@ class ExtractorView:
                     "name": menu_id.action.name,
                     "code_generator_id": self.code_generator_id.id,
                 }
+                if menu_id.action.res_model:
+                    dct_act_value["model_name"] = menu_id.action.res_model
                 menu_action = self.env["code.generator.act_window"].create(
                     dct_act_value
                 )

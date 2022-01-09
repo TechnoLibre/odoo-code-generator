@@ -1268,7 +1268,9 @@ class CodeGeneratorWriter(models.Model):
         # view_ids = model.view_ids
         # TODO model.view_ids not working when add inherit view from wizard... what is different? Force values
         view_ids = self.env["ir.ui.view"].search([("model", "=", model.model)])
-        act_window_ids = model.o2m_act_window
+        act_window_ids = self.env["ir.actions.act_window"].search(
+            [("res_model", "=", model.model)]
+        )
         server_action_ids = model.o2m_server_action
 
         # Remove all field when in inherit if not in whitelist
@@ -1433,6 +1435,10 @@ class CodeGeneratorWriter(models.Model):
                     act_window, creating=True
                 )
 
+            has_menu = bool(
+                module.with_context({"ir.ui.menu.full_list": True}).o2m_menus
+            )
+            # TODO if not complex, search if associate with a menu. If the menu is not generated, don't generate is act_window
             if use_complex_view:
                 lst_field = []
 
@@ -1512,9 +1518,9 @@ class CodeGeneratorWriter(models.Model):
                 if act_window.usage:
                     lst_field.append(E.field({"name": "usage", "eval": True}))
 
-                if act_window.limit != 80:
+                if act_window.limit != 80 and act_window.limit != 0:
                     lst_field.append(
-                        E.field({"name": "limit"}, act_window.limit)
+                        E.field({"name": "limit"}, str(act_window.limit))
                     )
 
                 if act_window.search_view_id:
@@ -1558,7 +1564,7 @@ class CodeGeneratorWriter(models.Model):
                 )
                 lst_item_xml.append(ET.Comment("end line"))
                 lst_item_xml.append(info)
-            else:
+            elif has_menu:
                 dct_act_window = {"id": record_id}
 
                 if act_window.name:
@@ -1603,8 +1609,8 @@ class CodeGeneratorWriter(models.Model):
                     # TODO replace ref
                     pass
 
-                if act_window.limit != 80:
-                    dct_act_window["limit"] = act_window.limit
+                if act_window.limit != 80 and act_window.limit != 0:
+                    dct_act_window["limit"] = str(act_window.limit)
 
                 if act_window.search_view_id:
                     # TODO replace ref

@@ -9,6 +9,7 @@ import tempfile
 import uuid
 from collections import defaultdict
 
+import unidecode
 from code_writer import CodeWriter
 from lxml import etree as ET
 from lxml.builder import E
@@ -126,7 +127,7 @@ class CodeGeneratorWriter(models.Model):
 
         while new_v.count("__"):
             new_v = new_v.replace("__", "_")
-        return new_v
+        return unidecode.unidecode(new_v)
 
     def _get_model_model(self, model_model, replacee="."):
         """

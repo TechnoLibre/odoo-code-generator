@@ -2507,6 +2507,27 @@ pass''',
             }
             action_id = self.env["ir.actions.act_window"].create(v)
 
+            # TODO check function _get_action_data_name in code_generator_writer.py
+            fix_action_id_name = (
+                unidecode.unidecode(menu_name)
+                .replace(" ", "_")
+                .replace("'", "_")
+                .replace("-", "_")
+                .lower()
+            )
+            action_id_name = (
+                f"{model_name_str}_{fix_action_id_name}_action_window"
+            )
+
+            v_ir_model_data = {
+                "name": action_id_name,
+                "model": "ir.actions.act_window",
+                "module": module.name,
+                "res_id": action_id.id,
+                "noupdate": True,
+            }
+            self.env["ir.model.data"].create(v_ir_model_data)
+
             self.nb_sub_menu += 1
 
             v = {
@@ -2524,7 +2545,24 @@ pass''',
             elif self.generated_parent_menu:
                 v["parent_id"] = self.generated_parent_menu.id
 
-            access_value = self.env["ir.ui.menu"].create(v)
+            new_menu_id = self.env["ir.ui.menu"].create(v)
+
+            menu_id_name = (
+                unidecode.unidecode(menu_name)
+                .replace(" ", "_")
+                .replace("'", "_")
+                .replace("-", "_")
+                .lower()
+            )
+
+            v_ir_model_data = {
+                "name": menu_id_name,
+                "model": "ir.ui.menu",
+                "module": module.name,
+                "res_id": new_menu_id.id,
+                "noupdate": True,
+            }
+            self.env["ir.model.data"].create(v_ir_model_data)
         elif not is_generic_menu:
             cg_menu_ids = model_created.m2o_module.code_generator_menus_id
             # TODO check different case, with act_window, without, multiple menu, single menu

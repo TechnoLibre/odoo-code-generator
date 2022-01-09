@@ -1088,55 +1088,60 @@ class CodeGeneratorWriter(models.Model):
 
         application_icon = None
         menus = module.with_context({"ir.ui.menu.full_list": True}).o2m_menus
-        lst_menu = []
-        max_loop = 500
-        i = 0
-        lst_items = [a for a in menus]
-        origin_lst_items = lst_items[:]
-        # Sorted menu by order of parent asc, and sort child by view_name
-        while lst_items:
-            has_update = False
-            lst_item_cache = []
-            for item in lst_items[:]:
-                i += 1
-                if i > max_loop:
-                    _logger.error("Overrun loop when reorder menu.")
-                    lst_items = []
-                    break
-                # Expect first menu by id is a root menu
-                if not item.parent_id:
-                    lst_menu.append(item)
-                    lst_items.remove(item)
-                    has_update = True
-                elif (
-                    item.parent_id in lst_menu
-                    or item.parent_id not in origin_lst_items
-                ):
-                    lst_item_cache.append(item)
-                    lst_items.remove(item)
-                    has_update = True
-
-            # Order last run of adding
-            if lst_item_cache:
-                lst_item_cache = sorted(
-                    lst_item_cache,
-                    key=lambda a: self._get_menu_data_name(a),
-                )
-                lst_menu += lst_item_cache
-
-            if not has_update:
-                lst_sorted_item = sorted(
-                    lst_items, key=lambda a: self._get_menu_data_name(a)
-                )
-                for item in lst_sorted_item:
-                    lst_menu.append(item)
-
-        if not lst_menu:
+        if not menus:
             return ""
+
+        # Group by parent_id
+        lst_menu_root = menus.filtered(lambda x: not x.parent_id).sorted(
+            key=lambda x: self._get_menu_data_name(x).split(".")[-1]
+        )
+        lst_menu_item = menus.filtered(lambda x: x.parent_id and x.child_id)
+        lst_menu_last_child = menus.filtered(lambda x: not x.child_id).sorted(
+            key=lambda x: self._get_menu_data_name(x).split(".")[-1]
+        )
+        nb_root = len(lst_menu_root)
+        nb_item = len(lst_menu_item)
+        nb_last_child = len(lst_menu_last_child)
+        has_add_root = False
+        has_item = False
+        has_last_child = False
+
+        # Order by id_name
+        lst_menu = [a for a in lst_menu_root]
+
+        # Be sure parent is added
+        lst_menu_item = [a for a in lst_menu_item]
+
+        while lst_menu_item:
+            lst_menu_to_order = []
+            len_start = len(lst_menu_item)
+            for menu_item in lst_menu_item[:]:
+                # Remove item and add it
+                if menu_item.parent_id in lst_menu:
+                    lst_menu_item.remove(menu_item)
+                    lst_menu_to_order.append(menu_item)
+
+            if lst_menu_to_order:
+                lst_menu_ordered = sorted(
+                    lst_menu_to_order,
+                    key=lambda x: self._get_menu_data_name(x).split(".")[-1],
+                )
+                for menu_ordered in lst_menu_ordered:
+                    lst_menu.append(menu_ordered)
+
+            len_end = len(lst_menu_item)
+            if len_start == len_end:
+                # Find no parent
+                for menu_item in lst_menu_item:
+                    lst_menu.append(menu_item)
+
+        # Order by id_name
+        for menu_child in lst_menu_last_child:
+            lst_menu.append(menu_child)
 
         lst_menu_xml = []
 
-        for menu in lst_menu:
+        for i, menu in enumerate(lst_menu):
 
             menu_id = self._get_menu_data_name(menu, ignore_module=True)
             dct_menu_item = {"id": menu_id}
@@ -1184,6 +1189,21 @@ class CodeGeneratorWriter(models.Model):
                         f" new icon '{new_icon}'"
                     )
 
+            if not has_add_root and nb_root:
+                has_add_root = True
+                lst_menu_xml.append(ET.Comment("end line"))
+                lst_menu_xml.append(ET.Comment("Root menu"))
+
+            if not has_item and nb_item and i >= nb_root:
+                has_item = True
+                lst_menu_xml.append(ET.Comment("end line"))
+                lst_menu_xml.append(ET.Comment("Sub menu"))
+
+            if not has_last_child and nb_last_child and i >= nb_root + nb_item:
+                has_last_child = True
+                lst_menu_xml.append(ET.Comment("end line"))
+                lst_menu_xml.append(ET.Comment("Child menu"))
+
             menu_xml = E.menuitem(dct_menu_item)
             lst_menu_xml.append(ET.Comment("end line"))
             lst_menu_xml.append(menu_xml)
@@ -1197,34 +1217,7 @@ class CodeGeneratorWriter(models.Model):
             module_menus_file, pretty_print=True
         )
 
-        # a menuitem is separate on each line, like this:
-        # <menuitem id="menu_id"
-        #           name="name"
-        #           sequence="8"
-        # />
-        key = "<menuitem "
-        new_result = ""
-        for line in result.decode().split("\n"):
-            if line.lstrip().startswith(key):
-                start_index = line.index(key)
-                offset_index = start_index + len(key)
-                next_index = line.index(" ", offset_index)
-                pre_offset_replace = "  " + " " * offset_index
-                last_part = line[next_index + 1 :].replace(
-                    '" ', '"\n' + pre_offset_replace
-                )[:-2]
-                pre_start_replace = "  " + " " * start_index
-                last_part += "\n" + pre_start_replace + "/>\n"
-                new_result += (
-                    "  "
-                    + line[:next_index]
-                    + f'\n{"  " + " " * offset_index}'
-                    + last_part
-                )
-            else:
-                new_result += line + "\n"
-
-        new_result = new_result.replace("  <!--end line-->\n", "\n")[:-1]
+        new_result = result.decode().replace("  <!--end line-->\n", "\n")[:-1]
 
         self.code_generator_data.write_file_str(
             menu_file_path, new_result, data_file=True
@@ -2294,11 +2287,11 @@ class CodeGeneratorWriter(models.Model):
                     #     ignored_relation = True
                     if (
                         f2export.relation_table
-                        and f"{f2export.model.replace('.','_')}_id"
+                        and f"{f2export.model.replace('.', '_')}_id"
                         != f2export.column1
-                        and f"{f2export.relation.replace('.','_')}_id"
+                        and f"{f2export.relation.replace('.', '_')}_id"
                         != f2export.column2
-                        and f"{f2export.model.replace('.','_')}_{f2export.relation.replace('.','_')}"
+                        and f"{f2export.model.replace('.', '_')}_{f2export.relation.replace('.', '_')}"
                         != f2export.relation_table
                     ):
                         dct_field_attribute[

@@ -548,7 +548,7 @@ class CodeGeneratorData:
                     cmd = f"prettier --write --tab-width 4 {path_file}"
                     result = self.subprocess_cmd(cmd)
                     if result:
-                        _logger.info(result)
+                        _logger.info(f"prettier {result.decode()}")
                 elif use_html5print:
                     with open(path_file, "r") as source:
                         lines = source.read()
@@ -574,7 +574,7 @@ class CodeGeneratorData:
                     cmd = f"prettier --write {path_file}"
                     result = self.subprocess_cmd(cmd)
                     if result:
-                        _logger.info(result)
+                        _logger.info(f"prettier {result.decode()}")
                 elif use_html5print:
                     with open(path_file, "r") as source:
                         lines = source.read()
@@ -600,7 +600,7 @@ class CodeGeneratorData:
                     cmd = f"prettier --write {path_file}"
                     result = self.subprocess_cmd(cmd)
                     if result:
-                        _logger.info(result)
+                        _logger.info(f"prettier {result.decode()}")
                 elif use_html5print:
                     with open(path_file, "r") as source:
                         lines = source.read()
@@ -631,7 +631,7 @@ class CodeGeneratorData:
                     )
                     result = self.subprocess_cmd(cmd)
                     if result:
-                        _logger.info(result)
+                        _logger.info(f"prettier {result.decode()}")
 
         # Optimize import python
         if use_clean_import_isort:
@@ -642,7 +642,7 @@ class CodeGeneratorData:
             result = self.subprocess_cmd(cmd)
 
             if result:
-                _logger.info(str(result))
+                _logger.info(f"isort {result.decode()}")
 
         # Automatic format
         # TODO check diff before and after format to auto improvement of generation

@@ -159,7 +159,6 @@ for {var_name} in self:
         self.env["code.generator.model.code"].create(lst_code)
 
     def generate_portal_menu_entry(self, o2m_models, module_name):
-        # TODO need to find another solution than linked with the model, need to link on portal
         model_created = o2m_models[0]
 
         """
@@ -580,6 +579,10 @@ for {var_name} in self:
                             field_id.ignore_on_code_generator_writer
                             or field_id.ttype in ("many2many", "one2many")
                         ):
+                            _logger.warning(
+                                "Ignore many2many and one2many -"
+                                " code_generator_generate_portal_wizard.py"
+                            )
                             continue
                         # TODO ignore "many2many", "one2many"
                         # TODO add class="text-right" when force_widget with time

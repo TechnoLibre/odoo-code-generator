@@ -2558,6 +2558,11 @@ class CodeGeneratorWriter(models.Model):
 
                 l_model_rules += self._get_model_rules(model)
 
+        l_model_csv_access = sorted(
+            list(set(l_model_csv_access)),
+            key=lambda x: x,
+        )
+
         if not module.nomenclator_only:
             application_icon = self._set_module_menus(module)
 

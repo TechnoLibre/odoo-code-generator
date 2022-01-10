@@ -1457,11 +1457,8 @@ class CodeGeneratorWriter(models.Model):
                 cw.emit("'disable_generate_access': True,")
             if has_custom_view:
                 cw.emit('"code_generator_view_ids": [(6, 0, lst_view_id)],')
-            if module.enable_generate_portal:
-                cw.emit(
-                    "'enable_generate_portal':"
-                    f" {module.enable_generate_portal},"
-                )
+            if module.enable_cg_generate_portal:
+                cw.emit("'enable_generate_portal': True,")
 
         cw.emit("})")
         cw.emit("")

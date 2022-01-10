@@ -200,14 +200,16 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         else:
             model_id = None
             lst_view_generated = []
+            lst_model_id = []
             for code_generator_view_id in self.code_generator_view_ids:
                 view_id = self._generate_specific_form_views_models(
                     code_generator_view_id, dct_value_to_create
                 )
                 lst_view_generated.append(view_id.type)
-                # TODO bug attach view to model (o2m_model) when not generate access
-                for model_id in self.code_generator_id.o2m_models:
-                    self._generate_model_access(model_id)
+                lst_model_id.append(view_id.m2o_model)
+            lst_model_id = list(set(lst_model_id))
+            for model_id in lst_model_id:
+                self._generate_model_access(model_id)
             self._generate_menu(
                 model_id,
                 model_id.m2o_module,

@@ -10,6 +10,7 @@ BREAK_LINE = ["\n"]
 class CodeGenerator(models.Model):
     _inherit = "code.generator.module"
 
+    # TODO duplicate with code_generator_hook
     enable_generate_portal = fields.Boolean(
         string="Enable portal feature",
         default=False,

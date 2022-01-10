@@ -246,7 +246,6 @@ for {var_name} in self:
 
         view_value = self._create_ui_view(
             content,
-            template_id,
             key,
             qweb_name,
             priority,
@@ -316,7 +315,6 @@ for {var_name} in self:
 
         view_value = self._create_ui_view(
             content,
-            template_id,
             key,
             qweb_name,
             priority,
@@ -444,7 +442,7 @@ for {var_name} in self:
             content = ET.tostring(root, pretty_print=True)
 
             view_value = self._create_ui_view(
-                content, None, key, qweb_name, priority, None, model_created
+                content, key, qweb_name, priority, None, model_created
             )
             lst_views.append(view_value)
 
@@ -596,6 +594,8 @@ for {var_name} in self:
                         else:
                             t_field_id_show_data = "t-esc"
 
+                        field_id_value_xml = None
+
                         if field_id.ttype == "many2one":
                             # TODO ignore link when it's the same page? field_id.relation == field.model_id.model
                             #  and same id... No, need some Javascript, cannot do that here
@@ -656,10 +656,15 @@ for {var_name} in self:
                                 {t_field_id_show_data: field_id_value_name}
                             )
 
-                        column_xml = E.th({}, field_id.field_description)
-                        lst_field_name_xml.append(column_xml)
-                        data_column_xml = E.td({}, field_id_value_xml)
-                        lst_field_variable_xml.append(data_column_xml)
+                        if field_id_value_xml is None:
+                            _logger.warning(
+                                f"Not supported, field {field_id.name}"
+                            )
+                        else:
+                            column_xml = E.th({}, field_id.field_description)
+                            lst_field_name_xml.append(column_xml)
+                            data_column_xml = E.td({}, field_id_value_xml)
+                            lst_field_variable_xml.append(data_column_xml)
 
                     card_body = E.div(
                         {"class": "container", "t-if": str_field_data},
@@ -696,6 +701,7 @@ for {var_name} in self:
                 elif field.ttype == "many2many":
                     _logger.warning("Cannot support `many2many` in portal.")
                 else:
+                    xml_field_data = None
                     if field.ttype in ("many2one",):
                         xml_field_data = E.a(
                             {
@@ -748,12 +754,13 @@ for {var_name} in self:
                             t_show_data = "t-field"
                         xml_field_data = E.span({t_show_data: str_field_data})
 
-                    card_body = E.div(
-                        {"class": "col-12 col-md-6 mb-2 mb-md-0"},
-                        E.b({}, f"{field.field_description}:"),
-                        xml_field_data,
-                    )
-                    lst_card_body_begin.append(card_body)
+                    if xml_field_data is not None:
+                        card_body = E.div(
+                            {"class": "col-12 col-md-6 mb-2 mb-md-0"},
+                            E.b({}, f"{field.field_description}:"),
+                            xml_field_data,
+                        )
+                        lst_card_body_begin.append(card_body)
 
             lst_card_body = lst_card_body_begin + lst_card_body_end
             lst_message_xml = []
@@ -904,7 +911,7 @@ for {var_name} in self:
             content = ET.tostring(root, pretty_print=True)
 
             view_value = self._create_ui_view(
-                content, None, key, qweb_name, None, None, model_created
+                content, key, qweb_name, None, None, model_created
             )
             lst_views.append(view_value)
 
@@ -913,7 +920,6 @@ for {var_name} in self:
     def _create_ui_view(
         self,
         content,
-        template_id,
         key,
         qweb_name,
         priority,

@@ -159,7 +159,6 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     def _create_ui_view(
         self,
         content,
-        template_id,
         key,
         qweb_name,
         priority,

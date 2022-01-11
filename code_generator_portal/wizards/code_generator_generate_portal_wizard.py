@@ -29,20 +29,23 @@ def _fmt_title(word):
     return word.replace(".", " ").title()
 
 
-def _get_field_by_user(model, keep_name=False):
+def _get_field_by_user(model_id, keep_name=False):
     lst_field = []
     lst_first_field = []
+    lst_second_field = []
     if keep_name:
         lst_magic_fields = MAGIC_FIELDS
     else:
         lst_magic_fields = MAGIC_FIELDS + ["name"]
-    for field in model.field_id:
-        if field.name not in lst_magic_fields:
-            if field.name == "name":
-                lst_first_field.append(field)
+    for field_id in model_id.field_id:
+        if field_id.name not in lst_magic_fields:
+            if field_id.name == "name":
+                lst_first_field.append(field_id)
+            elif field_id.name == "email":
+                lst_second_field.append(field_id)
             else:
-                lst_field.append(field)
-    return lst_first_field + lst_field
+                lst_field.append(field_id)
+    return lst_first_field + lst_second_field + lst_field
 
 
 class CodeGeneratorGeneratePortalWizard(models.TransientModel):
@@ -59,6 +62,12 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
         ),
     )
 
+    portal_enable_create = fields.Boolean(
+        string="Enable portal creation",
+        default=False,
+        help="This will activate create form for all model.",
+    )
+
     @api.multi
     def button_generate_views(self):
         status = super(
@@ -69,6 +78,9 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
         ):
             self.code_generator_id.enable_generate_portal = False
             return status
+
+        if self.portal_enable_create:
+            self.code_generator_id.portal_enable_create = True
 
         self.code_generator_id.enable_generate_portal = True
 
@@ -87,6 +99,9 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
             o2m_models, self.code_generator_id.name
         )
         self.generate_portal_form_model(
+            o2m_models, self.code_generator_id.name
+        )
+        self.generate_portal_create_model(
             o2m_models, self.code_generator_id.name
         )
 
@@ -366,18 +381,55 @@ for {var_name} in self:
             priority = "40"
             # inherit_id = self.env.ref("portal.portal_my_home").id
 
-            # <t t-call="portal.portal_layout">
-            root = E.t(
-                {"t-call": "portal.portal_layout"},
-                # <t t-set="breadcrumbs_searchbar" t-value="True"/>
-                E.t({"t-set": "breadcrumbs_searchbar", "t-value": "True"}),
-                # <t t-call="portal.portal_searchbar">
+            lst_item_portal = []
+
+            # <t t-set="breadcrumbs_searchbar" t-value="True"/>
+            lst_item_portal.append(
+                E.t({"t-set": "breadcrumbs_searchbar", "t-value": "True"})
+            )
+            # <t t-call="portal.portal_searchbar">
+            lst_item_portal.append(
                 E.t(
                     {"t-call": "portal.portal_searchbar"},
                     # <t t-set="title">Projects</t>
                     E.t({"t-set": "title"}, f"{_fmt_title(model.model)}s"),
-                ),
-                # <t t-if="not projects">
+                )
+            )
+
+            if self.enable_generate_portal:
+                # <form method="POST" t-attf-action="/new/ticket">
+                lst_item_portal.append(
+                    E.form(
+                        {
+                            "method": "POST",
+                            "t-attf-action": (
+                                f"/new/{_fmt_underscores(model.model)}"
+                            ),
+                        },
+                        # <button name="create_new_ticket" type="action" class="btn btn-primary" groups="base.group_portal" style="float: right; margin-right: 5px;">New Ticket</button>
+                        E.button(
+                            {
+                                "name": f"create_new_{_fmt_underscores(model.model)}",
+                                "type": "action",
+                                "class": "btn btn-primary",
+                                # "groups": "base.group_portal",
+                                "style": "float: right; margin-right: 5px;",
+                            },
+                            f"New {_fmt_title(model.model)}",
+                        ),
+                        # <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        E.input(
+                            {
+                                "type": "hidden",
+                                "name": "csrf_token",
+                                "t-att-value": "request.csrf_token()",
+                            }
+                        ),
+                    )
+                )
+
+            # <t t-if="not projects">
+            lst_item_portal.append(
                 E.t(
                     {"t-if": f"not {_fmt_underscores(model.model)}s"},
                     # <div class="alert alert-warning mt8" role="alert">
@@ -385,8 +437,10 @@ for {var_name} in self:
                         {"class": "alert alert-warning mt8", "role": "alert"},
                         f"There are no {_fmt_underscores(model.model)}s.",
                     ),
-                ),
-                # <t t-call="portal.portal_table" t-if="projects">
+                )
+            )
+            # <t t-call="portal.portal_table" t-if="projects">
+            lst_item_portal.append(
                 E.t(
                     {
                         "t-if": f"{_fmt_underscores(model.model)}s",
@@ -436,8 +490,11 @@ for {var_name} in self:
                             ),
                         ),
                     ),
-                ),
+                )
             )
+
+            # <t t-call="portal.portal_layout">
+            root = E.t({"t-call": "portal.portal_layout"}, *lst_item_portal)
 
             content = ET.tostring(root, pretty_print=True)
 
@@ -906,6 +963,228 @@ for {var_name} in self:
                     #                                        't-options': '{"widget": "contact", "fields": ["name", "email", "phone"]}'}))))))
                 ),
                 *lst_message_xml,
+            )
+
+            content = ET.tostring(root, pretty_print=True)
+
+            view_value = self._create_ui_view(
+                content, key, qweb_name, None, None, model_created
+            )
+            lst_views.append(view_value)
+
+        return lst_views
+
+    def generate_portal_create_model(self, o2m_models, module_name):
+        model_created = o2m_models[0]
+
+        """
+          <template id="portal_create_ticket" name="Create Ticket">
+            <t t-call="portal.portal_layout">
+              <div class="container">
+                <div class="row">
+                  <div class="col-md-12">
+                    <h1 class="text-center">Send a new ticket</h1>
+                  </div>
+                </div>
+              </div>
+
+              <form action="/submitted/ticket" method="POST" class="form-horizontal mt32" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                <div class="form-group">
+                  <label class="col-md-3 col-sm-4 control-label" for="name">Name</label>
+                  <div class="col-md-7 col-sm-8">
+                    <input type="text" class="form-control" name="name" t-attf-value="#{name}" required="True"/>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-md-3 col-sm-4 control-label" for="email">Email</label>
+                  <div class="col-md-7 col-sm-8">
+                    <input type="email" class="form-control" name="email" required="True" t-attf-value="#{email}" readonly="True" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-md-3 col-sm-4 control-label" for="category">Category</label>
+                  <div class="col-md-7 col-sm-8">
+                    <select class="form-control" id="category" name="category" required="True">
+                      <t t-foreach="categories" t-as="cat">
+                        <option t-attf-value="#{cat.id}"><t t-esc="cat.name"/></option>
+                      </t>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-md-3 col-sm-4 control-label" for="subject">Subject</label>
+                  <div class="col-md-7 col-sm-8">
+                    <input type="text" class="form-control" name="subject" required="True"/>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-md-3 col-sm-4 control-label" for="attachment">Add Attachments</label>
+                  <div class="col-md-7 col-sm-8">
+                      <div class="btn btn-default btn-file col-md-12"><input class="form-control o_website_form_input" name="attachment" id="attachment" type="file" multiple="multiple"/></div>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-md-3 col-dm-4 control-label" for="description">Description</label>
+                  <div class="col-md-7 col-sm-8">
+                    <textarea class="form-control" name="description" style="min-height: 120px" required="True"></textarea>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div class="col-md-offset-3 col-sm-offset-4 col-sm-8 col-md-7">
+                    <button class="btn btn-primary btn-lg">Submit Ticket</button>
+                  </div>
+                </div>
+              </form>
+            </t>
+          </template>
+        """
+        lst_views = []
+        for model_id in o2m_models:
+            qweb_name = f"Create {_fmt_title(model_id.model)}"
+            key = f"portal_create_{_fmt_underscores(model_id.model)}"
+            # priority = "40"
+            # inherit_id = self.env.ref("portal.portal_my_home").id
+
+            lst_field = _get_field_by_user(model_id, keep_name=True)
+            lst_item_form = []
+
+            item_xml = E.input(
+                {
+                    "type": "hidden",
+                    "name": "csrf_token",
+                    "t-att-value": "request.csrf_token()",
+                }
+            )
+            lst_item_form.append(item_xml)
+
+            # Bind model field
+            lst_data_field_name = ["name", "email"]
+            for field_id in lst_field:
+                if field_id.ignore_on_code_generator_writer:
+                    continue
+                if field_id.ttype == "char":
+                    dct_sub_item = {
+                        "type": "text",
+                        "class": "form-control",
+                        "name": field_id.name,
+                    }
+
+                    if field_id.name in lst_data_field_name:
+                        dct_sub_item["t-attf-value"] = (
+                            "#{" + field_id.name + "}"
+                        )
+
+                    if field_id.required:
+                        dct_sub_item["required"] = "True"
+
+                    if field_id.readonly:
+                        dct_sub_item["readonly"] = "True"
+
+                    sub_item = E.input(dct_sub_item)
+                elif field_id.ttype == "text":
+                    dct_sub_item = {
+                        "class": "form-control",
+                        "name": field_id.name,
+                        "style": "min-height: 120px",
+                    }
+
+                    if field_id.name in lst_data_field_name:
+                        dct_sub_item["t-attf-value"] = (
+                            "#{" + field_id.name + "}"
+                        )
+
+                    if field_id.required:
+                        dct_sub_item["required"] = "True"
+
+                    if field_id.readonly:
+                        dct_sub_item["readonly"] = "True"
+
+                    sub_item = E.textarea(dct_sub_item)
+                elif field_id.ttype == "binary":
+                    dct_sub_item = {
+                        "class": "form-control o_website_form_input",
+                        "id": field_id.name,
+                        # "multiple": "multiple",
+                        "name": field_id.name,
+                        "type": "file",
+                    }
+
+                    if field_id.required:
+                        dct_sub_item["required"] = "True"
+
+                    sub_item = E.div(
+                        {"class": "btn btn-default btn-file col-md-12"},
+                        E.input(dct_sub_item),
+                    )
+                else:
+                    sub_item = None
+                    _logger.warning(
+                        f"Type '{field_id.ttype}' not supported to generate in"
+                        " portal."
+                    )
+
+                if sub_item is not None:
+                    item_xml = E.div(
+                        {"class": "form-group"},
+                        E.label(
+                            {
+                                "class": "col-md-3 col-sm-4 control-label",
+                                "for": field_id.name,
+                            },
+                            field_id.name.capitalize(),
+                        ),
+                        E.div({"class": "col-md-7 col-sm-8"}, sub_item),
+                    )
+                    lst_item_form.append(item_xml)
+
+            item_xml = E.div(
+                {"class": "form-group"},
+                E.div(
+                    {
+                        "class": (
+                            "col-md-offset-3 col-sm-offset-4 col-sm-8 col-md-7"
+                        )
+                    },
+                    E.button(
+                        {"class": "btn btn-primary btn-lg"},
+                        f"Submit {_fmt_title(model_id.model)}",
+                    ),
+                ),
+            )
+            lst_item_form.append(item_xml)
+
+            form_xml = E.form(
+                {
+                    "action": f"/submitted/{model_id.name}",
+                    "method": "POST",
+                    "class": "form-horizontal mt32",
+                    "enctype": "multipart/form-data",
+                },
+                *lst_item_form,
+            )
+
+            # <t t-call="portal.portal_layout">
+            root = E.t(
+                {"t-call": "portal.portal_layout"},
+                # <t groups="project.group_project_user" t-set="o_portal_fullwidth_alert">
+                # TODO how associate group_project_user?
+                # E.t({'t-set': 'o_portal_fullwidth_alert', 'groups': 'project.group_project_user'},
+                E.div(
+                    {"class": "container"},
+                    E.div(
+                        {"class": "row"},
+                        E.div(
+                            {"class": "col-md-12"},
+                            E.h1(
+                                {"class": "text-center"},
+                                "Send a new"
+                                f" {model_id.name.replace('_', ' ')}",
+                            ),
+                        ),
+                    ),
+                ),
+                form_xml,
             )
 
             content = ET.tostring(root, pretty_print=True)

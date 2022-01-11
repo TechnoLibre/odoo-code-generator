@@ -1,10 +1,53 @@
-# -*- coding: utf-8 -*-
+import logging
 
 from code_writer import CodeWriter
 
 from odoo import api, fields, models, modules, tools
+from odoo.models import MAGIC_COLUMNS
+
+_logger = logging.getLogger(__name__)
 
 BREAK_LINE = ["\n"]
+
+MAGIC_FIELDS = MAGIC_COLUMNS + [
+    "display_name",
+    "__last_update",
+    "access_url",
+    "access_token",
+    "access_warning",
+    "activity_summary",
+]
+
+
+def _fmt_underscores(word):
+    return word.lower().replace(".", "_")
+
+
+def _fmt_camel(word):
+    return word.replace(".", "_").title().replace("_", "")
+
+
+def _fmt_title(word):
+    return word.replace(".", " ").title()
+
+
+def _get_field_by_user(model_id, keep_name=False):
+    lst_field = []
+    lst_first_field = []
+    lst_second_field = []
+    if keep_name:
+        lst_magic_fields = MAGIC_FIELDS
+    else:
+        lst_magic_fields = MAGIC_FIELDS + ["name"]
+    for field_id in model_id.field_id:
+        if field_id.name not in lst_magic_fields:
+            if field_id.name == "name":
+                lst_first_field.append(field_id)
+            elif field_id.name == "email":
+                lst_second_field.append(field_id)
+            else:
+                lst_field.append(field_id)
+    return lst_first_field + lst_second_field + lst_field
 
 
 class CodeGenerator(models.Model):
@@ -20,6 +63,12 @@ class CodeGenerator(models.Model):
         ),
     )
 
+    portal_enable_create = fields.Boolean(
+        string="Enable portal creation",
+        default=False,
+        help="This will activate create form for all model.",
+    )
+
 
 class CodeGeneratorWriter(models.Model):
     _inherit = "code.generator.writer"
@@ -28,6 +77,9 @@ class CodeGeneratorWriter(models.Model):
         if module.enable_generate_portal:
             # Controller
             self._set_portal_controller_file(module)
+            if module.portal_enable_create:
+                # Controller main
+                self._set_portal_controller_main_file(module)
 
         super(CodeGeneratorWriter, self).get_lst_file_generate(module)
 
@@ -424,5 +476,124 @@ class CodeGeneratorWriter(models.Model):
         l_model = out.split("\n")
 
         file_path = f"{self.code_generator_data.controllers_path}/portal.py"
+
+        self.code_generator_data.write_file_lst_content(file_path, l_model)
+
+    def _set_portal_controller_main_file(self, module):
+        """
+        Function to set the module hook file
+        :param module:
+        :return:
+        """
+
+        cw = CodeWriter()
+        cw.emit("import logging")
+        cw.emit("import werkzeug")
+        cw.emit("import odoo.http as http")
+        cw.emit("from odoo.http import request")
+        cw.emit("import base64")
+        cw.emit("_logger = logging.getLogger(__name__)")
+        cw.emit("")
+        cw.emit("")
+        cw.emit(
+            "class"
+            f" {module.name.replace('_', ' ').title().replace(' ', '')}Controller(http.Controller):"
+        )
+        cw.emit("")
+        with cw.indent():
+            for model_id in module.o2m_models:
+                lst_field_id = _get_field_by_user(model_id, keep_name=True)
+                cw.emit(
+                    f'@http.route("/new/{_fmt_underscores(model_id.model)}",'
+                    ' type="http", auth="user", website=True)'
+                )
+                cw.emit(
+                    f"def create_new_{_fmt_underscores(model_id.model)}(self,"
+                    " **kw):"
+                )
+                with cw.indent():
+                    lst_special_field = ["email", "name"]
+                    lst_var_name = []
+                    for field_id in lst_field_id:
+                        if field_id.name in lst_special_field:
+                            cw.emit(
+                                f"{field_id.name} ="
+                                f" http.request.env.user.{field_id.name}"
+                            )
+                            lst_var_name.append(field_id.name)
+                        else:
+                            _logger.warning(
+                                f"Field type {field_id.ttype} is not supported"
+                                " in portal writer main."
+                            )
+
+                    str_var_name = (
+                        "{"
+                        + ", ".join([f"'{a}': {a}" for a in lst_var_name])
+                        + "}"
+                    )
+                    cw.emit(
+                        "return"
+                        f" http.request.render('{module.name}.portal_create_{_fmt_underscores(model_id.model)}',"
+                        f" {str_var_name})"
+                    )
+
+                cw.emit()
+                cw.emit(
+                    f'@http.route("/submitted/{_fmt_underscores(model_id.model)}",'
+                    ' type="http", auth="user", website=True, csrf=True)'
+                )
+                cw.emit(
+                    f"def submit_{_fmt_underscores(model_id.model)}(self,"
+                    " **kw):"
+                )
+                with cw.indent():
+                    with cw.block(before="vals =", delim=("{", "}")):
+                        for field_id in lst_field_id:
+                            if field_id.ttype in ("char", "text"):
+                                cw.emit(
+                                    f"'{field_id.name}':"
+                                    f" kw.get('{field_id.name}'),"
+                                )
+
+                    for field_id in lst_field_id:
+                        if (
+                            field_id.ttype == "binary"
+                            and not field_id.readonly
+                        ):
+                            cw.emit(f"if kw.get('{field_id.name}'):")
+                            with cw.indent():
+                                cw.emit(
+                                    f"c_file_{field_id.name} ="
+                                    f" request.httprequest.files.getlist('{field_id.name}')[-1]"
+                                )
+                                cw.emit(
+                                    f"vals['{field_id.name}'] ="
+                                    f" base64.b64encode(c_file_{field_id.name}.read())"
+                                )
+
+                    cw.emit(
+                        f"new_{_fmt_underscores(model_id.model)} ="
+                        f" request.env['{model_id.model}'].sudo().create(vals)"
+                    )
+                    has_mail = bool(
+                        self.env["code.generator.module.dependency"]
+                        .search([("module_id", "=", module.id)])
+                        .filtered(lambda a: a.name == "Discuss")
+                    )
+                    if has_mail:
+                        cw.emit(
+                            f"new_{_fmt_underscores(model_id.model)}.message_subscribe(partner_ids=request.env.user.partner_id.ids)"
+                        )
+                    cw.emit(
+                        "return"
+                        f" werkzeug.utils.redirect('/my/{self._fmt_underscores(model_id.model)}s')"
+                    )
+
+        out = cw.render()
+
+        l_model = out.split("\n")
+
+        file_path = f"{self.code_generator_data.controllers_path}/main.py"
 
         self.code_generator_data.write_file_lst_content(file_path, l_model)

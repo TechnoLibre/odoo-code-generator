@@ -704,9 +704,9 @@ for {var_name} in self:
                                 field_id_value_xml = E.a(
                                     {
                                         "target": "_blank",
-                                        "t-attf-href": "{{"
-                                        + field_id_value_name
-                                        + "}}",
+                                        "t-attf-href": (
+                                            f"{{{{{field_id_value_name}}}}}"
+                                        ),
                                         "t-field": field_id_value_name,
                                     }
                                 )
@@ -826,9 +826,7 @@ for {var_name} in self:
                             xml_field_data = E.a(
                                 {
                                     "target": "_blank",
-                                    "t-attf-href": "{{"
-                                    + str_field_data
-                                    + "}}",
+                                    "t-attf-href": f"{{{{{str_field_data}}}}}",
                                     "t-field": str_field_data,
                                 }
                             )

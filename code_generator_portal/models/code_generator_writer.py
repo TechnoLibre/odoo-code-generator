@@ -628,10 +628,7 @@ class CodeGeneratorWriter(models.Model):
                         )
                     cw.emit(
                         "return"
-                        f" werkzeug.utils.redirect(f'/my/{self._fmt_underscores(model_id.model)}/"
-                        "{"
-                        f"new_{_fmt_underscores(model_id.model)}.id"
-                        "}')"
+                        f" werkzeug.utils.redirect(f'/my/{self._fmt_underscores(model_id.model)}/{{new_{_fmt_underscores(model_id.model)}.id}}')"
                     )
 
         out = cw.render()

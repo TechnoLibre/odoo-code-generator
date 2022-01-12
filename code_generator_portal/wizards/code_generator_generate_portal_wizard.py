@@ -630,16 +630,9 @@ for {var_name} in self:
                         else:
                             related_field_id_data_model = None
 
-                        if (
-                            field_id.ignore_on_code_generator_writer
-                            or field_id.ttype in ("many2many", "one2many")
-                        ):
-                            _logger.warning(
-                                "Ignore many2many and one2many -"
-                                " code_generator_generate_portal_wizard.py"
-                            )
+                        if field_id.ignore_on_code_generator_writer:
                             continue
-                        # TODO ignore "many2many", "one2many"
+
                         # TODO add class="text-right" when force_widget with time
 
                         field_id_value_name = (
@@ -661,6 +654,51 @@ for {var_name} in self:
                                     "t-attf-href": f"/my/{_fmt_underscores(field_id.relation)}/#{{{field.relation_field_id.name}.{field_id.name}.id}}",
                                     "t-field": f"{field_id_value_name}.{related_field_id_data_model.rec_name}",
                                 }
+                            )
+                        elif field_id.ttype in ("many2many", "one2many"):
+                            var_rec_name = self.env[
+                                field_id.relation
+                            ]._rec_name
+                            # TODO can be in conflict, if a field_id.name is item, or field_id.name[3:] exist
+                            sub_name_var = (
+                                field_id.name[:3]
+                                if len(field_id.name) > 3
+                                else "item"
+                            )
+
+                            dct_input_attr = {
+                                "type": "checkbox",
+                                "name": field_id.name,
+                                "t-att-id": f"{sub_name_var}.{var_rec_name}",
+                                "t-att-checked": (
+                                    f"'checked' if {sub_name_var}.id in"
+                                    f" {field.relation_field_id.name}.{field_id.name}.ids"
+                                    " else None"
+                                ),
+                            }
+
+                            field_id_value_xml = E.t(
+                                {
+                                    "t-foreach": f"{field.relation_field_id.name}.{field_id.name}",
+                                    "t-as": sub_name_var,
+                                },
+                                E.input(dct_input_attr),
+                                E.label(
+                                    {
+                                        "t-att-for": (
+                                            f"{sub_name_var}.{var_rec_name}"
+                                        ),
+                                        "t-att-string": (
+                                            f"{sub_name_var}.{var_rec_name}"
+                                        ),
+                                    },
+                                    E.t(
+                                        {
+                                            "t-esc": f"{sub_name_var}.{var_rec_name}"
+                                        }
+                                    ),
+                                ),
+                                E.br()
                             )
                         elif field_id.name == "name":
                             field_id_value_xml = E.a(
@@ -756,7 +794,55 @@ for {var_name} in self:
                     )
                     lst_card_body_end.append(card_body)
                 elif field.ttype == "many2many":
-                    _logger.warning("Cannot support `many2many` in portal.")
+                    var_rec_name = self.env[
+                        field.relation
+                    ]._rec_name
+                    # TODO can be in conflict, if a field.name is item, or field.name[3:] exist
+                    sub_name_var = (
+                        field.name[:3]
+                        if len(field.name) > 3
+                        else "item"
+                    )
+
+                    dct_input_attr = {
+                        "type": "checkbox",
+                        "t-att-id": f"{sub_name_var}.{var_rec_name}",
+                        "t-att-checked": (
+                            f"'checked' if {sub_name_var}.id in"
+                            f" {str_field_data}.ids"
+                            " else None"
+                        ),
+                    }
+
+                    xml_field_data = E.t(
+                        {
+                            "t-foreach": str_field_data,
+                            "t-as": sub_name_var,
+                        },
+                        E.input(dct_input_attr),
+                        E.label(
+                            {
+                                "t-att-for": (
+                                    f"{sub_name_var}.{var_rec_name}"
+                                ),
+                                "t-att-string": (
+                                    f"{sub_name_var}.{var_rec_name}"
+                                ),
+                            },
+                            E.t(
+                                {
+                                    "t-esc": f"{sub_name_var}.{var_rec_name}"
+                                }
+                            ),
+                        )
+                    )
+                    if xml_field_data is not None:
+                        card_body = E.div(
+                            {"class": "col-12 col-md-6 mb-2 mb-md-0"},
+                            E.b({}, f"{field.field_description}:"),
+                            xml_field_data,
+                        )
+                        lst_card_body_begin.append(card_body)
                 else:
                     xml_field_data = None
                     if field.ttype in ("many2one",):

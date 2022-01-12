@@ -666,39 +666,20 @@ for {var_name} in self:
                                 else "item"
                             )
 
-                            dct_input_attr = {
-                                "type": "checkbox",
-                                "name": field_id.name,
-                                "t-att-id": f"{sub_name_var}.{var_rec_name}",
-                                "t-att-checked": (
-                                    f"'checked' if {sub_name_var}.id in"
-                                    f" {field.relation_field_id.name}.{field_id.name}.ids"
-                                    " else None"
-                                ),
-                            }
-
                             field_id_value_xml = E.t(
                                 {
                                     "t-foreach": f"{field.relation_field_id.name}.{field_id.name}",
                                     "t-as": sub_name_var,
                                 },
-                                E.input(dct_input_attr),
-                                E.label(
+                                E.a(
                                     {
-                                        "t-att-for": (
-                                            f"{sub_name_var}.{var_rec_name}"
-                                        ),
-                                        "t-att-string": (
+                                        "t-attf-href": f"/my/{_fmt_underscores(field_id.relation)}/#{{{sub_name_var}.id}}",
+                                        "t-field": (
                                             f"{sub_name_var}.{var_rec_name}"
                                         ),
                                     },
-                                    E.t(
-                                        {
-                                            "t-esc": f"{sub_name_var}.{var_rec_name}"
-                                        }
-                                    ),
                                 ),
-                                E.br()
+                                E.br({"t-if": f"not {sub_name_var}_last"}),
                             )
                         elif field_id.name == "name":
                             field_id_value_xml = E.a(
@@ -794,47 +775,24 @@ for {var_name} in self:
                     )
                     lst_card_body_end.append(card_body)
                 elif field.ttype == "many2many":
-                    var_rec_name = self.env[
-                        field.relation
-                    ]._rec_name
+                    var_rec_name = self.env[field.relation]._rec_name
                     # TODO can be in conflict, if a field.name is item, or field.name[3:] exist
                     sub_name_var = (
-                        field.name[:3]
-                        if len(field.name) > 3
-                        else "item"
+                        field.name[:3] if len(field.name) > 3 else "item"
                     )
-
-                    dct_input_attr = {
-                        "type": "checkbox",
-                        "t-att-id": f"{sub_name_var}.{var_rec_name}",
-                        "t-att-checked": (
-                            f"'checked' if {sub_name_var}.id in"
-                            f" {str_field_data}.ids"
-                            " else None"
-                        ),
-                    }
 
                     xml_field_data = E.t(
                         {
                             "t-foreach": str_field_data,
                             "t-as": sub_name_var,
                         },
-                        E.input(dct_input_attr),
-                        E.label(
+                        E.a(
                             {
-                                "t-att-for": (
-                                    f"{sub_name_var}.{var_rec_name}"
-                                ),
-                                "t-att-string": (
-                                    f"{sub_name_var}.{var_rec_name}"
-                                ),
+                                "t-attf-href": f"/my/{_fmt_underscores(field.relation)}/#{{{sub_name_var}.id}}",
+                                "t-field": f"{sub_name_var}.{var_rec_name}",
                             },
-                            E.t(
-                                {
-                                    "t-esc": f"{sub_name_var}.{var_rec_name}"
-                                }
-                            ),
-                        )
+                        ),
+                        E.t({"t-if": f"not {sub_name_var}_last"}, ","),
                     )
                     if xml_field_data is not None:
                         card_body = E.div(

@@ -1117,10 +1117,76 @@ for {var_name} in self:
                         {"class": "btn btn-default btn-file col-md-12"},
                         E.input(dct_sub_item),
                     )
+                elif field_id.ttype in ("many2one",):
+                    var_rec_name = self.env[field_id.relation]._rec_name
+
+                    dct_select_attr = {
+                        "class": "form-control",
+                        "id": field_id.name,
+                        "name": field_id.name,
+                    }
+
+                    if field_id.required:
+                        dct_select_attr["required"] = "True"
+
+                    # TODO can be in conflict, if a field_id.name is item, or field_id.name[3:] exist
+                    sub_name_var = (
+                        field_id.name[:3] if len(field_id.name) > 3 else "item"
+                    )
+
+                    sub_item = E.select(
+                        dct_select_attr,
+                        E.t(
+                            {"t-foreach": field_id.name, "t-as": sub_name_var},
+                            E.option(
+                                {"t-attf-value": "#{" + sub_name_var + ".id}"},
+                                E.t(
+                                    {"t-esc": f"{sub_name_var}.{var_rec_name}"}
+                                ),
+                            ),
+                        ),
+                    )
+                elif field_id.ttype in ("many2many",):
+                    var_rec_name = self.env[field_id.relation]._rec_name
+                    # TODO can be in conflict, if a field_id.name is item, or field_id.name[3:] exist
+                    sub_name_var = (
+                        field_id.name[:3] if len(field_id.name) > 3 else "item"
+                    )
+
+                    dct_input_attr = {
+                        "type": "checkbox",
+                        "name": field_id.name,
+                        "t-att-id": f"{sub_name_var}.{var_rec_name}",
+                        "t-att-value": f"{sub_name_var}.id",
+                    }
+
+                    if field_id.required:
+                        dct_input_attr["required"] = "required"
+
+                    sub_item = E.t(
+                        {"t-foreach": field_id.name, "t-as": sub_name_var},
+                        E.input(dct_input_attr),
+                        E.label(
+                            {
+                                "t-att-for": f"{sub_name_var}.{var_rec_name}",
+                                "t-att-string": (
+                                    f"{sub_name_var}.{var_rec_name}"
+                                ),
+                            },
+                            E.t({"t-esc": f"{sub_name_var}.{var_rec_name}"}),
+                        ),
+                    )
                 else:
                     sub_item = None
                     _logger.warning(
                         f"Type '{field_id.ttype}' not supported to generate in"
+                        " portal."
+                    )
+
+                if field_id.force_widget:
+                    _logger.warning(
+                        f"Force widget '{field_id.force_widget}', type"
+                        f" '{field_id.ttype}' not supported to generate in"
                         " portal."
                     )
 

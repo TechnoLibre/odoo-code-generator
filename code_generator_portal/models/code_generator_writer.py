@@ -16,6 +16,11 @@ MAGIC_FIELDS = MAGIC_COLUMNS + [
     "access_token",
     "access_warning",
     "activity_summary",
+    "activity_type_id",
+    "activity_user_id",
+    "message_channel_ids",
+    "message_main_attachment_id",
+    "message_partner_ids",
 ]
 
 
@@ -516,9 +521,26 @@ class CodeGeneratorWriter(models.Model):
                     lst_var_name = []
                     for field_id in lst_field_id:
                         if field_id.name in lst_special_field:
+                            # TODO need to search a char with a special attribute to understand it's an email or name from user, an attribute to means if it's a user, or something else like a connexion information
                             cw.emit(
                                 f"{field_id.name} ="
                                 f" http.request.env.user.{field_id.name}"
+                            )
+                            lst_var_name.append(field_id.name)
+                        elif field_id.ttype in ("many2one", "many2many"):
+                            related_ir_model_id = self.env["ir.model"].search(
+                                [("model", "=", field_id.relation)]
+                            )
+                            has_active = related_ir_model_id.field_id.filtered(
+                                lambda x: x.name == "active"
+                            )
+                            if has_active:
+                                search_txt = "[('active', '=', True)]"
+                            else:
+                                search_txt = "[]"
+                            cw.emit(
+                                f"{field_id.name} ="
+                                f" http.request.env['{field_id.relation}'].search({search_txt})"
                             )
                             lst_var_name.append(field_id.name)
                         else:
@@ -555,6 +577,12 @@ class CodeGeneratorWriter(models.Model):
                                     f"'{field_id.name}':"
                                     f" kw.get('{field_id.name}'),"
                                 )
+                            elif field_id.ttype in ("many2one",):
+                                # TODO missing validation if value exist
+                                cw.emit(
+                                    f"'{field_id.name}':"
+                                    f" int(kw.get('{field_id.name}')),"
+                                )
 
                     for field_id in lst_field_id:
                         if (
@@ -570,6 +598,19 @@ class CodeGeneratorWriter(models.Model):
                                 cw.emit(
                                     f"vals['{field_id.name}'] ="
                                     f" base64.b64encode(c_file_{field_id.name}.read())"
+                                )
+                        elif field_id.ttype in ("many2many",):
+                            # TODO missing validation if value exist
+                            cw.emit(f"if kw.get('{field_id.name}'):")
+                            with cw.indent():
+                                cw.emit(
+                                    f"lst_value_{field_id.name} = [(4, int(a))"
+                                    " for a in"
+                                    f" request.httprequest.form.getlist('{field_id.name}')]"
+                                )
+                                cw.emit(
+                                    f"vals['{field_id.name}'] ="
+                                    f" lst_value_{field_id.name}"
                                 )
 
                     cw.emit(
@@ -587,7 +628,10 @@ class CodeGeneratorWriter(models.Model):
                         )
                     cw.emit(
                         "return"
-                        f" werkzeug.utils.redirect('/my/{self._fmt_underscores(model_id.model)}s')"
+                        f" werkzeug.utils.redirect(f'/my/{self._fmt_underscores(model_id.model)}/"
+                        "{"
+                        f"new_{_fmt_underscores(model_id.model)}.id"
+                        "}')"
                     )
 
         out = cw.render()

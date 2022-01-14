@@ -16,6 +16,10 @@ MAGIC_FIELDS = MAGIC_COLUMNS + [
     "access_token",
     "access_warning",
     "activity_summary",
+    "activity_ids",
+    "message_follower_ids",
+    "message_ids",
+    "website_message_ids",
     "activity_type_id",
     "activity_user_id",
     "message_channel_ids",
@@ -527,7 +531,12 @@ class CodeGeneratorWriter(models.Model):
                                 f" http.request.env.user.{field_id.name}"
                             )
                             lst_var_name.append(field_id.name)
-                        elif field_id.ttype in ("many2one", "many2many"):
+                        elif field_id.ttype in (
+                            "many2one",
+                            "many2many",
+                            # "one2many",
+                        ):
+                            # TODO can add one2many when support submitted value
                             related_ir_model_id = self.env["ir.model"].search(
                                 [("model", "=", field_id.relation)]
                             )
@@ -543,6 +552,30 @@ class CodeGeneratorWriter(models.Model):
                                 f" http.request.env['{field_id.relation}'].search({search_txt})"
                             )
                             lst_var_name.append(field_id.name)
+                        # elif field_id.ttype in ("one2many",):
+                        #     _logger.warning(
+                        #         f"Field type {field_id.ttype} is not supported"
+                        #         " in portal writer main."
+                        #     )
+                        elif field_id.ttype in ("selection",):
+                            _logger.warning(
+                                f"Field type {field_id.ttype} is not supported"
+                                " in portal writer main."
+                            )
+                        elif field_id.ttype in (
+                            "monetary",
+                            "integer",
+                            "float",
+                            "datetime",
+                            "date",
+                            "boolean",
+                            "html",
+                            "binary",
+                        ):
+                            _logger.warning(
+                                f"Field type {field_id.ttype} is not supported"
+                                " in portal writer main."
+                            )
                         else:
                             _logger.warning(
                                 f"Field type {field_id.ttype} is not supported"
@@ -551,7 +584,13 @@ class CodeGeneratorWriter(models.Model):
 
                     str_var_name = (
                         "{"
-                        + ", ".join([f"'{a}': {a}" for a in lst_var_name])
+                        + ", ".join(
+                            [f"'{a}': {a}" for a in lst_var_name]
+                            + [
+                                "'page_name':"
+                                f" 'create_{_fmt_underscores(model_id.model)}'"
+                            ]
+                        )
                         + "}"
                     )
                     cw.emit(
@@ -583,6 +622,8 @@ class CodeGeneratorWriter(models.Model):
                                     f"'{field_id.name}':"
                                     f" int(kw.get('{field_id.name}')),"
                                 )
+                            else:
+                                _logger.warning("Not supported")
 
                     for field_id in lst_field_id:
                         if (
@@ -612,15 +653,30 @@ class CodeGeneratorWriter(models.Model):
                                     f"vals['{field_id.name}'] ="
                                     f" lst_value_{field_id.name}"
                                 )
+                        # TODO one2many need to create a value, or update other value. Need to check conflict.
+                        # TODO (0, _, values) adds a new record created from the provided value dict.
+                        # elif field_id.ttype in ("one2many",):
+                        #     # TODO missing validation if value exist
+                        #     cw.emit(f"if kw.get('{field_id.name}'):")
+                        #     with cw.indent():
+                        #         cw.emit(
+                        #             f"lst_value_{field_id.name} = [a"
+                        #             " for a in"
+                        #             f" request.httprequest.form.getlist('{field_id.name}')]"
+                        #         )
+                        #         cw.emit(
+                        #             f"vals['{field_id.name}'] ="
+                        #             f" lst_value_{field_id.name}"
+                        #         )
 
                     cw.emit(
                         f"new_{_fmt_underscores(model_id.model)} ="
                         f" request.env['{model_id.model}'].sudo().create(vals)"
                     )
                     has_mail = bool(
-                        self.env["code.generator.module.dependency"]
-                        .search([("module_id", "=", module.id)])
-                        .filtered(lambda a: a.name == "Discuss")
+                        model_id.inherit_model_ids.filtered(
+                            lambda a: a.name == "mail.activity.mixing"
+                        )
                     )
                     if has_mail:
                         cw.emit(

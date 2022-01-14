@@ -209,12 +209,28 @@ for {var_name} in self:
         for model in o2m_models:
             # <li t-if="page_name == 'project' or project" t-attf-class="breadcrumb-item
             # #{'active ' if not project else ''}">
+            has_create_feature = True
+
+            t_if_condition = _fmt_underscores(model.model)
+            if has_create_feature:
+                page_name_condition = (
+                    f"page_name in ('{_fmt_underscores(model.model)}',"
+                    f" 'create_{_fmt_underscores(model.model)}') or"
+                    f" {_fmt_underscores(model.model)}"
+                )
+                t_if_condition += (
+                    " or page_name =="
+                    f" 'create_{_fmt_underscores(model.model)}'"
+                )
+            else:
+                page_name_condition = (
+                    f"page_name == '{_fmt_underscores(model.model)}' or "
+                    f"{_fmt_underscores(model.model)}"
+                )
+
             menu_xml = E.li(
                 {
-                    "t-if": (
-                        f"page_name == '{_fmt_underscores(model.model)}' or "
-                        f"{_fmt_underscores(model.model)}"
-                    ),
+                    "t-if": page_name_condition,
                     "t-attf-class": (
                         "breadcrumb-item #{'active ' if not "
                         f"{_fmt_underscores(model.model)}"
@@ -224,7 +240,7 @@ for {var_name} in self:
                 # <a t-if="project" t-attf-href="/my/projects?{{ keep_query() }}">Projects</a>
                 E.a(
                     {
-                        "t-if": _fmt_underscores(model.model),
+                        "t-if": t_if_condition,
                         "t-attf-href": (
                             f"/my/{_fmt_underscores(model.model)}s?"
                             "{{ keep_query() }}"
@@ -237,6 +253,7 @@ for {var_name} in self:
             )
             lst_menu_xml.append(menu_xml)
             # <li t-if="project" class="breadcrumb-item active">
+
             menu_xml = E.li(
                 {
                     "t-if": _fmt_underscores(model.model),
@@ -1188,7 +1205,11 @@ for {var_name} in self:
                             ),
                         ),
                     )
-                elif field_id.ttype in ("many2many",):
+                elif field_id.ttype in (
+                    "many2many",
+                    # "one2many"
+                ):
+                    # TODO enable one2many when support in submitted
                     var_rec_name = self.env[field_id.relation]._rec_name
                     # TODO can be in conflict, if a field_id.name is item, or field_id.name[3:] exist
                     sub_name_var = (
@@ -1198,7 +1219,11 @@ for {var_name} in self:
                     dct_input_attr = {
                         "type": "checkbox",
                         "name": field_id.name,
-                        "t-att-id": f"{sub_name_var}.{var_rec_name}",
+                        "t-att-id": (
+                            f"'{field_id.name}_' +"
+                            f" {sub_name_var}.{var_rec_name} + '_' +"
+                            f" str({sub_name_var}_index)"
+                        ),
                         "t-att-value": f"{sub_name_var}.id",
                     }
 
@@ -1210,7 +1235,11 @@ for {var_name} in self:
                         E.input(dct_input_attr),
                         E.label(
                             {
-                                "t-att-for": f"{sub_name_var}.{var_rec_name}",
+                                "t-att-for": (
+                                    f"'{field_id.name}_' +"
+                                    f" {sub_name_var}.{var_rec_name} + '_' +"
+                                    f" str({sub_name_var}_index)"
+                                ),
                                 "t-att-string": (
                                     f"{sub_name_var}.{var_rec_name}"
                                 ),

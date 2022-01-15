@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 from lxml import etree as ET
 from lxml.builder import E
@@ -1035,6 +1036,7 @@ for {var_name} in self:
 
     def generate_portal_create_model(self, o2m_models, module_name):
         model_created = o2m_models[0]
+        dct_replace = {}
 
         """
           <template id="portal_create_ticket" name="Create Ticket">
@@ -1120,6 +1122,7 @@ for {var_name} in self:
             # Bind model field
             lst_data_field_name = ["name", "email"]
             for field_id in lst_field:
+                sub_item = None
                 if field_id.ignore_on_code_generator_writer:
                     continue
                 if field_id.ttype == "char":
@@ -1133,6 +1136,10 @@ for {var_name} in self:
                         dct_sub_item["t-attf-value"] = (
                             "#{" + field_id.name + "}"
                         )
+                    else:
+                        dct_sub_item[
+                            "t-att-value"
+                        ] = f"default_{field_id.name}"
 
                     if field_id.required:
                         dct_sub_item["required"] = "True"
@@ -1141,7 +1148,7 @@ for {var_name} in self:
                         dct_sub_item["readonly"] = "True"
 
                     sub_item = E.input(dct_sub_item)
-                elif field_id.ttype == "text":
+                elif field_id.ttype in ("text", "html"):
                     dct_sub_item = {
                         "class": "form-control",
                         "name": field_id.name,
@@ -1149,9 +1156,9 @@ for {var_name} in self:
                     }
 
                     if field_id.name in lst_data_field_name:
-                        dct_sub_item["t-attf-value"] = (
-                            "#{" + field_id.name + "}"
-                        )
+                        default_value = "#{" + field_id.name + "}"
+                    else:
+                        default_value = f"default_{field_id.name}"
 
                     if field_id.required:
                         dct_sub_item["required"] = "True"
@@ -1159,7 +1166,14 @@ for {var_name} in self:
                     if field_id.readonly:
                         dct_sub_item["readonly"] = "True"
 
-                    sub_item = E.textarea(dct_sub_item)
+                    sub_item = E.textarea(
+                        dct_sub_item, E.t({"t-esc": default_value})
+                    )
+                    str_to_replace = ET.tostring(sub_item)
+                    # Don't format textarea, because it's added space in value
+                    str_uuid = str(uuid.uuid4())
+                    dct_replace[str_uuid.encode()] = str_to_replace
+                    sub_item = str_uuid
                 elif field_id.ttype == "binary":
                     dct_sub_item = {
                         "class": "form-control o_website_form_input",
@@ -1198,13 +1212,21 @@ for {var_name} in self:
                         E.t(
                             {"t-foreach": field_id.name, "t-as": sub_name_var},
                             E.option(
-                                {"t-attf-value": "#{" + sub_name_var + ".id}"},
+                                {
+                                    "t-attf-value": f"#{{{sub_name_var}.id}}",
+                                    "t-att-selected": (
+                                        f"default_{field_id.name} =="
+                                        f" {sub_name_var}.id"
+                                    ),
+                                },
                                 E.t(
                                     {"t-esc": f"{sub_name_var}.{var_rec_name}"}
                                 ),
                             ),
                         ),
                     )
+                elif field_id.ttype == "one2many":
+                    pass
                 elif field_id.ttype in (
                     "many2many",
                     # "one2many"
@@ -1225,6 +1247,9 @@ for {var_name} in self:
                             f" str({sub_name_var}_index)"
                         ),
                         "t-att-value": f"{sub_name_var}.id",
+                        "t-att-checked": (
+                            f"{sub_name_var}.id in default_{field_id.name}"
+                        ),
                     }
 
                     if field_id.required:
@@ -1247,14 +1272,117 @@ for {var_name} in self:
                             E.t({"t-esc": f"{sub_name_var}.{var_rec_name}"}),
                         ),
                     )
+                elif field_id.ttype == "boolean":
+                    dct_input_attr = {
+                        "type": "checkbox",
+                        "name": field_id.name,
+                        "t-att-id": field_id.name,
+                        "t-att-value": "True",
+                        "t-att-checked": f"default_{field_id.name}",
+                    }
+
+                    if field_id.required:
+                        dct_input_attr["required"] = "required"
+
+                    sub_item = E.input(dct_input_attr)
+                elif field_id.ttype == "selection":
+                    dct_select_attr = {
+                        "class": "form-control",
+                        "id": field_id.name,
+                        "name": field_id.name,
+                    }
+
+                    if field_id.required:
+                        dct_select_attr["required"] = "True"
+
+                    # TODO can be in conflict, if a field_id.name is item, or field_id.name[3:] exist
+                    sub_name_var = (
+                        field_id.name[:3] if len(field_id.name) > 3 else "item"
+                    )
+
+                    sub_item = E.select(
+                        dct_select_attr,
+                        E.t(
+                            {
+                                "t-foreach": field_id.name,
+                                "t-as": sub_name_var,
+                                "t-att-selected": (
+                                    f"default_{field_id.name} =="
+                                    f" {sub_name_var}[0]"
+                                ),
+                            },
+                            E.option(
+                                {"t-attf-value": f"#{{{sub_name_var}[0]}}"},
+                                E.t({"t-esc": f"{sub_name_var}[1]"}),
+                            ),
+                        ),
+                    )
+                elif field_id.ttype in ("float", "integer", "monetary"):
+                    dct_sub_item = {
+                        "type": "text",
+                        "class": "form-control",
+                        "name": field_id.name,
+                    }
+                    if field_id.force_widget == "float_time":
+                        dct_sub_item["placeholder"] = "hh:mm"
+
+                    if field_id.name in lst_data_field_name:
+                        dct_sub_item["t-attf-value"] = (
+                            "#{" + field_id.name + "}"
+                        )
+                    else:
+                        dct_sub_item[
+                            "t-att-value"
+                        ] = f"default_{field_id.name}"
+
+                    if field_id.required:
+                        dct_sub_item["required"] = "True"
+
+                    if field_id.readonly:
+                        dct_sub_item["readonly"] = "True"
+
+                    sub_item = E.input(dct_sub_item)
+                elif field_id.ttype in ("datetime", "date"):
+                    id_name = f"{field_id.name}_datepicker"
+                    dct_sub_item = {
+                        "type": "text",
+                        "class": "form-control datetimepicker-input",
+                        "t-att-data-target": id_name,
+                        "t-att-name": "prefix",
+                        "t-att-value": f"default_{field_id.name}",
+                    }
+
+                    sub_item = E.div(
+                        {
+                            "class": "input-group date",
+                            "data-target-input": "nearest",
+                            "t-att-id": id_name,
+                        },
+                        E.input(dct_sub_item),
+                        E.div(
+                            {
+                                "class": "input-group-append",
+                                "t-att-data-target": id_name,
+                                "data-toggle": "datetimepicker",
+                            },
+                            E.div(
+                                {"class": "input-group-text"},
+                                E.i({"class": "fa fa-calendar"}),
+                            ),
+                        ),
+                    )
                 else:
-                    sub_item = None
                     _logger.warning(
                         f"Type '{field_id.ttype}' not supported to generate in"
                         " portal."
                     )
 
-                if field_id.force_widget:
+                if field_id.force_widget and field_id.force_widget not in (
+                    "link_button",
+                    "image",
+                    "float_time",
+                ):
+                    # TODO support image, show upload image and open tools to work the picture
                     _logger.warning(
                         f"Force widget '{field_id.force_widget}', type"
                         f" '{field_id.ttype}' not supported to generate in"
@@ -1325,6 +1453,14 @@ for {var_name} in self:
             )
 
             content = ET.tostring(root, pretty_print=True)
+
+            for key_uid, value in dct_replace.items():
+                new_value = (
+                    b"\n<!-- prettier-ignore-start -->"
+                    + value
+                    + b"<!-- prettier-ignore-end -->\n"
+                )
+                content = content.replace(key_uid, new_value)
 
             view_value = self._create_ui_view(
                 content, key, qweb_name, None, None, model_created

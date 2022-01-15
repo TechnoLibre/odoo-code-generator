@@ -25,6 +25,15 @@ MAGIC_FIELDS = MAGIC_COLUMNS + [
     "message_channel_ids",
     "message_main_attachment_id",
     "message_partner_ids",
+    "activity_date_deadline",
+    "message_attachment_count",
+    "message_has_error",
+    "message_has_error_counter",
+    "message_is_follower",
+    "message_needaction",
+    "message_needaction_counter",
+    "message_unread",
+    "message_unread_counter",
 ]
 
 
@@ -169,7 +178,7 @@ class CodeGeneratorWriter(models.Model):
                         f" 'my_{self._fmt_underscores(model.model)}s_history',"
                         " False, **kwargs)"
                     )
-            cw.emit("")
+            cw.emit()
             with cw.indent():
                 cw.emit(
                     f"@http.route(['/my/{self._fmt_underscores(model.model)}s',"
@@ -429,7 +438,7 @@ class CodeGeneratorWriter(models.Model):
                         f' request.render("{module.name}.portal_my_{self._fmt_underscores(model.model)}s",'
                         " values)"
                     )
-            cw.emit("")
+            cw.emit()
             with cw.indent():
                 cw.emit(
                     f"@http.route(['/my/{self._fmt_underscores(model.model)}/<int:{self._fmt_underscores(model.model)}_id>'],"
@@ -508,7 +517,7 @@ class CodeGeneratorWriter(models.Model):
             "class"
             f" {module.name.replace('_', ' ').title().replace(' ', '')}Controller(http.Controller):"
         )
-        cw.emit("")
+        cw.emit()
         with cw.indent():
             for model_id in module.o2m_models:
                 lst_field_id = _get_field_by_user(model_id, keep_name=True)
@@ -523,6 +532,7 @@ class CodeGeneratorWriter(models.Model):
                 with cw.indent():
                     lst_special_field = ["email", "name"]
                     lst_var_name = []
+                    lst_default_value = []
                     for field_id in lst_field_id:
                         if field_id.name in lst_special_field:
                             # TODO need to search a char with a special attribute to understand it's an email or name from user, an attribute to means if it's a user, or something else like a connexion information
@@ -552,16 +562,50 @@ class CodeGeneratorWriter(models.Model):
                                 f" http.request.env['{field_id.relation}'].search({search_txt})"
                             )
                             lst_var_name.append(field_id.name)
-                        # elif field_id.ttype in ("one2many",):
-                        #     _logger.warning(
-                        #         f"Field type {field_id.ttype} is not supported"
-                        #         " in portal writer main."
-                        #     )
+                            if field_id.ttype == "many2one":
+                                cw.emit(
+                                    f"default_{field_id.name} ="
+                                    f' http.request.env["{field_id.model}"].default_get(["{field_id.name}"]).get("{field_id.name}")'
+                                )
+                                str_default = (
+                                    f'"default_{field_id.name}":'
+                                    f" default_{field_id.name}"
+                                )
+                                lst_default_value.append(str_default)
+                            elif field_id.ttype == "many2many":
+                                cw.emit(
+                                    f"lst_default_{field_id.name} ="
+                                    f' http.request.env["{field_id.model}"].default_get(["{field_id.name}"]).get("{field_id.name}")'
+                                )
+                                cw.emit(f"if lst_default_{field_id.name}:")
+                                with cw.indent():
+                                    cw.emit(
+                                        f"default_{field_id.name} ="
+                                        f" lst_default_{field_id.name}[0][2]"
+                                    )
+                                cw.emit("else:")
+                                with cw.indent():
+                                    cw.emit(f"default_{field_id.name} = []")
+                                str_default = (
+                                    f'"default_{field_id.name}":'
+                                    f" default_{field_id.name}"
+                                )
+                                lst_default_value.append(str_default)
                         elif field_id.ttype in ("selection",):
-                            _logger.warning(
-                                f"Field type {field_id.ttype} is not supported"
-                                " in portal writer main."
+                            cw.emit(
+                                f"{field_id.name} ="
+                                f" http.request.env['{model_id.model}']._fields['{field_id.name}'].selection"
                             )
+                            lst_var_name.append(field_id.name)
+                            cw.emit(
+                                f"default_{field_id.name} ="
+                                f' http.request.env["{field_id.model}"].default_get(["{field_id.name}"]).get("{field_id.name}")'
+                            )
+                            str_default = (
+                                f'"default_{field_id.name}":'
+                                f" default_{field_id.name}"
+                            )
+                            lst_default_value.append(str_default)
                         elif field_id.ttype in (
                             "monetary",
                             "integer",
@@ -570,12 +614,22 @@ class CodeGeneratorWriter(models.Model):
                             "date",
                             "boolean",
                             "html",
-                            "binary",
+                            "text",
+                            "char",
                         ):
-                            _logger.warning(
-                                f"Field type {field_id.ttype} is not supported"
-                                " in portal writer main."
+                            cw.emit(
+                                f"default_{field_id.name} ="
+                                f' http.request.env["{field_id.model}"].default_get(["{field_id.name}"]).get("{field_id.name}")'
                             )
+                            str_default = (
+                                f'"default_{field_id.name}":'
+                                f" default_{field_id.name}"
+                            )
+                            lst_default_value.append(str_default)
+                        elif field_id.ttype in ("binary", "one2many"):
+                            # No need to transfert binary to client
+                            # TODO one2many not supported, support later...
+                            pass
                         else:
                             _logger.warning(
                                 f"Field type {field_id.ttype} is not supported"
@@ -590,6 +644,7 @@ class CodeGeneratorWriter(models.Model):
                                 "'page_name':"
                                 f" 'create_{_fmt_underscores(model_id.model)}'"
                             ]
+                            + lst_default_value
                         )
                         + "}"
                     )
@@ -611,7 +666,7 @@ class CodeGeneratorWriter(models.Model):
                 with cw.indent():
                     with cw.block(before="vals =", delim=("{", "}")):
                         for field_id in lst_field_id:
-                            if field_id.ttype in ("char", "text"):
+                            if field_id.ttype in ("char", "text", "html"):
                                 cw.emit(
                                     f"'{field_id.name}':"
                                     f" kw.get('{field_id.name}'),"
@@ -622,9 +677,14 @@ class CodeGeneratorWriter(models.Model):
                                     f"'{field_id.name}':"
                                     f" int(kw.get('{field_id.name}')),"
                                 )
-                            else:
-                                _logger.warning("Not supported")
-
+                            elif field_id.ttype in ("date", "datetime"):
+                                # TODO missing validation if value exist
+                                cw.emit(
+                                    f"'{field_id.name}':"
+                                    f" kw.get('{field_id.name}'),"
+                                )
+                    # TODO support one2many and selection
+                    cw.emit()
                     for field_id in lst_field_id:
                         if (
                             field_id.ttype == "binary"
@@ -633,13 +693,101 @@ class CodeGeneratorWriter(models.Model):
                             cw.emit(f"if kw.get('{field_id.name}'):")
                             with cw.indent():
                                 cw.emit(
-                                    f"c_file_{field_id.name} ="
-                                    f" request.httprequest.files.getlist('{field_id.name}')[-1]"
+                                    f"lst_file_{field_id.name} ="
+                                    f" request.httprequest.files.getlist('{field_id.name}')"
+                                )
+                                cw.emit(f"if lst_file_{field_id.name}:")
+                                with cw.indent():
+                                    cw.emit(
+                                        f"vals['{field_id.name}'] ="
+                                        f" base64.b64encode(lst_file_{field_id.name}[-1].read())"
+                                    )
+                        elif field_id.ttype in ("integer",):
+                            cw.emit(f"if kw.get('{field_id.name}'):")
+                            with cw.indent():
+                                cw.emit(
+                                    f"{field_id.name}_value ="
+                                    f" kw.get('{field_id.name}')"
+                                )
+                                cw.emit(f"if {field_id.name}_value.isdigit():")
+                                with cw.indent():
+                                    cw.emit(
+                                        f'vals["{field_id.name}"] ='
+                                        f" int({field_id.name}_value)"
+                                    )
+                        elif (
+                            field_id.ttype == "float"
+                            and field_id.force_widget == "float_time"
+                        ):
+                            cw.emit(f"if kw.get('{field_id.name}'):")
+                            with cw.indent():
+                                cw.emit(
+                                    f"{field_id.name}_value ="
+                                    f" kw.get('{field_id.name}')"
                                 )
                                 cw.emit(
-                                    f"vals['{field_id.name}'] ="
-                                    f" base64.b64encode(c_file_{field_id.name}.read())"
+                                    f"tpl_time_{field_id.name} ="
+                                    f" {field_id.name}_value.split(':')"
                                 )
+                                cw.emit(
+                                    f"if len(tpl_time_{field_id.name}) == 1:"
+                                )
+                                with cw.indent():
+                                    cw.emit(
+                                        f"if tpl_time_{field_id.name}[0].isdigit():"
+                                    )
+                                    with cw.indent():
+                                        cw.emit(
+                                            f"vals['{field_id.name}'] ="
+                                            f" int(tpl_time_{field_id.name}[0])"
+                                        )
+                                cw.emit(
+                                    f"elif len(tpl_time_{field_id.name}) == 2:"
+                                )
+                                with cw.indent():
+                                    cw.emit(
+                                        f"if tpl_time_{field_id.name}[0].isdigit()"
+                                        " and"
+                                        f" tpl_time_{field_id.name}[1].isdigit():"
+                                    )
+                                    with cw.indent():
+                                        cw.emit(
+                                            f"vals['{field_id.name}'] ="
+                                            f" int(tpl_time_{field_id.name}[0])"
+                                            f" + int(tpl_time_{field_id.name}[1])"
+                                            " / 60."
+                                        )
+                        elif field_id.ttype in ("float", "monetary"):
+                            cw.emit(f"if kw.get('{field_id.name}'):")
+                            with cw.indent():
+                                cw.emit(
+                                    f"{field_id.name}_value ="
+                                    f" kw.get('{field_id.name}')"
+                                )
+                                cw.emit(
+                                    f"if {field_id.name}_value.replace('.',"
+                                    " '', 1).isdigit():"
+                                )
+                                with cw.indent():
+                                    cw.emit(
+                                        f'vals["{field_id.name}"] ='
+                                        f" float({field_id.name}_value)"
+                                    )
+                        elif field_id.ttype in ("boolean",):
+                            cw.emit(
+                                f"default_{field_id.name} ="
+                                f' http.request.env["{field_id.model}"].default_get(["{field_id.name}"]).get("{field_id.name}")'
+                            )
+                            cw.emit(f"if kw.get('{field_id.name}'):")
+                            with cw.indent():
+                                cw.emit(
+                                    f'vals["{field_id.name}"] ='
+                                    f" kw.get('{field_id.name}') == 'True'"
+                                )
+                            cw.emit(f"elif default_{field_id.name}:")
+                            with cw.indent():
+                                # Reverse the boolean
+                                cw.emit(f'vals["{field_id.name}"] = False')
                         elif field_id.ttype in ("many2many",):
                             # TODO missing validation if value exist
                             cw.emit(f"if kw.get('{field_id.name}'):")
@@ -668,6 +816,7 @@ class CodeGeneratorWriter(models.Model):
                         #             f"vals['{field_id.name}'] ="
                         #             f" lst_value_{field_id.name}"
                         #         )
+                        cw.emit()
 
                     cw.emit(
                         f"new_{_fmt_underscores(model_id.model)} ="
@@ -686,6 +835,7 @@ class CodeGeneratorWriter(models.Model):
                         "return"
                         f" werkzeug.utils.redirect(f'/my/{self._fmt_underscores(model_id.model)}/{{new_{_fmt_underscores(model_id.model)}.id}}')"
                     )
+                    cw.emit()
 
         out = cw.render()
 

@@ -1459,6 +1459,8 @@ class CodeGeneratorWriter(models.Model):
                 cw.emit('"code_generator_view_ids": [(6, 0, lst_view_id)],')
             if module.enable_cg_generate_portal:
                 cw.emit("'enable_generate_portal': True,")
+            if module.enable_cg_portal_enable_create:
+                cw.emit("'portal_enable_create': True,")
 
         cw.emit("})")
         cw.emit("")

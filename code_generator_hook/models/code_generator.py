@@ -91,6 +91,10 @@ class CodeGeneratorModule(models.Model):
         string="Wizard enable portal", help="Add template of portal to wizard."
     )
 
+    enable_cg_portal_enable_create = fields.Boolean(
+        help="Template will generate 'portal_enable_create'."
+    )
+
     enable_template_website_snippet_view = fields.Boolean(
         string="Template website snippet",
         help=(

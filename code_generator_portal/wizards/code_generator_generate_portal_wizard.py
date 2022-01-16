@@ -102,9 +102,10 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
         self.generate_portal_form_model(
             o2m_models, self.code_generator_id.name
         )
-        self.generate_portal_create_model(
-            o2m_models, self.code_generator_id.name
-        )
+        if self.portal_enable_create:
+            self.generate_portal_create_model(
+                o2m_models, self.code_generator_id.name
+            )
 
         o2m_models.add_model_inherit("portal.mixin")
 
@@ -202,7 +203,6 @@ for {var_name} in self:
         key = f"{module_name}.portal_layout"
         priority = "40"
         inherit_id = self.env.ref("portal.portal_breadcrumbs").id
-        template_id = "portal_layout"
         position = "inside"
         expr = "//ol[hasclass('o_portal_submenu')]"
 
@@ -210,10 +210,8 @@ for {var_name} in self:
         for model in o2m_models:
             # <li t-if="page_name == 'project' or project" t-attf-class="breadcrumb-item
             # #{'active ' if not project else ''}">
-            has_create_feature = True
-
             t_if_condition = _fmt_underscores(model.model)
-            if has_create_feature:
+            if self.portal_enable_create:
                 page_name_condition = (
                     f"page_name in ('{_fmt_underscores(model.model)}',"
                     f" 'create_{_fmt_underscores(model.model)}') or"
@@ -311,7 +309,6 @@ for {var_name} in self:
         key = f"{module_name}.portal_my_home"
         priority = "40"
         inherit_id = self.env.ref("portal.portal_my_home").id
-        template_id = "portal_my_home"
         position = "inside"
         lst_menu_xml = []
         for model in o2m_models:
@@ -414,7 +411,7 @@ for {var_name} in self:
                 )
             )
 
-            if self.enable_generate_portal:
+            if self.portal_enable_create:
                 # <form method="POST" t-attf-action="/new/ticket">
                 lst_item_portal.append(
                     E.form(

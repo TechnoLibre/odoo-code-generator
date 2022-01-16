@@ -665,25 +665,8 @@ class CodeGeneratorWriter(models.Model):
                 )
                 with cw.indent():
                     with cw.block(before="vals =", delim=("{", "}")):
-                        for field_id in lst_field_id:
-                            if field_id.ttype in ("char", "text", "html"):
-                                cw.emit(
-                                    f"'{field_id.name}':"
-                                    f" kw.get('{field_id.name}'),"
-                                )
-                            elif field_id.ttype in ("many2one",):
-                                # TODO missing validation if value exist
-                                cw.emit(
-                                    f"'{field_id.name}':"
-                                    f" int(kw.get('{field_id.name}')),"
-                                )
-                            elif field_id.ttype in ("date", "datetime"):
-                                # TODO missing validation if value exist
-                                cw.emit(
-                                    f"'{field_id.name}':"
-                                    f" kw.get('{field_id.name}'),"
-                                )
-                    # TODO support one2many and selection
+                        pass
+                    # TODO support one2many
                     cw.emit()
                     for field_id in lst_field_id:
                         if (
@@ -788,6 +771,29 @@ class CodeGeneratorWriter(models.Model):
                             with cw.indent():
                                 # Reverse the boolean
                                 cw.emit(f'vals["{field_id.name}"] = False')
+                        elif field_id.ttype in ("many2one",):
+                            cw.emit(
+                                f"if kw.get('{field_id.name}') and"
+                                f" kw.get('{field_id.name}').isdigit():"
+                            )
+                            with cw.indent():
+                                cw.emit(
+                                    f'vals["{field_id.name}"] ='
+                                    f" int(kw.get('{field_id.name}'))"
+                                )
+                        elif field_id.ttype in (
+                            "char",
+                            "text",
+                            "html",
+                            "date",
+                            "datetime",
+                        ):
+                            cw.emit(f"if kw.get('{field_id.name}'):")
+                            with cw.indent():
+                                cw.emit(
+                                    f'vals["{field_id.name}"] ='
+                                    f" kw.get('{field_id.name}')"
+                                )
                         elif field_id.ttype in ("many2many",):
                             # TODO missing validation if value exist
                             cw.emit(f"if kw.get('{field_id.name}'):")

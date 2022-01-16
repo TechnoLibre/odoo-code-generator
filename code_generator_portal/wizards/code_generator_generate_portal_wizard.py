@@ -336,6 +336,18 @@ for {var_name} in self:
                 ),
             )
             lst_menu_xml.append(menu_xml)
+            if self.portal_enable_create:
+                button_menu_xml = E.a(
+                    {
+                        "t-if": f"not {_fmt_underscores(model.model)}_count",
+                        "role": "button",
+                        "class": "btn btn-primary btn-block mb8",
+                        "href": f"/new/{_fmt_underscores(model.model)}",
+                    },
+                    E.i({"class": "fa fa-plus-circle"}),
+                    _fmt_title(model.model),
+                )
+                lst_menu_xml.append(button_menu_xml)
         expr = "//div[hasclass('o_portal_docs')]"
         content = ET.tostring(
             # <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
@@ -650,9 +662,7 @@ for {var_name} in self:
 
                         # TODO add class="text-right" when force_widget with time
 
-                        field_id_value_name = (
-                            f"{field.relation_field_id.name}.{field_id.name}"
-                        )
+                        field_id_value_name = f"{field.name}.{field_id.name}"
 
                         if field_id.ttype == "html":
                             t_field_id_show_data = "t-raw"
@@ -666,7 +676,7 @@ for {var_name} in self:
                             #  and same id... No, need some Javascript, cannot do that here
                             field_id_value_xml = E.a(
                                 {
-                                    "t-attf-href": f"/my/{_fmt_underscores(field_id.relation)}/#{{{field.relation_field_id.name}.{field_id.name}.id}}",
+                                    "t-attf-href": f"/my/{_fmt_underscores(field_id.relation)}/#{{{field_id_value_name}.id}}",
                                     "t-field": f"{field_id_value_name}.{related_field_id_data_model.rec_name}",
                                 }
                             )
@@ -683,7 +693,7 @@ for {var_name} in self:
 
                             field_id_value_xml = E.t(
                                 {
-                                    "t-foreach": f"{field.relation_field_id.name}.{field_id.name}",
+                                    "t-foreach": f"{field_id_value_name}",
                                     "t-as": sub_name_var,
                                 },
                                 E.a(
@@ -699,7 +709,7 @@ for {var_name} in self:
                         elif field_id.name == "name":
                             field_id_value_xml = E.a(
                                 {
-                                    "t-attf-href": f"/my/{_fmt_underscores(field_id.model_id.model)}/#{{{field.relation_field_id.name}.id}}",
+                                    "t-attf-href": f"/my/{_fmt_underscores(field_id.model_id.model)}/#{{{field.name}.id}}",
                                     "t-field": f"{field_id_value_name}",
                                 }
                             )
@@ -782,7 +792,7 @@ for {var_name} in self:
                             E.tr(
                                 {
                                     "t-foreach": f"{_fmt_underscores(model.model)}.{field.name}",
-                                    "t-as": field.relation_field_id.name,
+                                    "t-as": field.name,
                                 },
                                 *lst_field_variable_xml,
                             ),
@@ -1418,7 +1428,9 @@ for {var_name} in self:
 
             form_xml = E.form(
                 {
-                    "action": f"/submitted/{model_id.name}",
+                    "action": (
+                        f"/submitted/{model_id.name.lower().replace(' ', '_')}"
+                    ),
                     "method": "POST",
                     "class": "form-horizontal mt32",
                     "enctype": "multipart/form-data",
@@ -1441,7 +1453,7 @@ for {var_name} in self:
                             E.h1(
                                 {"class": "text-center"},
                                 "Send a new"
-                                f" {model_id.name.replace('_', ' ')}",
+                                f" {model_id.name.lower().replace('_', ' ')}",
                             ),
                         ),
                     ),

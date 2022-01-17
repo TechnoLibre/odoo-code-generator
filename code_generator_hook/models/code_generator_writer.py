@@ -255,7 +255,13 @@ class CodeGeneratorWriter(models.Model):
                             cw.emit(f'"model_id": {var_model_id}.id,')
                             cw.emit(f'"binding_model_id": {var_model_id}.id,')
                             cw.emit(f'"state": "{act_server.state}",')
-                            cw.emit(f'"code": "{act_server.code}",')
+                            if "\n" in act_server.code:
+                                cw.emit_raw(
+                                    f'{" " * cw.cur_indent}"code":'
+                                    f' """{act_server.code}""",\n'
+                                )
+                            else:
+                                cw.emit(f'"code": "{act_server.code}",')
                             if act_server.comment:
                                 comment = act_server.comment.replace(
                                     '"', '\\"'
@@ -1380,9 +1386,22 @@ class CodeGeneratorWriter(models.Model):
 
                 default_value = ast_attr.get("default")
                 if default_value:
-                    if field_id.ttype not in ("char", "selection"):
+                    if field_id.ttype not in (
+                        "char",
+                        "selection",
+                        "text",
+                        "html",
+                    ):
                         # TODO how better support, remove the quote when it's a variable
                         dct_field_value["default"] = ("noquote", default_value)
+                        if (
+                            type(default_value) is str
+                            and "\n" in default_value
+                        ):
+                            _logger.error(
+                                "Cannot support endline in default_value"
+                                f" '{default_value}', ast: '{ast_attr}'"
+                            )
                     else:
                         dct_field_value["default"] = default_value
 

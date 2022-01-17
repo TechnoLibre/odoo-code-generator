@@ -230,20 +230,26 @@ class CodeGeneratorWriter(models.Model):
 
     def _write_sync_template_action(self, cw, module, act_server_ids):
         cw.emit("# action_server view")
-        cw.emit("if True:")
-        with cw.indent():
-            if act_server_ids:
-                for act_server in act_server_ids:
-                    var_act_server_id = self.env["ir.model.data"].search(
-                        [
-                            ("module", "=", module.template_module_name),
-                            ("res_id", "=", act_server.id),
-                            ("model", "=", "ir.actions.server"),
-                        ]
-                    )
-                    var_model_id = (
-                        f"model_{act_server.model_name.replace('.', '_')}"
-                    )
+        if act_server_ids:
+            for act_server in act_server_ids:
+                var_act_server_id = self.env["ir.model.data"].search(
+                    [
+                        ("module", "=", module.template_module_name),
+                        ("res_id", "=", act_server.id),
+                        ("model", "=", "ir.actions.server"),
+                    ]
+                )
+                var_model_id = (
+                    f"model_{act_server.model_name.replace('.', '_')}"
+                )
+                cw.emit(
+                    "act_server_id ="
+                    ' env["ir.actions.server"].search([("name", "=",'
+                    f' "{act_server.name}"), ("model_id", "=",'
+                    f" {var_model_id}.id)])"
+                )
+                cw.emit(f"if not act_server_id:")
+                with cw.indent():
                     with cw.block(
                         before=(
                             f'act_server_id = env["ir.actions.server"].create'
@@ -281,8 +287,8 @@ class CodeGeneratorWriter(models.Model):
                                 cw.emit('"module": MODULE_NAME,')
                                 cw.emit(f'"res_id": act_server_id.id,')
                                 cw.emit(f'"noupdate": True,')
-            else:
-                cw.emit("pass")
+        else:
+            cw.emit("pass")
         cw.emit()
 
     def _write_sync_template_views(

@@ -22,6 +22,7 @@ from odoo.tools.misc import mute_logger
 from ..code_generator_data import CodeGeneratorData
 from ..extractor_module import ExtractorModule
 from ..extractor_view import ExtractorView
+from ..python_controller_writer import PythonControllerWriter
 
 _logger = logging.getLogger(__name__)
 
@@ -2511,7 +2512,7 @@ class CodeGeneratorWriter(models.Model):
 
         return super(CodeGeneratorWriter, self).create(new_list)
 
-    def get_lst_file_generate(self, module):
+    def get_lst_file_generate(self, module, python_controller_writer):
         l_model_csv_access = []
         l_model_rules = []
 
@@ -2583,6 +2584,8 @@ class CodeGeneratorWriter(models.Model):
             # TODO info Moved in template module
             # self.set_module_translator(module)
 
+        python_controller_writer.generate()
+
         self.set_extra_get_lst_file_generate(module)
 
         self.code_generator_data.reorder_manifest_data_files()
@@ -2646,7 +2649,10 @@ class CodeGeneratorWriter(models.Model):
             # TODO refactor this to share variable in another class,
             #  like that, self.code_generator_data will be associate to a class of generation of module
             self.code_generator_data = CodeGeneratorData(module, path)
-            self.get_lst_file_generate(module)
+            python_controller_writer = PythonControllerWriter(
+                module, self.code_generator_data
+            )
+            self.get_lst_file_generate(module, python_controller_writer)
 
             if module.enable_sync_code:
                 self.code_generator_data.sync_code(

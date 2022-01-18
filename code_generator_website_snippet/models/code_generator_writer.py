@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
-
 import os
 
-from code_writer import CodeWriter
 from lxml import etree as ET
 from lxml.builder import E
 
@@ -21,52 +18,47 @@ XML_VERSION_HEADER = (
 class CodeGeneratorWriter(models.Model):
     _inherit = "code.generator.writer"
 
-    def get_lst_file_generate(self, module):
+    def get_lst_file_generate(self, module, python_controller_writer):
         if module.enable_generate_website_snippet:
             # Controller
             if module.enable_generate_website_snippet_javascript:
-                self._set_website_snippet_controller_file(module)
+                self._set_website_snippet_controller_file(
+                    python_controller_writer
+                )
                 self._set_website_snippet_static_javascript_file(module)
             self._set_website_snippet_static_scss_file(module)
 
-        super(CodeGeneratorWriter, self).get_lst_file_generate(module)
+        super(CodeGeneratorWriter, self).get_lst_file_generate(
+            module, python_controller_writer
+        )
 
-    def _set_website_snippet_controller_file(self, module):
+    def _set_website_snippet_controller_file(self, python_controller_writer):
         """
         Function to set the module hook file
-        :param module:
+        :param python_controller_writer:
         :return:
         """
 
-        cw = CodeWriter()
-        cw.emit("from odoo import http")
-        cw.emit("from odoo.http import request")
-        cw.emit("")
-        cw.emit("")
-        cw.emit("class HelloWorldController(http.Controller):")
-        cw.emit("")
-        with cw.indent():
-            cw.emit(
-                f"@http.route(['/{module.name}/helloworld'], type='json',"
-                ' auth="public", website=True,'
-            )
-        with cw.indent():
-            with cw.indent():
-                with cw.indent():
-                    with cw.indent():
-                        cw.emit("methods=['POST', 'GET'], csrf=False)")
-        with cw.indent():
-            cw.emit("def hello_world(self):")
-            with cw.indent():
-                cw.emit('return {"hello": "Hello World!"}')
-
-        out = cw.render()
-
-        l_model = out.split("\n")
+        lst_header = [
+            "from odoo import http",
+            "from odoo.http import request",
+        ]
 
         file_path = f"{self.code_generator_data.controllers_path}/main.py"
 
-        self.code_generator_data.write_file_lst_content(file_path, l_model)
+        python_controller_writer.add_controller(
+            file_path, lst_header, self._cb_set_website_snippet_controller_file
+        )
+
+    def _cb_set_website_snippet_controller_file(self, module, cw):
+        cw.emit(
+            f"@http.route(['/{module.name}/helloworld'], type='json',"
+            ' auth="public", website=True, methods=["POST", "GET"],'
+            " csrf=False)"
+        )
+        cw.emit("def hello_world(self):")
+        with cw.indent():
+            cw.emit('return {"hello": "Hello World!"}')
 
     def _set_website_snippet_static_javascript_file(self, module):
         """

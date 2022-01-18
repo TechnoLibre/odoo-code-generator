@@ -644,6 +644,9 @@ class CodeGeneratorWriter(models.Model):
                                     f" = {enable_template_code_generator_demo}"
                                 )
                                 cw.emit('value["template_model_name"] = ""')
+                                cw.emit(
+                                    'value["template_inherit_model_name"] = ""'
+                                )
                                 if (
                                     module.template_module_path_generated_extension
                                     != "."
@@ -827,10 +830,14 @@ class CodeGeneratorWriter(models.Model):
 
                             lst_view_item_code_generator = []
                             lst_model_id = []
-                            if module.template_model_name:
+                            if (
+                                module.template_model_name
+                                or module.template_inherit_model_name
+                            ):
+
                                 lst_model = [
                                     a.strip()
-                                    for a in module.template_model_name.split(
+                                    for a in f"{module.template_model_name};{module.template_inherit_model_name}".split(
                                         ";"
                                     )
                                     if a.strip()
@@ -854,7 +861,6 @@ class CodeGeneratorWriter(models.Model):
                                 dct_model_one2many = {}
                                 for model_id in lst_model_id:
                                     i += 1
-                                    model_model = model_id.model
                                     if module.enable_sync_template:
                                         view_file_sync = (
                                             module.view_file_sync.get(

@@ -206,6 +206,11 @@ class CodeGeneratorModule(models.Model):
         help="Add model from list, separate by ';' and generate template.",
     )
 
+    template_inherit_model_name = fields.Char(
+        string="Functions models inherit",
+        help="Add model from list, separate by ';' and generate template.",
+    )
+
     template_module_id = fields.Many2one(
         comodel_name="ir.module.module",
         string="Template module id",

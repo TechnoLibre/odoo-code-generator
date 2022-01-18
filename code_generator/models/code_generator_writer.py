@@ -2519,9 +2519,11 @@ class CodeGeneratorWriter(models.Model):
         module.view_file_sync = {}
         module.module_file_sync = {}
 
-        if module.template_model_name:
+        if module.template_model_name or module.template_inherit_model_name:
             i = -1
-            lst_model = module.template_model_name.split(";")
+            lst_model = f"{module.template_model_name};{module.template_inherit_model_name}".split(
+                ";"
+            )
             for model in lst_model:
                 i += 1
                 model = model.strip()

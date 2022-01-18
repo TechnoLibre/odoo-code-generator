@@ -98,6 +98,12 @@ class ExtractorModule:
             if depends:
                 if type(depends) is list:
                     module.add_module_dependency_template(depends)
+                    if (
+                        model_model
+                        in module.template_inherit_model_name.split(";")
+                    ):
+                        # Inherit model, need it for code_generator
+                        module.add_module_dependency(depends)
                 else:
                     _logger.error(
                         "Not supported 'depends' with value type"

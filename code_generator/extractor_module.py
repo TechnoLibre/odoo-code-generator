@@ -97,7 +97,7 @@ class ExtractorModule:
                     )
             if depends:
                 if type(depends) is list:
-                    module.add_module_dependency(depends)
+                    module.add_module_dependency_template(depends)
                 else:
                     _logger.error(
                         "Not supported 'depends' with value type"

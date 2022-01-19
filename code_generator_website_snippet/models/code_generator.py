@@ -13,6 +13,15 @@ class CodeGenerator(models.Model):
         ),
     )
 
+    generate_website_snippet_generic_model = fields.Char(
+        string="website snippet feature with generic model",
+        default=False,
+        help=(
+            "Separate model name by ';' to create a list. Will generate field"
+            " of all this model."
+        ),
+    )
+
     enable_generate_website_snippet_javascript = fields.Boolean(
         string="Enable website snippet Javascript",
         default=False,

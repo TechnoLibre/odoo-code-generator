@@ -133,7 +133,8 @@ class CodeGeneratorWriter(models.Model):
         cw.emit("def _prepare_portal_layout_values(self):")
         with cw.indent():
             cw.emit(
-                "values = super(CustomerPortal,"
+                "values ="
+                f" super({module.name.replace('_', ' ').title().replace(' ', '')}Controller,"
                 " self)._prepare_portal_layout_values()"
             )
             for model in module.o2m_models:

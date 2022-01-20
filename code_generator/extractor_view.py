@@ -285,6 +285,7 @@ class ExtractorView:
                     )
                 for timeline_xml in lst_timeline_xml:
                     if "date_start" in timeline_xml.attributes.keys():
+                        del dct_view_attr["date_start"]
                         field_name = (
                             timeline_xml.attributes["date_start"]
                             .childNodes[0]
@@ -296,6 +297,7 @@ class ExtractorView:
                                     "is_date_start_view"
                                 ] = True
                     if "date_stop" in timeline_xml.attributes.keys():
+                        del dct_view_attr["date_stop"]
                         field_name = (
                             timeline_xml.attributes["date_stop"]
                             .childNodes[0]
@@ -672,6 +674,14 @@ class ExtractorView:
             if "class" in dct_view_attr.keys():
                 value["view_attr_class"] = dct_view_attr.get("class")
                 lst_view_attr_copy.remove("class")
+            if "default_group_by" in dct_view_attr.keys():
+                # TODO support it in parameter of timeline view
+                # Ignore it, from timeline
+                lst_view_attr_copy.remove("default_group_by")
+            if "event_open_popup" in dct_view_attr.keys():
+                # TODO support it in parameter of timeline view
+                # Ignore it, from timeline
+                lst_view_attr_copy.remove("event_open_popup")
             if lst_view_attr_copy:
                 _logger.warning(
                     "Not support multiple attr dct view, keys:"

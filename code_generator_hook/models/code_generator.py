@@ -127,3 +127,16 @@ class CodeGeneratorModule(models.Model):
         help="Add parameters of os.path directory where module is generated.",
         default=".",
     )
+
+    template_generate_website_snippet_type = fields.Char(
+        help="Choose content,effect,feature,structure",
+        default="effect",
+    )
+
+    template_generate_website_snippet_generic_model = fields.Char(
+        string="website snippet feature with generic model",
+        help=(
+            "Separate model name by ';' to create a list. Will generate field"
+            " of all this model."
+        ),
+    )

@@ -20,6 +20,7 @@ from odoo.models import MAGIC_COLUMNS
 from odoo.tools.misc import mute_logger
 
 from ..code_generator_data import CodeGeneratorData
+from ..extractor_controller import ExtractorController
 from ..extractor_module import ExtractorModule
 from ..extractor_view import ExtractorView
 from ..python_controller_writer import PythonControllerWriter
@@ -2533,6 +2534,10 @@ class CodeGeneratorWriter(models.Model):
                     )
                     module.module_file_sync[model] = ExtractorModule(
                         module, model, module.view_file_sync[model]
+                    )
+                    # TODO no need to keep memory
+                    ExtractorController(
+                        module, model, module.module_file_sync[model]
                     )
 
         for model in module.o2m_models:

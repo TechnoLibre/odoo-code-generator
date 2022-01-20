@@ -684,10 +684,17 @@ class CodeGeneratorWriter(models.Model):
                                     'value["enable_generate_website_snippet_javascript"]'
                                     " = True"
                                 )
+                                if (
+                                    module.template_generate_website_snippet_generic_model
+                                ):
+                                    cw.emit(
+                                        'value["generate_website_snippet_generic_model"]'
+                                        f' = "{module.template_generate_website_snippet_generic_model}"'
+                                    )
                                 cw.emit(
                                     'value["generate_website_snippet_type"] ='
-                                    ' "effect"  #'
-                                    " content,effect,feature,structure"
+                                    f' "{module.template_generate_website_snippet_type}"'
+                                    "  # content,effect,feature,structure"
                                 )
                             cw.emit(
                                 'value["enable_sync_template"] ='

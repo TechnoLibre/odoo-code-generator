@@ -12,8 +12,8 @@ _logger = logging.getLogger(__name__)
 
 
 class CodeGeneratorModule(models.Model):
-    _inherit = "ir.module.module"
     _name = "code.generator.module"
+    _inherit = "ir.module.module"
     _description = "Code Generator Module"
 
     name = fields.Char(readonly=False)

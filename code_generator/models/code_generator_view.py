@@ -33,6 +33,10 @@ class CodeGeneratorView(models.Model):
         help="Model related with this report",
     )
 
+    view_attr_class = fields.Char(string="Class attribute")
+
+    view_attr_string = fields.Char(string="String attribute")
+
     view_item_ids = fields.Many2many(
         comodel_name="code.generator.view.item",
         string="View item",
@@ -57,7 +61,3 @@ class CodeGeneratorView(models.Model):
         default="form",
         help="Choose view type to generate.",
     )
-
-    view_attr_string = fields.Char(string="String attribute")
-
-    view_attr_class = fields.Char(string="Class attribute")

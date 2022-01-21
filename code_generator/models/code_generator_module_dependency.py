@@ -2,8 +2,8 @@ from odoo import api, fields, models, modules, tools
 
 
 class CodeGeneratorModuleDependency(models.Model):
-    _inherit = "ir.module.module.dependency"
     _name = "code.generator.module.dependency"
+    _inherit = "ir.module.module.dependency"
     _description = "Code Generator Module Dependency"
 
     depend_id = fields.Many2one(

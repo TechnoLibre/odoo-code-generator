@@ -16,14 +16,6 @@ class CodeGeneratorIrModelFields(models.Model):
         help="Compute method to code_generator_writer.",
     )
 
-    is_show_whitelist_model_inherit = fields.Boolean(
-        string="Show in whitelist model inherit",
-        help=(
-            "If a field in model is in whitelist, will be show in generated"
-            " model."
-        ),
-    )
-
     filter_field_attribute = fields.Char(
         help=(
             "Separate by ; to enumerate your attribute to filter, like a"
@@ -31,13 +23,11 @@ class CodeGeneratorIrModelFields(models.Model):
         )
     )
 
-    selection = fields.Char(
-        string="Selection Options",
-        default="",
+    is_show_whitelist_model_inherit = fields.Boolean(
+        string="Show in whitelist model inherit",
         help=(
-            "List of options for a selection field, specified as a Python"
-            " expression defining a list of (key, label) pairs. For example:"
-            " [('blue','Blue'),('yellow','Yellow')]"
+            "If a field in model is in whitelist, will be show in generated"
+            " model."
         ),
     )
 
@@ -56,6 +46,16 @@ class CodeGeneratorIrModelFields(models.Model):
     nomenclature_blacklist = fields.Boolean(string="Ignore from nomenclature.")
 
     nomenclature_whitelist = fields.Boolean(string="Force to nomenclature.")
+
+    selection = fields.Char(
+        string="Selection Options",
+        default="",
+        help=(
+            "List of options for a selection field, specified as a Python"
+            " expression defining a list of (key, label) pairs. For example:"
+            " [('blue','Blue'),('yellow','Yellow')]"
+        ),
+    )
 
     @api.onchange("m2o_fields")
     def _change_m2o_fields(self):

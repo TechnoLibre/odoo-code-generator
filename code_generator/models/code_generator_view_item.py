@@ -5,7 +5,11 @@ class CodeGeneratorViewItem(models.Model):
     _name = "code.generator.view.item"
     _description = "Code Generator View Item"
 
+    name = fields.Char(help="name attribute")
+
     action_name = fields.Char(string="Action name")
+
+    aria_label = fields.Char(help="aria-label attribute")
 
     attrs = fields.Char(
         string="Attributes",
@@ -13,7 +17,7 @@ class CodeGeneratorViewItem(models.Model):
     )
 
     background_type = fields.Selection(
-        [
+        selection=[
             ("", ""),  # Default
             ("bg-success", "Success"),  # Default
             # ("bg-success-light", "Success light"),
@@ -35,7 +39,7 @@ class CodeGeneratorViewItem(models.Model):
     )
 
     button_type = fields.Selection(
-        [
+        selection=[
             ("", ""),  # Default
             ("btn-default", "Default"),  # Default
             ("btn-primary", "Primary"),
@@ -60,9 +64,12 @@ class CodeGeneratorViewItem(models.Model):
     class_attr = fields.Char(help="Update class attribute")
 
     colspan = fields.Integer(
-        default=1,
-        help="Use this to fill more column, check HTML table.",
+        default=1, help="Use this to fill more column, check HTML table."
     )
+
+    context = fields.Char(help="context attribute")
+
+    domain = fields.Char(help="domain attribute")
 
     edit_only = fields.Boolean(string="Edit only")
 
@@ -74,8 +81,7 @@ class CodeGeneratorViewItem(models.Model):
     )
 
     icon = fields.Char(
-        string="Icon",
-        help="Example fa-television. Only supported with button.",
+        help="Example fa-television. Only supported with button."
     )
 
     is_help = fields.Boolean(string="Help")
@@ -87,7 +93,7 @@ class CodeGeneratorViewItem(models.Model):
     is_required = fields.Boolean(string="Required")
 
     item_type = fields.Selection(
-        [
+        selection=[
             ("field", "Field"),
             ("button", "Button"),
             ("html", "HTML"),
@@ -107,7 +113,7 @@ class CodeGeneratorViewItem(models.Model):
     )
 
     # TODO create HTML for specific label
-    label = fields.Char(string="Label")
+    label = fields.Char()
 
     parent_id = fields.Many2one(
         comodel_name="code.generator.view.item",
@@ -119,7 +125,7 @@ class CodeGeneratorViewItem(models.Model):
     placeholder = fields.Char()
 
     position = fields.Selection(
-        [
+        selection=[
             ("inside", "Inside"),
             ("replace", "Replace"),
             ("after", "After"),
@@ -129,8 +135,10 @@ class CodeGeneratorViewItem(models.Model):
         ]
     )
 
+    role = fields.Char(help="role attribute")
+
     section_type = fields.Selection(
-        [
+        selection=[
             ("header", "Header"),
             ("title", "Title"),
             ("body", "Body"),
@@ -142,8 +150,16 @@ class CodeGeneratorViewItem(models.Model):
 
     sequence = fields.Integer(default=1)
 
+    t_attf_class = fields.Char(help="t-attf-class attribute")
+
+    t_if = fields.Char(help="t-if attribute")
+
+    t_name = fields.Char(help="t_name attribute")
+
+    title = fields.Char(help="title attribute")
+
     type = fields.Selection(
-        [
+        selection=[
             ("row", "Row"),
             ("col", "Col"),
             ("measure", "Measure"),
@@ -151,22 +167,4 @@ class CodeGeneratorViewItem(models.Model):
         help="Statistique type.",
     )
 
-    t_name = fields.Char(help="t_name attribute")
-
-    t_attf_class = fields.Char(help="t-attf-class attribute")
-
-    t_if = fields.Char(help="t-if attribute")
-
-    title = fields.Char(help="title attribute")
-
-    aria_label = fields.Char(help="aria-label attribute")
-
-    role = fields.Char(help="role attribute")
-
-    name = fields.Char(help="name attribute")
-
     widget = fields.Char(help="widget attribute")
-
-    domain = fields.Char(help="domain attribute")
-
-    context = fields.Char(help="context attribute")

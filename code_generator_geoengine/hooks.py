@@ -1,4 +1,4 @@
-from odoo import _, api, models, fields, SUPERUSER_ID
+from odoo import SUPERUSER_ID, _, api, fields, models
 
 
 def post_init_hook(cr, e):

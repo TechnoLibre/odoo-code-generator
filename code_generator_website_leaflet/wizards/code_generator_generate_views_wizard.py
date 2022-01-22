@@ -1,7 +1,8 @@
-from odoo import _, models, fields, api
-from odoo.models import MAGIC_COLUMNS
-from lxml.builder import E
 from lxml import etree as ET
+from lxml.builder import E
+
+from odoo import _, api, fields, models
+from odoo.models import MAGIC_COLUMNS
 
 MAGIC_FIELDS = MAGIC_COLUMNS + [
     "display_name",
@@ -136,22 +137,11 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
 
         self.code_generator_id.enable_generate_website_leaflet = True
 
-        # model_portal_mixin = self.env["ir.model"].search([("model", "=", "portal.mixin")])
-
         o2m_models = (
             self.code_generator_id.o2m_models
             if self.all_model
             else self.selected_model_website_leaflet_ids
         )
-
-        for model_id in o2m_models:
-            model_created_fields = model_id.field_id.filtered(
-                lambda field: field.name not in MAGIC_FIELDS
-            ).mapped("name")
-
-            # if model_portal_mixin:
-            #     # TODO update it instead of overwrite it
-            #     model_id.m2o_inherit_model = model_portal_mixin.id
 
         return True
 
@@ -164,33 +154,11 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             return
 
         for code_generator in self.code_generator_id:
-            lst_dependency = ["website"]
-            lst_actual_dependency = [
-                a.depend_id.name for a in code_generator.dependencies_id
-            ]
-            for depend in lst_dependency:
-                # check duplicate
-                if depend in lst_actual_dependency:
-                    continue
-                module = self.env["ir.module.module"].search(
-                    [("name", "=", depend)]
-                )
-                if len(module) > 1:
-                    raise Exception(f"Duplicated dependencies: {depend}")
-                elif not len(module):
-                    raise Exception(f"Cannot found dependency: {depend}")
-
-                value = {
-                    "module_id": code_generator.id,
-                    "depend_id": module.id,
-                    "name": module.display_name,
-                }
-                self.env["code.generator.module.dependency"].create(value)
+            code_generator.add_module_dependency("website")
 
     def _create_ui_view(
         self,
         content,
-        template_id,
         key,
         qweb_name,
         priority,

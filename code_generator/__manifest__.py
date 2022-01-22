@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 {
     "name": "Code Generator",
     "version": "12.0.0",
@@ -13,7 +11,7 @@
         " (bluisknot@gmail.com), Mathben (mathben@technolibre.ca)"
     ),
     "category": "Extra Tools",
-    "depends": ["base"],
+    "depends": ["base", "mail"],
     "installable": True,
     "data": [
         "security/code_generator.xml",
@@ -22,7 +20,7 @@
         "wizards/code_generator_add_model_wizard.xml",
         "wizards/code_generator_add_controller_wizard.xml",
         "views/code_generator.xml",
-        "views/code_generator_settings.xml",
+        "wizards/res_config_settings.xml",
         "views/ir_actions.xml",
         "views/ir_model.xml",
         "views/ir_uis.xml",

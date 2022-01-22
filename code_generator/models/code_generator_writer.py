@@ -1,28 +1,29 @@
-from odoo import models, fields, api
-
 import ast
+import base64
+import glob
+import io
+import logging
 import os
 import shutil
 import tempfile
-import logging
 import uuid
-import base64
-import glob
-from lxml.builder import E
-from lxml import etree as ET
 from collections import defaultdict
-from odoo.tools.misc import mute_logger
-import subprocess
-import html5print
-import xmlformatter
-from PIL import Image
-import io
 
-import xml.dom.minicompat
-from xml.dom import minidom, Node
-
+import unidecode
 from code_writer import CodeWriter
+from lxml import etree as ET
+from lxml.builder import E
+from PIL import Image
+
+from odoo import api, fields, models
 from odoo.models import MAGIC_COLUMNS
+from odoo.tools.misc import mute_logger
+
+from ..code_generator_data import CodeGeneratorData
+from ..extractor_controller import ExtractorController
+from ..extractor_module import ExtractorModule
+from ..extractor_view import ExtractorView
+from ..python_controller_writer import PythonControllerWriter
 
 _logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ BREAK_LINE_OFF = "\n"
 BREAK_LINE = ["\n"]
 XML_VERSION_HEADER = '<?xml version="1.0" encoding="utf-8"?>' + BREAK_LINE_OFF
 XML_VERSION = ['<?xml version="1.0" encoding="utf-8"?>']
+XML_VERSION_STR = '<?xml version="1.0"?>\n'
 XML_ODOO_OPENING_TAG = ["<odoo>"]
 XML_HEAD = XML_VERSION + XML_ODOO_OPENING_TAG
 XML_ODOO_CLOSING_TAG = ["</odoo>"]
@@ -55,1048 +57,19 @@ class CodeGeneratorWriter(models.Model):
     _name = "code.generator.writer"
     _description = "Code Generator Writer"
 
-    code_generator_ids = fields.Many2many(comodel_name="code.generator.module")
+    basename = fields.Char(string="Base name")
+
+    code_generator_ids = fields.Many2many(
+        comodel_name="code.generator.module",
+        string="Code Generator",
+    )
 
     list_path_file = fields.Char(
-        string="List path file", help="Value are separated by ;"
+        string="List path file",
+        help="Value are separated by ;",
     )
 
     rootdir = fields.Char(string="Root dir")
-
-    basename = fields.Char(string="Base name")
-
-    class ExtractorView:
-        def __init__(self, module, model_model):
-            self._module = module
-            self.view_ids = module.env["ir.ui.view"].search(
-                [("model", "=", model_model)]
-            )
-            self.code_generator_id = None
-            model_name = model_model.replace(".", "_")
-            self.var_model_name = f"model_{model_name}"
-            self.var_model = model_model
-            if self.view_ids:
-                # create temporary module
-                name = f"TEMP_{model_name}"
-                i = 1
-                while module.env["code.generator.module"].search(
-                    [("name", "=", name)]
-                ):
-                    name = f"TEMP_{i}_{model_name}"
-                    i += 1
-                value = {
-                    "name": name,
-                    "shortdesc": "None",
-                }
-                self.code_generator_id = module.env[
-                    "code.generator.module"
-                ].create(value)
-                self._parse_view_ids()
-                self._parse_menu()
-                self._parse_action_server()
-
-        def _parse_action_server(self):
-            # Search comment node associated to action_server
-            module = self._module
-            if not module.template_module_path_generated_extension:
-                return
-            relative_path_generated_module = (
-                module.template_module_path_generated_extension.replace(
-                    "'", ""
-                ).replace(", ", "/")
-            )
-            path_generated_module = os.path.normpath(
-                os.path.join(
-                    module.path_sync_code,
-                    relative_path_generated_module,
-                    module.template_module_name,
-                    "**",
-                    "*.xml",
-                )
-            )
-            lst_xml_file = glob.glob(path_generated_module)
-            for xml_file in lst_xml_file:
-                my_xml = minidom.parse(xml_file)
-                lst_record = my_xml.getElementsByTagName("record")
-                for record in lst_record:
-                    # detect action_server_backup
-                    searched_record = "model", "ir.actions.server"
-
-                    if searched_record in record.attributes.items():
-                        last_record = record.previousSibling.previousSibling
-                        if last_record.nodeType is Node.COMMENT_NODE:
-                            record_id = dict(record.attributes.items()).get(
-                                "id"
-                            )
-                            if not record_id:
-                                _logger.warning(
-                                    "Missing id when searching"
-                                    " ir.actions.server."
-                                )
-                                continue
-                            xml_id = (
-                                f"{module.template_module_name}.{record_id}"
-                            )
-                            result = self._module.env.ref(
-                                xml_id, raise_if_not_found=False
-                            )
-                            if result:
-                                result.comment = last_record.data.strip()
-
-        def _parse_menu(self):
-            ir_model_data_ids = self._module.env["ir.model.data"].search(
-                [
-                    ("model", "=", "ir.ui.menu"),
-                    ("module", "=", self._module.template_module_name),
-                ]
-            )
-            if not ir_model_data_ids:
-                return
-            lst_id_menu = [a.res_id for a in ir_model_data_ids]
-            menu_ids = self._module.env["ir.ui.menu"].browse(lst_id_menu)
-            for menu_id in menu_ids:
-
-                # TODO optimise request ir.model.data, this is duplicated
-                menu_action = None
-                if menu_id.action:
-                    # Create act_window
-                    menu_data_id = self._module.env["ir.model.data"].search(
-                        [
-                            ("model", "=", "ir.actions.act_window"),
-                            ("res_id", "=", menu_id.action.id),
-                        ]
-                    )
-                    dct_act_value = {
-                        "id_name": menu_data_id.name,
-                        "name": menu_id.action.name,
-                        "code_generator_id": self.code_generator_id.id,
-                    }
-                    menu_action = self._module.env[
-                        "code.generator.act_window"
-                    ].create(dct_act_value)
-                # Create menu
-                menu_data_id = self._module.env["ir.model.data"].search(
-                    [("model", "=", "ir.ui.menu"), ("res_id", "=", menu_id.id)]
-                )
-                dct_menu_value = {
-                    "code_generator_id": self.code_generator_id.id,
-                    "id_name": menu_data_id.name,
-                }
-                if menu_id.sequence != 10:
-                    dct_menu_value["sequence"] = menu_id.sequence
-                if menu_id.parent_id:
-                    menu_data_parent_id = self._module.env[
-                        "ir.model.data"
-                    ].search(
-                        [
-                            ("model", "=", "ir.ui.menu"),
-                            ("res_id", "=", menu_id.parent_id.id),
-                        ]
-                    )
-                    dct_menu_value[
-                        "parent_id_name"
-                    ] = menu_data_parent_id.complete_name
-
-                if menu_action:
-                    dct_menu_value["m2o_act_window"] = menu_action.id
-
-                self._module.env["code.generator.menu"].create(dct_menu_value)
-                # If need to associated
-                # menu_id.m2o_module = self._module.id
-
-        def _parse_view_ids(self):
-            for view_id in self.view_ids:
-                mydoc = minidom.parseString(view_id.arch_base.encode())
-
-                lst_view_item_id = []
-
-                # Sheet
-                lst_sheet_xml = mydoc.getElementsByTagName("sheet")
-                has_body_sheet = bool(lst_sheet_xml)
-                sheet_xml = lst_sheet_xml[0] if lst_sheet_xml else None
-                if len(lst_sheet_xml) > 1:
-                    _logger.warning("Cannot support multiple <sheet>.")
-
-                # Search header
-                header_xml = None
-                no_sequence = 1
-                lst_header_xml = mydoc.getElementsByTagName("header")
-                if len(lst_header_xml) > 1:
-                    _logger.warning("Cannot support multiple header.")
-                for header_xml in lst_header_xml:
-                    # TODO get inside attributes for header
-                    for child_header in header_xml.childNodes:
-                        if child_header.nodeType is Node.TEXT_NODE:
-                            data = child_header.data.strip()
-                            if data:
-                                _logger.warning("Not supported.")
-                        elif child_header.nodeType is Node.ELEMENT_NODE:
-                            self._extract_child_xml(
-                                child_header,
-                                lst_view_item_id,
-                                "header",
-                                sequence=no_sequence,
-                            )
-
-                # Search title
-                no_sequence = 1
-                nb_oe_title = 0
-                div_title = None
-                for div_xml in mydoc.getElementsByTagName("div"):
-                    # Find oe_title class
-                    # TODO what todo when multiple class? split by ,
-                    for key, value in div_xml.attributes.items():
-                        if key == "class" and value == "oe_title":
-                            div_title = div_xml
-                            nb_oe_title += 1
-                            if nb_oe_title > 1:
-                                _logger.warning(
-                                    "Cannot support multiple class oe_title."
-                                )
-                                continue
-                            # TODO support multiple element in title
-                            lst_field = div_xml.getElementsByTagName("field")
-                            if not lst_field:
-                                _logger.warning(
-                                    "Not supported title without field, TODO."
-                                )
-                            elif len(lst_field) > 1:
-                                _logger.warning(
-                                    "Not supported title without multiple"
-                                    " field, TODO."
-                                )
-                            else:
-                                dct_field_attrs = dict(
-                                    div_xml.getElementsByTagName("field")[
-                                        0
-                                    ].attributes.items()
-                                )
-                                name = dct_field_attrs.get("name")
-                                if not name:
-                                    _logger.warning(
-                                        "Cannot identify field type in title."
-                                    )
-                                else:
-                                    dct_attributes = {
-                                        "action_name": name,
-                                        "section_type": "title",
-                                        "item_type": "field",
-                                        "sequence": no_sequence,
-                                    }
-                                    view_item_id = self._module.env[
-                                        "code.generator.view.item"
-                                    ].create(dct_attributes)
-                                    lst_view_item_id.append(view_item_id.id)
-                                    no_sequence += 1
-
-                lst_body_xml = []
-                # Detect
-                lst_form_xml = mydoc.getElementsByTagName("form")
-                lst_search_xml = mydoc.getElementsByTagName("search")
-                lst_tree_xml = mydoc.getElementsByTagName("tree")
-                lst_content = lst_form_xml + lst_search_xml + lst_tree_xml
-                if not lst_content:
-                    _logger.warning("Cannot find <form>.")
-                elif len(lst_content) > 1:
-                    _logger.warning(
-                        "Cannot support multiple <form>/<tree>/<search."
-                    )
-                else:
-                    form_xml = lst_content[0]
-                    for child_form in form_xml.childNodes:
-                        if child_form.nodeType is Node.TEXT_NODE:
-                            data = child_form.data.strip()
-                            if data:
-                                _logger.warning("Not supported.")
-                        elif child_form.nodeType is Node.ELEMENT_NODE:
-                            if (
-                                child_form == div_title
-                                or child_form == header_xml
-                                or child_form == sheet_xml
-                            ):
-                                continue
-                            if has_body_sheet:
-                                _logger.warning(
-                                    "How can find body xml outside of his"
-                                    " sheet?"
-                                )
-                            else:
-                                lst_body_xml.append(child_form)
-
-                if lst_sheet_xml:
-                    # TODO validate this, test with and without <sheet>
-                    if type(lst_sheet_xml) is xml.dom.minicompat.NodeList:
-                        lst_body_xml = [a for a in lst_sheet_xml[0].childNodes]
-                    else:
-                        lst_body_xml = [a for a in lst_sheet_xml.childNodes]
-                sequence = 1
-                lst_node = []
-                for body_xml in lst_body_xml:
-                    if body_xml.nodeType is Node.TEXT_NODE:
-                        data = body_xml.data.strip()
-                        if data:
-                            _logger.warning("Not supported.")
-                    elif body_xml.nodeType is Node.ELEMENT_NODE:
-                        status = self._extract_child_xml(
-                            body_xml,
-                            lst_view_item_id,
-                            "body",
-                            lst_node=lst_node,
-                            sequence=sequence,
-                        )
-                        if status:
-                            lst_node.append(body_xml)
-                        else:
-                            lst_node = []
-                        sequence += 1
-                if lst_node:
-                    _logger.warning("Missing node in buffer.")
-
-                value = {
-                    "code_generator_id": self.code_generator_id.id,
-                    "view_type": view_id.type,
-                    # "view_name": "view_backup_conf_form",
-                    # "m2o_model": model_db_backup.id,
-                    "view_item_ids": [(6, 0, lst_view_item_id)],
-                    "has_body_sheet": has_body_sheet,
-                }
-
-                # ID
-                ir_model_data = self._module.env["ir.model.data"].search(
-                    [
-                        ("model", "=", "ir.ui.view"),
-                        ("res_id", "=", view_id.id),
-                    ]
-                )
-                if ir_model_data:
-                    first_name = ir_model_data[0].name
-                    if len(ir_model_data) > 1:
-                        _logger.warning(
-                            f"Duplicated view model id {first_name}"
-                        )
-                    value["id_name"] = first_name
-                view_code_generator = self._module.env[
-                    "code.generator.view"
-                ].create(value)
-
-        def _extract_child_xml(
-            self,
-            node,
-            lst_view_item_id,
-            section_type,
-            lst_node=[],
-            parent=None,
-            sequence=1,
-        ):
-            """
-
-            :param node:
-            :param lst_view_item_id:
-            :param section_type:
-            :param parent:
-            :param sequence:
-            :return: when True, cumulate the node in lst_node for next run, else None
-            """
-            # From background_type
-            lst_key_html_class = (
-                "bg-success",
-                "bg-success-full",
-                "bg-warning",
-                "bg-warning-full",
-                "bg-info",
-                "bg-info-full",
-                "bg-danger",
-                "bg-danger-full",
-                "bg-light",
-                "bg-dark",
-            )
-            dct_key_keep = {
-                "name": "action_name",
-                "string": "label",
-                "attrs": "attrs",
-            }
-            dct_attributes = {
-                "section_type": section_type,
-                "item_type": node.nodeName,
-                "sequence": sequence,
-            }
-
-            if parent:
-                dct_attributes["parent_id"] = parent.id
-
-            if node.nodeName in ("group", "div"):
-                if lst_node:
-                    # Check cached of nodes
-                    # maybe help node
-                    for cached_node in lst_node:
-                        # TODO need to check nodeName == "separator" ?
-                        for key, value in cached_node.attributes.items():
-                            if key == "string" and value == "Help":
-                                dct_attributes["is_help"] = True
-                            elif key == "colspan" and value != 1:
-                                dct_attributes["colspan"] = value
-                    dct_attributes["label"] = "\n".join(
-                        [a.strip() for a in node.toxml().split("\n")[1:-1]]
-                    )
-                    dct_attributes["item_type"] = "html"
-                else:
-                    for key, value in node.attributes.items():
-                        if key == "class" and value in lst_key_html_class:
-                            # not a real div, it's an html part
-                            dct_attributes["item_type"] = "html"
-                            dct_attributes["background_type"] = value
-                            text_html = ""
-                            for child in node.childNodes:
-                                # ignore element, only get text
-                                if child.nodeType is Node.TEXT_NODE:
-                                    data = child.data.strip()
-                                    if data:
-                                        text_html += data
-                                elif child.nodeType is Node.ELEMENT_NODE:
-                                    continue
-                            dct_attributes["label"] = text_html
-
-            elif node.nodeName == "button":
-                dct_key_keep["class"] = "button_type"
-                for key, value in node.attributes.items():
-                    if key == "icon":
-                        dct_attributes["icon"] = value
-            elif node.nodeName == "field":
-                for key, value in node.attributes.items():
-                    if key == "password":
-                        dct_attributes["password"] = value
-                    if key == "placeholder":
-                        dct_attributes["placeholder"] = value
-            elif node.nodeName == "separator":
-                # Accumulate nodes
-                return True
-            else:
-                _logger.warning(f"Unknown this case '{node.nodeName}'.")
-                return
-
-            # TODO use external function to get attributes items to remove duplicate code, search "node.attributes.items()"
-            for key, value in node.attributes.items():
-                attributes_name = dct_key_keep.get(key)
-                if attributes_name:
-                    dct_attributes[attributes_name] = value
-            # TODO validate dct_attributes has all needed key with dct_key_keep (except button_type)
-            view_item_id = self._module.env["code.generator.view.item"].create(
-                dct_attributes
-            )
-            lst_view_item_id.append(view_item_id.id)
-            sequence += 1
-
-            # Child, except HTML
-            if dct_attributes["item_type"] != "html":
-                child_sequence = 1
-                for child in node.childNodes:
-                    if child.nodeType is Node.TEXT_NODE:
-                        data = child.data.strip()
-                        if data:
-                            _logger.warning("Not supported.")
-                    elif child.nodeType is Node.ELEMENT_NODE:
-                        self._extract_child_xml(
-                            child,
-                            lst_view_item_id,
-                            section_type,
-                            parent=view_item_id,
-                            sequence=child_sequence,
-                        )
-                        child_sequence += 1
-
-    class ExtractorModule:
-        def __init__(self, module, model_model):
-            self.is_enabled = False
-            self.working_directory = module.path_sync_code
-            self.module = module
-            self.model = model_model
-            self.model_id = module.env["ir.model"].search(
-                [("model", "=", model_model)], limit=1
-            )
-            self.dct_model = {}
-            self.py_filename = ""
-            if not module.template_module_path_generated_extension:
-                return
-            relative_path_generated_module = (
-                module.template_module_path_generated_extension.replace(
-                    "'", ""
-                ).replace(", ", "/")
-            )
-            template_directory = os.path.normpath(
-                os.path.join(
-                    module.path_sync_code,
-                    relative_path_generated_module,
-                    module.template_module_name,
-                )
-            )
-            manifest_file_path = os.path.normpath(
-                os.path.join(
-                    template_directory,
-                    "__manifest__.py",
-                )
-            )
-
-            if module.template_module_id and os.path.isfile(
-                manifest_file_path
-            ):
-                with open(manifest_file_path, "r") as source:
-                    lst_line = source.readlines()
-                    i = 0
-                    for line in lst_line:
-                        if line.startswith("{"):
-                            break
-                        i += 1
-                str_line = "".join(lst_line[:i]).strip()
-                module.template_module_id.header_manifest = str_line
-                dct_data = ast.literal_eval("".join(lst_line[i:]).strip())
-                external_dep = dct_data.get("external_dependencies")
-                if external_dep:
-                    if type(external_dep) is dict:
-                        for key, lst_value in external_dep.items():
-                            if type(lst_value) is list:
-                                for value in lst_value:
-                                    v = {
-                                        "module_id": module.id,
-                                        "depend": value,
-                                        "application_type": key,
-                                        "is_template": True,
-                                    }
-                                    self.module.env[
-                                        "code.generator.module.external.dependency"
-                                    ].create(v)
-                            else:
-                                _logger.warning(
-                                    "Unknown value type external_dependencies"
-                                    f" in __manifest__ key {key}, value"
-                                    f" {value}."
-                                )
-                    else:
-                        _logger.warning(
-                            "Unknown external_dependencies in __manifest__"
-                            f" {external_dep}"
-                        )
-
-            elif not module.template_module_id:
-                _logger.warning(
-                    "Missing template_module_id in module to extract"
-                    " information."
-                )
-            elif not os.path.isfile(manifest_file_path):
-                _logger.warning(
-                    "Missing __manifest__.py file in directory"
-                    f" '{template_directory}' to extract information."
-                )
-
-            path_generated_module = os.path.normpath(
-                os.path.join(
-                    module.path_sync_code,
-                    relative_path_generated_module,
-                    module.template_module_name,
-                    "**",
-                    "*.py",
-                )
-            )
-            lst_py_file = glob.glob(path_generated_module)
-            if not lst_py_file:
-                return
-            class_model_ast = None
-            for py_file in lst_py_file:
-                filename = py_file.split("/")[-1]
-                if filename == "__init__.py":
-                    continue
-                with open(py_file, "r") as source:
-                    f_lines = source.read()
-                    lst_lines = f_lines.split("\n")
-                    f_ast = ast.parse(f_lines)
-                    class_model_ast = self.search_class_model(f_ast)
-                    if class_model_ast:
-                        self.py_filename = filename
-                        break
-            if class_model_ast:
-                self.search_field(class_model_ast)
-                # Fill method
-                self.search_import(lst_lines)
-                self.search_method(class_model_ast, lst_lines, module)
-            self.is_enabled = True
-
-        def search_class_model(self, f_ast):
-            for children in f_ast.body:
-                # TODO check bases of class if equal models.Model for better performance
-                if type(children) == ast.ClassDef:
-                    # Detect good _name
-                    for node in children.body:
-                        if (
-                            type(node) is ast.Assign
-                            and node.targets
-                            and node.targets[0].id == "_name"
-                            and node.value.s == self.model
-                        ):
-                            return children
-
-        def extract_lambda(self, node):
-            args = ", ".join([a.arg for a in node.args.args])
-            value = ""
-            if type(node.body) is ast.Call:
-                # Support -> lambda self: self._default_folder()
-                body = node.body.func
-                value = f"{body.value.id}.{body.attr}()"
-            else:
-                _logger.error("Lambda not supported.")
-            return f"lambda {args}: {value}"
-
-        def _fill_search_field(self, ast_obj, var_name=""):
-            ast_obj_type = type(ast_obj)
-            if ast_obj_type is ast.Str:
-                result = ast_obj.s
-            elif ast_obj_type is ast.Lambda:
-                result = self.extract_lambda(ast_obj)
-            elif ast_obj_type is ast.NameConstant:
-                result = ast_obj.value
-            elif ast_obj_type is ast.Num:
-                result = ast_obj.n
-            elif ast_obj_type is ast.List:
-                lst_value = [
-                    self._fill_search_field(a, var_name) for a in ast_obj.elts
-                ]
-                result = lst_value
-            elif ast_obj_type is ast.Tuple:
-                lst_value = [
-                    self._fill_search_field(a, var_name) for a in ast_obj.elts
-                ]
-                result = tuple(lst_value)
-            else:
-                # TODO missing ast.Dict?
-                result = None
-                _logger.error(
-                    f"Cannot support keyword of variable {var_name} type"
-                    f" {ast_obj_type} in filename {self.py_filename}."
-                )
-            return result
-
-        def search_field(self, class_model_ast):
-            dct_field = {}
-            self.dct_model[self.model] = dct_field
-            sequence = -1
-            for node in class_model_ast.body:
-                sequence += 1
-                if (
-                    type(node) is ast.Assign
-                    and type(node.value) is ast.Call
-                    and node.value.func.value.id == "fields"
-                ):
-                    var_name = node.targets[0].id
-                    d = {
-                        "type": node.value.func.attr,
-                        "sequence": sequence,
-                    }
-                    for keyword in node.value.keywords:
-                        value = self._fill_search_field(
-                            keyword.value, var_name
-                        )
-                        # Waste to stock None value
-                        if value is not None:
-                            d[keyword.arg] = value
-
-                    dct_field[var_name] = d
-
-        def _extract_decorator(self, decorator_list):
-            str_decorator = ""
-            for dec in decorator_list:
-                if type(dec) is ast.Attribute:
-                    v = f"@{dec.value.id}.{dec.attr}"
-                elif type(dec) is ast.Call:
-                    args = [
-                        f'\\"{self._fill_search_field(a)}\\"' for a in dec.args
-                    ]
-                    str_arg = ", ".join(args)
-                    v = f"@{dec.func.value.id}.{dec.func.attr}({str_arg})"
-                elif type(dec) is ast.Name:
-                    v = f"@{dec.id}"
-                else:
-                    _logger.warning(
-                        f"Decorator type {type(dec)} not supported."
-                    )
-                    v = None
-
-                if v:
-                    if str_decorator:
-                        str_decorator += f";{v}"
-                    else:
-                        str_decorator = v
-            return str_decorator
-
-        def _write_exact_argument(self, value):
-            str_args = ""
-            if type(value) is ast.arg:
-                if hasattr(value, "is_vararg") and value.is_vararg:
-                    str_args += "*"
-                if hasattr(value, "is_kwarg") and value.is_kwarg:
-                    str_args += "**"
-                str_args += value.arg
-                if value.annotation:
-                    str_args += f": {value.annotation.id}"
-            else:
-                v = self._fill_search_field(value)
-                if type(v) is str:
-                    str_args += f"='{v}'"
-                else:
-                    str_args += f"={v}"
-            return str_args
-
-        def _extract_argument(self, ast_argument):
-            dct_args = {}
-            # Need to regroup different element in order
-            # Create dict with all element
-            if ast_argument.args:
-                for arg in ast_argument.args:
-                    dct_args[f"{arg.lineno}-{arg.col_offset}"] = arg
-            if ast_argument.defaults:
-                for arg in ast_argument.defaults:
-                    dct_args[f"{arg.lineno}-{arg.col_offset}"] = arg
-            if ast_argument.kwonlyargs:
-                for arg in ast_argument.kwonlyargs:
-                    dct_args[f"{arg.lineno}-{arg.col_offset}"] = arg
-            if ast_argument.kw_defaults:
-                for arg in ast_argument.kw_defaults:
-                    dct_args[f"{arg.lineno}-{arg.col_offset}"] = arg
-            if ast_argument.vararg:
-                arg = ast_argument.vararg
-                arg.is_vararg = True
-                dct_args[f"{arg.lineno}-{arg.col_offset}"] = arg
-            if ast_argument.kwarg:
-                arg = ast_argument.kwarg
-                arg.is_kwarg = True
-                dct_args[f"{arg.lineno}-{arg.col_offset}"] = arg
-
-            # Regroup all extra associated with arg
-            str_args = ""
-            lst_key_sorted = sorted(dct_args.keys())
-            lst_group_arg = []
-            last_lst_item = []
-            for key in lst_key_sorted:
-                value = dct_args[key]
-                if type(value) is ast.arg:
-                    # new item
-                    last_lst_item = [value]
-                    lst_group_arg.append(last_lst_item)
-                else:
-                    last_lst_item.append(value)
-
-            # Recreate string of argument
-            for lst_value in lst_group_arg[:-1]:
-                for value in lst_value:
-                    str_args += self._write_exact_argument(value)
-                str_args += ", "
-            last_value = lst_group_arg[-1]
-            if last_value:
-                for value in last_value:
-                    str_args += self._write_exact_argument(value)
-            return str_args
-
-        def _get_nb_line_multiple_string(
-            self, item, lst_line, i_lineno, extra_size=2
-        ):
-            str_size = len(item.s)
-            line_size = len(lst_line[i_lineno - 1].strip())
-            if line_size != str_size + extra_size:
-                # Try detect multiline string with pending technique like
-                # """test1"""
-                # """test2"""
-                # This will be """test1test2"""
-                # or
-                # "test1"
-                # "test2"
-                # This will be "test1test2"
-                # So if next line is bigger size then full string, it's the end of multiple string line
-                i = 0
-                line_size += len(lst_line[i_lineno + i].strip())
-                while line_size < str_size + extra_size:
-                    i += 1
-                i_lineno += i + 1
-            return i_lineno
-
-        def _get_recursive_lineno(self, item, set_lineno, lst_line):
-            if hasattr(item, "lineno"):
-                lineno = getattr(item, "lineno")
-                if lineno:
-                    i_lineno = item.lineno
-                    if type(item) is ast.Str:
-                        if "\n" in item.s:
-                            # -1 to ignore last \n
-                            i_lineno = item.lineno - item.s.count("\n")
-                        elif lst_line[i_lineno - 1][-3:] == '"""':
-                            i_lineno = self._get_nb_line_multiple_string(
-                                item, lst_line, i_lineno, extra_size=6
-                            )
-                        elif lst_line[i_lineno - 1][-1] == '"':
-                            i_lineno = self._get_nb_line_multiple_string(
-                                item, lst_line, i_lineno
-                            )
-                    set_lineno.add(i_lineno)
-
-            if hasattr(item, "body"):
-                lst_body = getattr(item, "body")
-                if lst_body:
-                    if type(lst_body) is list:
-                        for body in lst_body:
-                            if body:
-                                self._get_recursive_lineno(
-                                    body, set_lineno, lst_line
-                                )
-                    elif type(lst_body) is ast.Compare:
-                        self._get_recursive_lineno(
-                            lst_body, set_lineno, lst_line
-                        )
-                    else:
-                        _logger.warning(
-                            "From get recursive body unknown type"
-                            f" {type(lst_body)}."
-                        )
-
-            if hasattr(item, "finalbody"):
-                lst_final_body = getattr(item, "finalbody")
-                if lst_final_body:
-                    if type(lst_final_body) is list:
-                        for final_body in lst_final_body:
-                            if final_body:
-                                self._get_recursive_lineno(
-                                    final_body, set_lineno, lst_line
-                                )
-                    elif type(lst_final_body) is ast.Compare:
-                        self._get_recursive_lineno(
-                            lst_final_body, set_lineno, lst_line
-                        )
-                    else:
-                        _logger.warning(
-                            "From get recursive finalbody unknown type"
-                            f" {type(lst_final_body)}."
-                        )
-
-            if hasattr(item, "orelse"):
-                lst_orelse = getattr(item, "orelse")
-                if lst_orelse:
-                    if type(lst_orelse) is list:
-                        for orelse in lst_orelse:
-                            if orelse:
-                                self._get_recursive_lineno(
-                                    orelse, set_lineno, lst_line
-                                )
-                    # elif type(lst_body) is ast.Compare:
-                    #     self._get_recursive_lineno(lst_body, set_lineno, lst_line)
-                    else:
-                        _logger.warning(
-                            "From get recursive orelse unknown type"
-                            f" {type(lst_orelse)}."
-                        )
-
-            if hasattr(item, "handlers"):
-                lst_handlers = getattr(item, "handlers")
-                if lst_handlers:
-                    if type(lst_handlers) is list:
-                        for handlers in lst_handlers:
-                            if handlers:
-                                self._get_recursive_lineno(
-                                    handlers, set_lineno, lst_line
-                                )
-                    elif type(lst_handlers) is ast.arguments:
-                        self._get_recursive_lineno(
-                            lst_handlers, set_lineno, lst_line
-                        )
-                    else:
-                        _logger.warning(
-                            "From get recursive handlers unknown type"
-                            f" {type(lst_handlers)}."
-                        )
-
-            if hasattr(item, "test"):
-                test = getattr(item, "test")
-                if test:
-                    self._get_recursive_lineno(test, set_lineno, lst_line)
-
-            if hasattr(item, "right"):
-                right = getattr(item, "right")
-                if right:
-                    self._get_recursive_lineno(right, set_lineno, lst_line)
-
-            if hasattr(item, "left"):
-                left = getattr(item, "left")
-                if left:
-                    self._get_recursive_lineno(left, set_lineno, lst_line)
-
-            if hasattr(item, "value"):
-                value = getattr(item, "value")
-                if value:
-                    self._get_recursive_lineno(value, set_lineno, lst_line)
-
-            if hasattr(item, "exc"):
-                exc = getattr(item, "exc")
-                if exc:
-                    self._get_recursive_lineno(exc, set_lineno, lst_line)
-
-            if hasattr(item, "ctx"):
-                ctx = getattr(item, "ctx")
-                if ctx:
-                    self._get_recursive_lineno(ctx, set_lineno, lst_line)
-
-            if hasattr(item, "func"):
-                func = getattr(item, "func")
-                if func:
-                    self._get_recursive_lineno(func, set_lineno, lst_line)
-
-            if hasattr(item, "args"):
-                lst_args = getattr(item, "args")
-                if lst_args:
-                    if type(lst_args) is list:
-                        for args in lst_args:
-                            if args:
-                                self._get_recursive_lineno(
-                                    args, set_lineno, lst_line
-                                )
-                    elif type(lst_args) is ast.arguments:
-                        self._get_recursive_lineno(
-                            lst_args, set_lineno, lst_line
-                        )
-                    else:
-                        _logger.warning(
-                            "From get recursive args unknown type"
-                            f" {type(lst_args)}."
-                        )
-
-            if hasattr(item, "elts"):
-                lst_elts = getattr(item, "elts")
-                if lst_elts:
-                    if type(lst_elts) is list:
-                        for elts in lst_elts:
-                            if elts:
-                                self._get_recursive_lineno(
-                                    elts, set_lineno, lst_line
-                                )
-                    elif type(lst_elts) is ast.arguments:
-                        self._get_recursive_lineno(
-                            lst_elts, set_lineno, lst_line
-                        )
-                    else:
-                        _logger.warning(
-                            "From get recursive elts unknown type"
-                            f" {type(lst_elts)}."
-                        )
-
-        def _get_min_max_no_line(self, node, lst_line):
-            # hint node.name == ""
-            set_lineno = set()
-            for body in node.body:
-                self._get_recursive_lineno(body, set_lineno, lst_line)
-            return min(set_lineno), max(set_lineno)
-
-        def search_import(self, lst_line):
-            # get all line until meet "class "
-            i = 0
-            for line in lst_line:
-                if line.startswith("class "):
-                    break
-                i += 1
-            else:
-                _logger.warning(
-                    "Don't know what to do when missing class in python"
-                    " file..."
-                )
-
-            str_code = "\n".join(lst_line[:i])
-            d = {
-                "m2o_model": self.model_id.id,
-                "m2o_module": self.module.id,
-                "code": str_code.strip(),
-                "name": "header",
-                "is_templated": True,
-            }
-            self.module.env["code.generator.model.code.import"].create(d)
-
-        def search_method(self, class_model_ast, lst_line, module):
-            sequence = -1
-            lst_body = [a for a in class_model_ast.body]
-            for i in range(len(lst_body)):
-                node = lst_body[i]
-                if i + 1 < len(lst_body):
-                    next_node = lst_body[i + 1]
-                else:
-                    next_node = None
-                if type(node) is ast.Assign:
-                    if node.targets:
-                        if node.targets[0].id == "_description":
-                            value = self._fill_search_field(node.value)
-                            self.model_id.description = value
-                        elif node.targets[0].id == "_inherit":
-                            value = self._fill_search_field(node.value)
-                            model_id = module.env["ir.model"].search(
-                                [("model", "=", value)]
-                            )
-                            if not model_id:
-                                _logger.warning(
-                                    f"Cannot identify model {value}."
-                                )
-                            else:
-                                self.model_id.m2o_inherit_model = model_id.id
-                        elif node.targets[0].id == "_sql_constraints":
-                            lst_value = self._fill_search_field(node.value)
-                            constraint_ids = module.env[
-                                "ir.model.constraint"
-                            ].search(
-                                [("module", "=", module.template_module_id.id)]
-                            )
-                            model_name = self.model_id.model.replace(".", "_")
-                            for value in lst_value:
-                                name = value[0]
-                                db_name = f"{model_name}_{name}"
-                                definition = value[1]
-                                message = value[2]
-                                _logger.warning(
-                                    "Ignore next error about ALTER TABLE DROP"
-                                    " CONSTRAINT."
-                                )
-                                constraint_id = constraint_ids.search(
-                                    [("name", "=", db_name)]
-                                )
-                                if constraint_id:
-                                    constraint_id.definition = definition
-                                    constraint_id.message = message
-                elif type(node) is ast.FunctionDef:
-                    sequence += 1
-                    d = {
-                        "m2o_model": self.model_id.id,
-                        "m2o_module": self.module.id,
-                        "name": node.name,
-                        "sequence": sequence,
-                        "is_templated": True,
-                    }
-                    if node.args:
-                        d["param"] = self._extract_argument(node.args)
-                    if node.returns:
-                        d["returns"] = node.returns.id
-                    if node.decorator_list:
-                        str_decorator = self._extract_decorator(
-                            node.decorator_list
-                        )
-                        d["decorator"] = str_decorator
-                    no_line_min, no_line_max = self._get_min_max_no_line(
-                        node, lst_line
-                    )
-                    # Ignore this no_line_max, bug some times.
-                    # no_line_min = min([a.lineno for a in node.body])
-                    if next_node:
-                        no_line_max = next_node.lineno - 1
-                    else:
-                        # TODO this will bug with multiple class
-                        no_line_max = len(lst_line)
-                    codes = ""
-                    for line in lst_line[no_line_min - 1 : no_line_max]:
-                        if line.startswith(" " * 8):
-                            str_line = line[8:]
-                        else:
-                            str_line = line
-                        codes += f"{str_line}\n"
-                    # codes = "\n".join(lst_line[no_line_min - 1:no_line_max])
-                    d["code"] = codes.strip()
-                    self.module.env["code.generator.model.code"].create(d)
 
     @staticmethod
     def _fmt_underscores(word):
@@ -1156,7 +129,7 @@ class CodeGeneratorWriter(models.Model):
 
         while new_v.count("__"):
             new_v = new_v.replace("__", "_")
-        return new_v
+        return unidecode.unidecode(new_v)
 
     def _get_model_model(self, model_model, replacee="."):
         """
@@ -1346,12 +319,14 @@ class CodeGeneratorWriter(models.Model):
                     static_description_icon_code_generator_path,
                     base64.b64decode(module.icon_child_image),
                 )
-        elif module.icon_image or True:
+        else:
+            # elif module.icon_image:
 
             # TODO use this when fix loading picture, now temporary disabled and force use icon from menu
             # self.code_generator_data.write_file_binary(static_description_icon_path,
             # base64.b64decode(module.icon_image))
             # TODO temp solution with icon from menu
+            icon_path = ""
             if module.icon and os.path.isfile(module.icon):
                 with open(module.icon, "rb") as file:
                     content = file.read()
@@ -1372,6 +347,12 @@ class CodeGeneratorWriter(models.Model):
                 module.template_module_id
                 and module.template_module_id.icon_image
             ):
+                if not icon_path:
+                    _logger.error("Icon path is empty.")
+                    return ""
+                if not os.path.exists(icon_path):
+                    _logger.error(f"Icon path {icon_path} doesn't exist.")
+                    return ""
                 # It's a template generator
                 minimal_size_width = 350
                 # Add logo in small corner
@@ -1418,8 +399,8 @@ class CodeGeneratorWriter(models.Model):
                     static_description_icon_path, content
                 )
                 module.icon_real_image = base64.b64encode(content)
-        else:
-            static_description_icon_path = ""
+        # else:
+        #     static_description_icon_path = ""
 
         return static_description_icon_path
 
@@ -1516,13 +497,14 @@ class CodeGeneratorWriter(models.Model):
                 file.write(data)
 
     def copy_missing_file(
-        self, module_name, module_path, template_dir, lst_file_extra=[]
+        self, module_name, module_path, template_dir, lst_file_extra=None
     ):
         """
         This function will create and copy file into template module.
         :param module_name:
         :param module_path:
         :param template_dir:
+        :param lst_file_extra:
         :return:
         """
         # TODO bad conception, this method not suppose to be here, move this before generate code
@@ -1559,17 +541,18 @@ class CodeGeneratorWriter(models.Model):
         target_tests_dir_path = os.path.join(template_copied_dir, "tests")
         shutil.copytree(tests_dir_path, target_tests_dir_path)
 
-        for file_extra in lst_file_extra:
-            # Special if exist, mail_message_subtype.xml
-            mail_data_xml_path = os.path.join(module_path, file_extra)
-            target_mail_data_xml_path = os.path.join(
-                template_copied_dir, file_extra
-            )
-            if os.path.isfile(mail_data_xml_path):
-                CodeGeneratorData.check_mkdir_and_create(
-                    target_mail_data_xml_path
+        if lst_file_extra:
+            for file_extra in lst_file_extra:
+                # Special if existing, mail_message_subtype.xml
+                mail_data_xml_path = os.path.join(module_path, file_extra)
+                target_mail_data_xml_path = os.path.join(
+                    template_copied_dir, file_extra
                 )
-                shutil.copy(mail_data_xml_path, target_mail_data_xml_path)
+                if os.path.isfile(mail_data_xml_path):
+                    CodeGeneratorData.check_mkdir_and_create(
+                        target_mail_data_xml_path
+                    )
+                    shutil.copy(mail_data_xml_path, target_mail_data_xml_path)
 
     def _set_manifest_file(self, module):
         """
@@ -1898,18 +881,25 @@ class CodeGeneratorWriter(models.Model):
         """
         return f"action_{self._lower_replace(action.name)}"
 
-    def _get_menu_data_name(self, menu):
+    def _get_menu_data_name(
+        self, menu, ignore_module=False, ignore_module_name=None
+    ):
         """
         Function to obtain the res_id-like menu name
         :param menu:
         :return:
         """
 
-        return (
-            self._get_ir_model_data(menu)
-            if self._get_ir_model_data(menu)
-            else self._lower_replace(menu.name)
-        )
+        menu_name = self._get_ir_model_data(menu)
+        if menu_name:
+            if "." in menu_name:
+                module_name, menu_name_short = menu_name.split(".")
+                if ignore_module or (
+                    ignore_module_name and ignore_module_name == module_name
+                ):
+                    return menu_name_short
+            return menu_name
+        return self._lower_replace(menu.name)
 
     def _set_model_xmldata_file(self, module, model, model_model):
         """
@@ -1964,6 +954,7 @@ class CodeGeneratorWriter(models.Model):
                 if rfield.id in lst_field_id_blacklist:
                     continue
                 record_value = getattr(record, rfield.name)
+                child = None
                 if record_value or (
                     not record_value
                     and rfield.ttype == "boolean"
@@ -1992,17 +983,17 @@ class CodeGeneratorWriter(models.Model):
                         # TODO do we need to export one2many relation data, it's better to export many2one
                         # TODO maybe check if many2one is exported or export this one
                         continue
-                        field_eval = ", ".join(
-                            record_value.mapped(
-                                lambda rvalue: "(4, ref('%s'))"
-                                % self._get_ir_model_data(
-                                    rvalue, give_a_default=True
-                                )
-                            )
-                        )
-                        child = E.field(
-                            {"name": rfield.name, "eval": f"[{field_eval}]"}
-                        )
+                        # field_eval = ", ".join(
+                        #     record_value.mapped(
+                        #         lambda rvalue: "(4, ref('%s'))"
+                        #         % self._get_ir_model_data(
+                        #             rvalue, give_a_default=True
+                        #         )
+                        #     )
+                        # )
+                        # child = E.field(
+                        #     {"name": rfield.name, "eval": f"[{field_eval}]"}
+                        # )
 
                     elif rfield.ttype == "many2many":
                         # TODO add dependencies id in lst_depend
@@ -2049,7 +1040,7 @@ class CodeGeneratorWriter(models.Model):
                             {"name": rfield.name}, str(record_value)
                         )
 
-                    if not delete_node:
+                    if not delete_node and child is not None:
                         lst_field.append(child)
 
             # TODO delete this comment, check why no need anymore rec_name
@@ -2099,73 +1090,80 @@ class CodeGeneratorWriter(models.Model):
 
         application_icon = None
         menus = module.with_context({"ir.ui.menu.full_list": True}).o2m_menus
-        lst_menu = []
-        max_loop = 500
-        i = 0
-        lst_items = [a for a in menus]
-        origin_lst_items = lst_items[:]
-        # Sorted menu by order of parent asc, and sort child by view_name
-        while lst_items:
-            has_update = False
-            lst_item_cache = []
-            for item in lst_items[:]:
-                i += 1
-                if i > max_loop:
-                    _logger.error("Overrun loop when reorder menu.")
-                    lst_items = []
-                    break
-                # Expect first menu by id is a root menu
-                if not item.parent_id:
-                    lst_menu.append(item)
-                    lst_items.remove(item)
-                    has_update = True
-                elif (
-                    item.parent_id in lst_menu
-                    or item.parent_id not in origin_lst_items
-                ):
-                    lst_item_cache.append(item)
-                    lst_items.remove(item)
-                    has_update = True
-
-            # Order last run of adding
-            if lst_item_cache:
-                lst_item_cache = sorted(
-                    lst_item_cache,
-                    key=lambda menu: self._get_menu_data_name(menu),
-                )
-                lst_menu += lst_item_cache
-
-            if not has_update:
-                lst_sorted_item = sorted(
-                    lst_items, key=lambda menu: self._get_menu_data_name(menu)
-                )
-                for item in lst_sorted_item:
-                    lst_menu.append(item)
-
-        if not lst_menu:
+        if not menus:
             return ""
+
+        # Group by parent_id
+        lst_menu_root = menus.filtered(lambda x: not x.parent_id).sorted(
+            key=lambda x: self._get_menu_data_name(x).split(".")[-1]
+        )
+        lst_menu_item = menus.filtered(lambda x: x.parent_id and x.child_id)
+        lst_menu_last_child = menus.filtered(lambda x: not x.child_id).sorted(
+            key=lambda x: self._get_menu_data_name(x).split(".")[-1]
+        )
+        nb_root = len(lst_menu_root)
+        nb_item = len(lst_menu_item)
+        nb_last_child = len(lst_menu_last_child)
+        has_add_root = False
+        has_item = False
+        has_last_child = False
+
+        # Order by id_name
+        lst_menu = [a for a in lst_menu_root]
+
+        # Be sure parent is added
+        lst_menu_item = [a for a in lst_menu_item]
+
+        while lst_menu_item:
+            lst_menu_to_order = []
+            len_start = len(lst_menu_item)
+            for menu_item in lst_menu_item[:]:
+                # Remove item and add it
+                if menu_item.parent_id in lst_menu:
+                    lst_menu_item.remove(menu_item)
+                    lst_menu_to_order.append(menu_item)
+
+            if lst_menu_to_order:
+                lst_menu_ordered = sorted(
+                    lst_menu_to_order,
+                    key=lambda x: self._get_menu_data_name(x).split(".")[-1],
+                )
+                for menu_ordered in lst_menu_ordered:
+                    lst_menu.append(menu_ordered)
+
+            len_end = len(lst_menu_item)
+            if len_start == len_end:
+                # Find no parent
+                for menu_item in lst_menu_item:
+                    lst_menu.append(menu_item)
+
+        # Order by id_name
+        for menu_child in lst_menu_last_child:
+            lst_menu.append(menu_child)
 
         lst_menu_xml = []
 
-        for menu in lst_menu:
+        for i, menu in enumerate(lst_menu):
 
-            menu_id = self._get_menu_data_name(menu)
-            menu_name = menu.name
+            menu_id = self._get_menu_data_name(menu, ignore_module=True)
             dct_menu_item = {"id": menu_id}
-            if menu_name != menu_id:
-                dct_menu_item["name"] = menu_name
+            if menu.name != menu_id:
+                dct_menu_item["name"] = menu.name
 
-            try:
-                menu.action
-            except Exception as e:
-                # missing action on menu
-                _logger.error(f"Missing action window on menu {menu.name}.")
-                continue
+            if not menu.ignore_act_window:
+                try:
+                    menu.action
+                except Exception as e:
+                    # missing action on menu
+                    _logger.error(
+                        f"Missing action window on menu {menu.name}."
+                    )
+                    continue
 
-            if menu.action:
-                dct_menu_item["action"] = self._get_action_data_name(
-                    menu.action, module=module
-                )
+                if menu.action:
+                    dct_menu_item["action"] = self._get_action_data_name(
+                        menu.action, module=module
+                    )
 
             if not menu.active:
                 dct_menu_item["active"] = "False"
@@ -2175,7 +1173,7 @@ class CodeGeneratorWriter(models.Model):
 
             if menu.parent_id:
                 dct_menu_item["parent"] = self._get_menu_data_name(
-                    menu.parent_id
+                    menu.parent_id, ignore_module_name=module.name
                 )
 
             if menu.groups_id:
@@ -2185,9 +1183,28 @@ class CodeGeneratorWriter(models.Model):
                 # TODO move application_icon in code_generator_data
                 application_icon = menu.web_icon
                 # ignore actual icon, force a new icon
-                dct_menu_item[
-                    "web_icon"
-                ] = f"{module.name},static/description/icon.png"
+                new_icon = f"{module.name},static/description/icon.png"
+                dct_menu_item["web_icon"] = new_icon
+                if new_icon != menu.web_icon:
+                    _logger.warning(
+                        f"Difference between menu icon '{menu.web_icon}' and"
+                        f" new icon '{new_icon}'"
+                    )
+
+            if not has_add_root and nb_root:
+                has_add_root = True
+                lst_menu_xml.append(ET.Comment("end line"))
+                lst_menu_xml.append(ET.Comment("Root menu"))
+
+            if not has_item and nb_item and i >= nb_root:
+                has_item = True
+                lst_menu_xml.append(ET.Comment("end line"))
+                lst_menu_xml.append(ET.Comment("Sub menu"))
+
+            if not has_last_child and nb_last_child and i >= nb_root + nb_item:
+                has_last_child = True
+                lst_menu_xml.append(ET.Comment("end line"))
+                lst_menu_xml.append(ET.Comment("Child menu"))
 
             menu_xml = E.menuitem(dct_menu_item)
             lst_menu_xml.append(ET.Comment("end line"))
@@ -2202,32 +1219,7 @@ class CodeGeneratorWriter(models.Model):
             module_menus_file, pretty_print=True
         )
 
-        # a menuitem is separate on each line, like this:
-        # <menuitem id="menu_id"
-        #           name="name"
-        #           sequence="8"
-        # />
-        key = "<menuitem "
-        new_result = ""
-        for line in result.decode().split("\n"):
-            if line.lstrip().startswith(key):
-                start_index = line.index(key)
-                offset_index = start_index + len(key)
-                next_index = line.index(" ", offset_index)
-                last_part = line[next_index + 1 :].replace(
-                    '" ', f'"\n{"  " + " " * offset_index}'
-                )[:-2]
-                last_part += f'\n{"  " + " " * start_index}/>\n'
-                new_result += (
-                    "  "
-                    + line[:next_index]
-                    + f'\n{"  " + " " * offset_index}'
-                    + last_part
-                )
-            else:
-                new_result += line + "\n"
-
-        new_result = new_result.replace("  <!--end line-->\n", "\n")[:-1]
+        new_result = result.decode().replace("  <!--end line-->\n", "\n")[:-1]
 
         self.code_generator_data.write_file_str(
             menu_file_path, new_result, data_file=True
@@ -2235,7 +1227,8 @@ class CodeGeneratorWriter(models.Model):
 
         return application_icon
 
-    def _setup_xml_indent(self, content, indent=0, is_end=False):
+    @staticmethod
+    def _setup_xml_indent(content, indent=0, is_end=False):
         # return "\n".join([f"{'    ' * indent}{a}" for a in content.split("\n")])
         str_content = content.rstrip().replace("\n", f"\n{'  ' * indent}")
         super_content = f"\n{'  ' * indent}{str_content}"
@@ -2245,7 +1238,8 @@ class CodeGeneratorWriter(models.Model):
             super_content += f"\n{'  ' * (indent - 1)}"
         return super_content
 
-    def _change_xml_2_to_4_spaces(self, content):
+    @staticmethod
+    def _change_xml_2_to_4_spaces(content):
         new_content = ""
         # Change 2 space for 4 space
         for line in content.split("\n"):
@@ -2258,27 +1252,47 @@ class CodeGeneratorWriter(models.Model):
                 new_content += "\n"
         return new_content
 
-    def _set_model_xmlview_file(self, model, model_model):
+    def _set_model_xmlview_file(self, model, model_model, module):
         """
         Function to set the model xml files
         :param model:
         :param model_model:
+        :param module:
         :return:
         """
 
-        if not (
-            model.view_ids or model.o2m_act_window or model.o2m_server_action
-        ):
+        # view_ids = model.view_ids
+        # TODO model.view_ids not working when add inherit view from wizard... what is different? Force values
+        view_ids = self.env["ir.ui.view"].search([("model", "=", model.model)])
+        act_window_ids = self.env["ir.actions.act_window"].search(
+            [("res_model", "=", model.model)]
+        )
+        server_action_ids = model.o2m_server_action
+
+        # Remove all field when in inherit if not in whitelist
+        is_whitelist = any([a.is_show_whitelist_write_view for a in view_ids])
+        view_filtered_ids = view_ids.filtered(
+            lambda field: field.name not in MAGIC_FIELDS
+            and not field.is_hide_blacklist_write_view
+            and (
+                not is_whitelist
+                or (is_whitelist and field.is_show_whitelist_write_view)
+            )
+        )
+
+        if not (view_filtered_ids or act_window_ids or server_action_ids):
             return
 
         dct_replace = {}
+        dct_replace_template = {}
         lst_id = []
         lst_item_xml = []
+        lst_item_template = []
 
         #
         # Views
         #
-        for view in model.view_ids:
+        for view in view_filtered_ids:
 
             view_type = view.type
 
@@ -2317,7 +1331,7 @@ class CodeGeneratorWriter(models.Model):
 
                 if view.priority != 16:
                     lst_field.append(
-                        E.field({"name": "priority"}, view.priority)
+                        E.field({"name": "priority"}, str(view.priority))
                     )
 
                 if view.inherit_id:
@@ -2325,7 +1339,9 @@ class CodeGeneratorWriter(models.Model):
                         E.field(
                             {
                                 "name": "inherit_id",
-                                "ref": self._get_view_data_name(view),
+                                "ref": self._get_view_data_name(
+                                    view.inherit_id
+                                ),
                             }
                         )
                     )
@@ -2340,8 +1356,22 @@ class CodeGeneratorWriter(models.Model):
 
                 if view.arch_db:
                     uid = str(uuid.uuid1())
+                    str_arch_db = (
+                        view.arch_db
+                        if not view.arch_db.startswith(XML_VERSION_STR)
+                        else view.arch_db[len(XML_VERSION_STR) :]
+                    )
+                    # TODO retransform xml to format correctly
+                    str_data_begin = "<data>\n"
+                    str_data_end = "</data>\n"
+                    if str_arch_db.startswith(
+                        str_data_begin
+                    ) and str_arch_db.endswith(str_data_end):
+                        str_arch_db = str_arch_db[
+                            len(str_data_begin) : -len(str_data_end)
+                        ]
                     dct_replace[uid] = self._setup_xml_indent(
-                        view.arch_db, indent=3
+                        str_arch_db, indent=3
                     )
                     lst_field.append(
                         E.field({"name": "arch", "type": "xml"}, uid)
@@ -2364,12 +1394,14 @@ class CodeGeneratorWriter(models.Model):
                     template_value["inherit_id"] = view.inherit_id.key
 
                 uid = str(uuid.uuid1())
-                dct_replace[uid] = self._setup_xml_indent(
+                dct_replace_template[uid] = self._setup_xml_indent(
                     view.arch, indent=2, is_end=True
                 )
                 info = E.template(template_value, uid)
-                lst_item_xml.append(ET.Comment("end line"))
-                lst_item_xml.append(info)
+                # lst_item_xml.append(ET.Comment("end line"))
+                # lst_item_xml.append(info)
+                lst_item_template.append(ET.Comment("end line"))
+                lst_item_template.append(info)
 
             else:
                 _logger.error(
@@ -2379,7 +1411,7 @@ class CodeGeneratorWriter(models.Model):
         #
         # Action Windows
         #
-        for act_window in model.o2m_act_window:
+        for act_window in act_window_ids:
             # Use descriptive method when contain this attributes, not supported in simplify view
             use_complex_view = bool(
                 act_window.groups_id
@@ -2399,6 +1431,10 @@ class CodeGeneratorWriter(models.Model):
                     act_window, creating=True
                 )
 
+            has_menu = bool(
+                module.with_context({"ir.ui.menu.full_list": True}).o2m_menus
+            )
+            # TODO if not complex, search if associate with a menu. If the menu is not generated, don't generate is act_window
             if use_complex_view:
                 lst_field = []
 
@@ -2462,7 +1498,10 @@ class CodeGeneratorWriter(models.Model):
                         E.field({"name": "target"}, act_window.target)
                     )
 
-                if act_window.view_mode != "tree,form":
+                if (
+                    act_window.view_mode != "tree,form"
+                    and act_window.view_mode != "form,tree"
+                ):
                     lst_field.append(
                         E.field({"name": "view_mode"}, act_window.view_mode)
                     )
@@ -2475,9 +1514,9 @@ class CodeGeneratorWriter(models.Model):
                 if act_window.usage:
                     lst_field.append(E.field({"name": "usage", "eval": True}))
 
-                if act_window.limit != 80:
+                if act_window.limit != 80 and act_window.limit != 0:
                     lst_field.append(
-                        E.field({"name": "limit"}, act_window.limit)
+                        E.field({"name": "limit"}, str(act_window.limit))
                     )
 
                 if act_window.search_view_id:
@@ -2521,7 +1560,7 @@ class CodeGeneratorWriter(models.Model):
                 )
                 lst_item_xml.append(ET.Comment("end line"))
                 lst_item_xml.append(info)
-            else:
+            elif has_menu:
                 dct_act_window = {"id": record_id}
 
                 if act_window.name:
@@ -2566,8 +1605,8 @@ class CodeGeneratorWriter(models.Model):
                     # TODO replace ref
                     pass
 
-                if act_window.limit != 80:
-                    dct_act_window["limit"] = act_window.limit
+                if act_window.limit != 80 and act_window.limit != 0:
+                    dct_act_window["limit"] = str(act_window.limit)
 
                 if act_window.search_view_id:
                     # TODO replace ref
@@ -2600,13 +1639,10 @@ class CodeGeneratorWriter(models.Model):
         #
         # Server Actions
         #
-        for server_action in model.o2m_server_action:
+        for server_action in server_action_ids:
 
-            lst_field = []
-
-            lst_field.append(E.field({"name": "name"}, server_action.name))
-
-            lst_field.append(
+            lst_field = [
+                E.field({"name": "name"}, server_action.name),
                 E.field(
                     {
                         "name": "model_id",
@@ -2614,17 +1650,14 @@ class CodeGeneratorWriter(models.Model):
                             server_action.model_id
                         ),
                     }
-                )
-            )
-
-            lst_field.append(
+                ),
                 E.field(
                     {
                         "name": "binding_model_id",
                         "ref": self._get_model_data_name(model),
                     }
-                )
-            )
+                ),
+            ]
 
             if server_action.state == "code":
                 lst_field.append(E.field({"name": "state"}, "code"))
@@ -2692,6 +1725,31 @@ class CodeGeneratorWriter(models.Model):
             xml_file_path, str_content, data_file=True
         )
 
+        if dct_replace_template:
+            root_template = E.odoo({}, *lst_item_template)
+            content_template = XML_VERSION_HEADER.encode(
+                "utf-8"
+            ) + ET.tostring(root_template, pretty_print=True)
+            str_content_template = content_template.decode()
+
+            str_content_template = str_content_template.replace(
+                "  <!--end line-->\n", "\n"
+            )
+            for key, value in dct_replace_template.items():
+                str_content_template = str_content_template.replace(key, value)
+            str_content_template = self._change_xml_2_to_4_spaces(
+                str_content_template
+            )[:-1]
+
+            views_path = self.code_generator_data.views_path
+            xml_file_path = os.path.join(
+                views_path,
+                f"{module.name}_templates.xml",
+            )
+            self.code_generator_data.write_file_str(
+                xml_file_path, str_content_template, data_file=True
+            )
+
     def _set_model_xmlreport_file(self, model, model_model):
         """
 
@@ -2711,9 +1769,13 @@ class CodeGeneratorWriter(models.Model):
                 '<template id="%s">' % report.report_name
             )
 
+            str_arch_db = (
+                report.m2o_template.arch_db
+                if not report.m2o_template.arch_db.startswith(XML_VERSION_STR)
+                else report.m2o_template.arch_db[len(XML_VERSION_STR) :]
+            )
             l_model_report_file.append(
-                '<field name="arch" type="xml">%s</field>'
-                % report.m2o_template.arch_db
+                f'<field name="arch" type="xml">{str_arch_db}</field>'
             )
 
             l_model_report_file.append("</template>\n")
@@ -2795,6 +1857,8 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
+        key_special_endline = str(uuid.uuid1())
+
         cw = CodeWriter()
 
         code_ids = model.o2m_codes.filtered(
@@ -2851,13 +1915,28 @@ class CodeGeneratorWriter(models.Model):
             _rec_name = ""
             _foreign_keys = []
             """
-            cw.emit(f"_name = '{model.model}'")
-            if model.m2o_inherit_model.model:
-                cw.emit(f"_inherit = '{model.m2o_inherit_model.model}'")
+            # Force unique inherit
+            lst_inherit = sorted(
+                list(set([a.depend_id.model for a in model.inherit_model_ids]))
+            )
+
+            add_name = False
+            if model.model not in lst_inherit:
+                add_name = True
+                cw.emit(f"_name = '{model.model}'")
+
+            if lst_inherit:
+                if len(lst_inherit) == 1:
+                    str_inherit = f"'{lst_inherit[0]}'"
+                else:
+                    str_inherit_internal = '", "'.join(lst_inherit)
+                    str_inherit = f'["{str_inherit_internal}"]'
+                cw.emit(f"_inherit = {str_inherit}")
+
             if model.description:
                 new_description = model.description.replace("'", "\\'")
                 cw.emit(f"_description = '{new_description}'")
-            else:
+            elif not lst_inherit or add_name:
                 cw.emit(f"_description = '{model.name}'")
             if model.rec_name and model.rec_name != "name":
                 cw.emit(f"_rec_name = '{model.rec_name}'")
@@ -2882,8 +1961,16 @@ class CodeGeneratorWriter(models.Model):
                             cw.emit(line)
                 return_v = "" if not code.returns else f" -> {code.returns}"
                 cw.emit(f"def {code.name}({code.param}){return_v}:")
+
+                code_traited = code.code.replace("\\\n", key_special_endline)
+                code_traited = code_traited.replace("\\'", "\\\\'")
+                code_traited = code_traited.replace("\b", "\\b")
                 with cw.indent():
-                    for code_line in code.code.split("\n"):
+                    for code_line in code_traited.split("\n"):
+                        if key_special_endline in code_line:
+                            code_line = code_line.replace(
+                                key_special_endline, "\\\\n"
+                            )
                         cw.emit(code_line)
 
         if model.transient:
@@ -3129,14 +2216,49 @@ class CodeGeneratorWriter(models.Model):
             lambda field: field.name not in MAGIC_FIELDS
         ).sorted(key=lambda r: r.code_generator_sequence)
 
-        if model.m2o_inherit_model:
-            father = self.env["ir.model"].browse(model.m2o_inherit_model.id)
-            fatherfieldnames = father.field_id.filtered(
-                lambda field: field.name not in MAGIC_FIELDS
-            ).mapped("name")
-            f2exports = f2exports.filtered(
-                lambda field: field.name not in fatherfieldnames
+        if model.inherit_model_ids:
+            is_whitelist = any(
+                [a.is_show_whitelist_model_inherit_call() for a in f2exports]
             )
+            if is_whitelist:
+                f2exports = f2exports.filtered(
+                    lambda field: field.name not in MAGIC_FIELDS
+                    and not field.is_hide_blacklist_model_inherit
+                    and (
+                        not is_whitelist
+                        or (
+                            is_whitelist
+                            and field.is_show_whitelist_model_inherit_call()
+                        )
+                    )
+                )
+            else:
+                father_ids = self.env["ir.model"].browse(
+                    [a.depend_id.id for a in model.inherit_model_ids]
+                )
+                set_unique_field = set()
+                for father_id in father_ids:
+                    fatherfieldnames = father_id.field_id.filtered(
+                        lambda field: field.name not in MAGIC_FIELDS
+                    ).mapped("name")
+                    set_unique_field.update(fatherfieldnames)
+                f2exports = f2exports.filtered(
+                    lambda field: field.name not in list(set_unique_field)
+                )
+
+        # Force field name first
+        field_rec_name = model.rec_name if model.rec_name else model._rec_name
+        if not field_rec_name:
+            field_rec_name = "name"
+        lst_field_rec_name = f2exports.filtered(
+            lambda field: field.name == field_rec_name
+        )
+        if lst_field_rec_name:
+            lst_field_not_name = f2exports.filtered(
+                lambda field: field.name != field_rec_name
+            )
+            lst_id = lst_field_rec_name.ids + lst_field_not_name.ids
+            f2exports = self.env["ir.model.fields"].browse(lst_id)
 
         for f2export in f2exports:
             cw.emit()
@@ -3147,30 +2269,9 @@ class CodeGeneratorWriter(models.Model):
 
             # Respect sequence in list, order listed by human preference
 
-            if (
-                f2export.ttype == "reference" or f2export.ttype == "selection"
-            ) and f2export.selection:
-                if f2export.selection != "[]":
-                    try:
-                        # Transform string in list
-                        lst_selection = ast.literal_eval(f2export.selection)
-                        # lst_selection = [f"'{a}'" for a in lst_selection]
-                        dct_field_attribute["selection"] = lst_selection
-                    except Exception as e:
-                        dct_field_attribute["selection"] = []
-                        _logger.error(
-                            f"The selection of field {f2export.name} is not a"
-                            f" list: '{f2export.selection}'."
-                        )
-                else:
-                    dct_field_attribute["selection"] = []
-
-            if (
-                f2export.field_description
-                and f2export.name.replace("_", " ").title()
-                != f2export.field_description
-            ):
-                dct_field_attribute["string"] = f2export.field_description
+            str_selection = f2export.get_selection()
+            if f2export.ttype in ("selection", "reference"):
+                dct_field_attribute["selection"] = str_selection
 
             if f2export.ttype in ["many2one", "one2many", "many2many"]:
                 if f2export.relation:
@@ -3181,6 +2282,29 @@ class CodeGeneratorWriter(models.Model):
                         "inverse_name"
                     ] = f2export.relation_field
 
+                if f2export.ttype == "many2many":
+                    # elif f2export.relation_table.startswith("x_"):
+                    #     # TODO why ignore relation when start name with x_? Is it about x_name?
+                    #     # A relation who begin with x_ is an automated relation, ignore it
+                    #     ignored_relation = True
+                    if (
+                        f2export.relation_table
+                        and f"{f2export.model.replace('.', '_')}_id"
+                        != f2export.column1
+                        and f"{f2export.relation.replace('.', '_')}_id"
+                        != f2export.column2
+                        and f"{f2export.model.replace('.', '_')}_{f2export.relation.replace('.', '_')}"
+                        != f2export.relation_table
+                    ):
+                        dct_field_attribute[
+                            "relation"
+                        ] = f2export.relation_table
+                        dct_field_attribute["column1"] = f2export.column1
+                        dct_field_attribute["column2"] = f2export.column2
+
+                if f2export.domain and f2export.domain != "[]":
+                    dct_field_attribute["domain"] = f2export.domain
+
                 if (
                     f2export.ttype == "many2one"
                     and f2export.on_delete
@@ -3188,25 +2312,12 @@ class CodeGeneratorWriter(models.Model):
                 ):
                     dct_field_attribute["ondelete"] = f2export.on_delete
 
-                if f2export.domain and f2export.domain != "[]":
-                    dct_field_attribute["domain"] = f2export.domain
-
-                if f2export.ttype == "many2many":
-                    # A relation who begin with x_ is an automated relation, ignore it
-                    ignored_relation = (
-                        False
-                        if not f2export.relation_table
-                        else f2export.relation_table.startswith("x_")
-                    )
-                    if not ignored_relation:
-                        if f2export.relation_table:
-                            dct_field_attribute[
-                                "relation"
-                            ] = f2export.relation_table
-                        if f2export.column1:
-                            dct_field_attribute["column1"] = f2export.column1
-                        if f2export.column2:
-                            dct_field_attribute["column2"] = f2export.column2
+            if (
+                f2export.field_description
+                and f2export.name.replace("_", " ").title()
+                != f2export.field_description
+            ):
+                dct_field_attribute["string"] = f2export.field_description
 
             if (
                 f2export.ttype == "char" or f2export.ttype == "reference"
@@ -3217,6 +2328,7 @@ class CodeGeneratorWriter(models.Model):
                 dct_field_attribute["related"] = f2export.related
 
             if f2export.readonly:
+                # TODO force readonly at false when inherit and origin is True
                 dct_field_attribute["readonly"] = True
 
             if f2export.required:
@@ -3224,6 +2336,24 @@ class CodeGeneratorWriter(models.Model):
 
             if f2export.index:
                 dct_field_attribute["index"] = True
+
+            if f2export.track_visibility:
+                if f2export.track_visibility in ("onchange", "always"):
+                    dct_field_attribute[
+                        "track_visibility"
+                    ] = f2export.track_visibility
+                    # TODO is it the good place for this?
+                    # lst_depend_model = [
+                    #     "mail.thread",
+                    #     "mail.activity.mixin",
+                    # ]
+                    # f2export.model_id.add_model_inherit(lst_depend_model)
+                else:
+                    _logger.warning(
+                        "Cannot support track_visibility value"
+                        f" {f2export.track_visibility}, only support"
+                        " 'onchange' and 'always'."
+                    )
 
             if f2export.default:
                 # TODO support default = None
@@ -3250,10 +2380,10 @@ class CodeGeneratorWriter(models.Model):
                 )
 
             compute = f2export.compute and f2export.depends
-            if f2export.code_generator_compute:
-                dct_field_attribute[
-                    "compute"
-                ] = f2export.code_generator_compute
+
+            code_generator_compute = f2export.get_code_generator_compute()
+            if code_generator_compute:
+                dct_field_attribute["compute"] = code_generator_compute
             elif compute:
                 dct_field_attribute["compute"] = f"_compute_{f2export.name}"
 
@@ -3293,22 +2423,53 @@ class CodeGeneratorWriter(models.Model):
             # elif f2export.ttype != 'one2many' and not f2export.related and not compute and not f2export.copied:
             #     dct_field_attribute["copy"] = False
 
+            lst_attribute_to_filter = []
+            if (
+                f2export.code_generator_ir_model_fields_ids
+                and f2export.code_generator_ir_model_fields_ids.filter_field_attribute
+            ):
+                # Filter list of attribute
+                lst_attribute_to_filter = f2export.code_generator_ir_model_fields_ids.filter_field_attribute.split(
+                    ";"
+                )
+                lst_attribute_to_filter = [
+                    a.strip() for a in lst_attribute_to_filter if a.strip()
+                ]
+
+            lst_first_field_attribute = []
             lst_field_attribute = []
+            lst_last_field_attribute = []
             for key, value in dct_field_attribute.items():
+                if (
+                    lst_attribute_to_filter
+                    and key not in lst_attribute_to_filter
+                ):
+                    continue
                 if type(value) is str:
                     # TODO find another solution than removing \n, this cause error with cw.CodeWriter
                     value = value.replace("\n", " ").replace("'", "\\'")
-                    if key == "default" and value.startswith("lambda"):
-                        # Exception for lambda
-                        lst_field_attribute.append(f"{key}={value}")
+                    if key == "comodel_name":
+                        lst_first_field_attribute.append(f"{key}='{value}'")
+                    elif key == "ondelete":
+                        lst_last_field_attribute.append(f"{key}='{value}'")
                     else:
-                        lst_field_attribute.append(f"{key}='{value}'")
+                        if key == "default" and value.startswith("lambda"):
+                            # Exception for lambda
+                            lst_field_attribute.append(f"{key}={value}")
+                        else:
+                            lst_field_attribute.append(f"{key}='{value}'")
                 elif type(value) is list:
                     # TODO find another solution than removing \n, this cause error with cw.CodeWriter
                     new_value = str(value).replace("\n", " ")
                     lst_field_attribute.append(f"{key}={new_value}")
                 else:
                     lst_field_attribute.append(f"{key}={value}")
+
+            lst_field_attribute = (
+                lst_first_field_attribute
+                + lst_field_attribute
+                + lst_last_field_attribute
+            )
 
             cw.emit_list(
                 lst_field_attribute,
@@ -3352,22 +2513,31 @@ class CodeGeneratorWriter(models.Model):
 
         return super(CodeGeneratorWriter, self).create(new_list)
 
-    def get_lst_file_generate(self, module):
+    def get_lst_file_generate(self, module, python_controller_writer):
         l_model_csv_access = []
         l_model_rules = []
 
         module.view_file_sync = {}
         module.module_file_sync = {}
 
-        if module.template_model_name:
-            lst_model = module.template_model_name.split(";")
+        if module.template_model_name or module.template_inherit_model_name:
+            i = -1
+            lst_model = f"{module.template_model_name};{module.template_inherit_model_name}".split(
+                ";"
+            )
             for model in lst_model:
+                i += 1
+                model = model.strip()
                 if model:
-                    module.module_file_sync[model] = self.ExtractorModule(
-                        module, model
+                    module.view_file_sync[model] = ExtractorView(
+                        module, model, i
                     )
-                    module.view_file_sync[model] = self.ExtractorView(
-                        module, model
+                    module.module_file_sync[model] = ExtractorModule(
+                        module, model, module.view_file_sync[model]
+                    )
+                    # TODO no need to keep memory
+                    ExtractorController(
+                        module, model, module.module_file_sync[model]
                     )
 
         for model in module.o2m_models:
@@ -3377,7 +2547,7 @@ class CodeGeneratorWriter(models.Model):
             if not module.nomenclator_only:
                 # Wizard
                 self._set_model_py_file(module, model, model_model)
-                self._set_model_xmlview_file(model, model_model)
+                self._set_model_xmlview_file(model, model_model, module)
 
                 # Report
                 self._set_model_xmlreport_file(model, model_model)
@@ -3395,6 +2565,11 @@ class CodeGeneratorWriter(models.Model):
                 l_model_csv_access += self._get_model_access(module, model)
 
                 l_model_rules += self._get_model_rules(model)
+
+        l_model_csv_access = sorted(
+            list(set(l_model_csv_access)),
+            key=lambda x: x,
+        )
 
         if not module.nomenclator_only:
             application_icon = self._set_module_menus(module)
@@ -3415,6 +2590,8 @@ class CodeGeneratorWriter(models.Model):
 
             # TODO info Moved in template module
             # self.set_module_translator(module)
+
+        python_controller_writer.generate()
 
         self.set_extra_get_lst_file_generate(module)
 
@@ -3461,7 +2638,8 @@ class CodeGeneratorWriter(models.Model):
             path += "/modules"
             CodeGeneratorData.os_make_dirs(path)
 
-        os.chdir(path=path)
+        # TODO is it necessary? os.chdir into sync_code to be back to normal
+        # os.chdir(path=path)
 
         basename = (
             "modules" if morethanone else modules[0].name.lower().strip()
@@ -3478,7 +2656,10 @@ class CodeGeneratorWriter(models.Model):
             # TODO refactor this to share variable in another class,
             #  like that, self.code_generator_data will be associate to a class of generation of module
             self.code_generator_data = CodeGeneratorData(module, path)
-            self.get_lst_file_generate(module)
+            python_controller_writer = PythonControllerWriter(
+                module, self.code_generator_data
+            )
+            self.get_lst_file_generate(module, python_controller_writer)
 
             if module.enable_sync_code:
                 self.code_generator_data.sync_code(
@@ -3493,654 +2674,3 @@ class CodeGeneratorWriter(models.Model):
 
     def get_list_path_file(self):
         return self.list_path_file.split(";")
-
-
-class CodeGeneratorData:
-    def __init__(self, module, path):
-        self._lst_models_init_imports = []
-        self._lst_wizards_init_imports = []
-        self._lst_controllers_init_imports = []
-        self._lst_path_file = set()
-        self._dct_data_depend = defaultdict(list)
-        self._dct_data_metadata_file = defaultdict(list)
-        self._path = path
-        self._module_name = module.name.lower().strip()
-        self._module_path = os.path.join(path, self._module_name)
-        self._data_path = "data"
-        self._demo_path = "demo"
-        self._tests_path = "tests"
-        self._i18n_path = "i18n"
-        self._migrations_path = "migrations"
-        self._readme_path = "readme"
-        self._components_path = "components"
-        self._models_path = "models"
-        self._css_path = os.path.join("static", "src", "scss")
-        self._security_path = "security"
-        self._views_path = "views"
-        self._wizards_path = "wizard"
-        self._controllers_path = "controllers"
-        self._reports_path = "report"
-        self._static_description_path = os.path.join("static", "description")
-        self._lst_manifest_data_files = []
-        self._dct_import_dir = defaultdict(list)
-        self._dct_extra_module_init_path = defaultdict(list)
-        self._dct_view_id = {}
-        # Copy not_supported_files first and permit code to overwrite it
-        self.copy_not_supported_files(module)
-
-    def copy_not_supported_files(self, module):
-        # TODO this is an hack to get code_generator module to search not_supported_files
-        # TODO refactor this and move not_supported_files in models, this is wrong conception
-        if not module.icon:
-            return
-
-        origin_path = os.path.normpath(
-            os.path.join(module.icon, "..", "..", "..", "not_supported_files")
-        )
-        if os.path.isdir(origin_path):
-            for root, dirs, files in os.walk(origin_path):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    relative_path = os.path.join(
-                        root[len(origin_path) + 1 :], file
-                    )
-                    _, ext = os.path.splitext(relative_path)
-                    is_data_file = ext == ".xml"
-                    self.copy_file(
-                        file_path, relative_path, data_file=is_data_file
-                    )
-
-    @staticmethod
-    def os_make_dirs(path, exist_ok=True):
-        """
-        Util function to wrap the makedirs method
-        :param path:
-        :param exist_ok:
-        :return:
-        """
-        os.makedirs(path, exist_ok=exist_ok)
-
-    @property
-    def lst_path_file(self):
-        return list(self._lst_path_file)
-
-    @property
-    def dct_data_depend(self):
-        return self._dct_data_depend
-
-    @property
-    def dct_data_metadata_file(self):
-        return self._dct_data_metadata_file
-
-    @property
-    def module_path(self):
-        return self._module_path
-
-    @property
-    def data_path(self):
-        return self._data_path
-
-    @property
-    def demo_path(self):
-        return self._demo_path
-
-    @property
-    def tests_path(self):
-        return self._tests_path
-
-    @property
-    def i18n_path(self):
-        return self._i18n_path
-
-    @property
-    def migrations_path(self):
-        return self._migrations_path
-
-    @property
-    def readme_path(self):
-        return self._readme_path_path
-
-    @property
-    def components_path(self):
-        return self._components_path
-
-    @property
-    def models_path(self):
-        return self._models_path
-
-    @property
-    def css_path(self):
-        return self._css_path
-
-    @property
-    def security_path(self):
-        return self._security_path
-
-    @property
-    def views_path(self):
-        return self._views_path
-
-    @property
-    def wizards_path(self):
-        return self._wizards_path
-
-    @property
-    def controllers_path(self):
-        return self._controllers_path
-
-    @property
-    def reports_path(self):
-        return self._reports_path
-
-    @property
-    def static_description_path(self):
-        return self._static_description_path
-
-    @property
-    def dct_view_id(self):
-        return self._dct_view_id
-
-    @property
-    def lst_manifest_data_files(self):
-        return self._lst_manifest_data_files
-
-    @property
-    def lst_import_dir(self):
-        return list(self._dct_import_dir.keys())
-
-    def add_view_id(self, name, str_id):
-        self._dct_view_id[name] = str_id
-
-    def add_module_init_path(self, component, import_line):
-        self._dct_extra_module_init_path[component].append(import_line)
-
-    def _get_lst_files_data_depends(self, lst_meta):
-        set_files = set()
-        for meta in lst_meta:
-            for file_name, lst_key in self.dct_data_metadata_file.items():
-                if meta in lst_key:
-                    set_files.add(file_name)
-                    break
-            else:
-                _logger.error(f"Cannot find key {meta}.")
-        return list(set_files)
-
-    def reorder_manifest_data_files(self):
-        lst_manifest = []
-        dct_hold_file = {}
-        for manifest_data in self._lst_manifest_data_files:
-            if manifest_data in self.dct_data_depend.keys():
-                # find depend and report until order is right
-                lst_meta = self.dct_data_depend.get(manifest_data)
-                lst_files_depends = self._get_lst_files_data_depends(lst_meta)
-                dct_hold_file[manifest_data] = lst_files_depends
-            else:
-                lst_manifest.append(manifest_data)
-
-        i = 0
-        max_i = len(dct_hold_file) + 1
-        while dct_hold_file and i < max_i:
-            i += 1
-            for new_ele, lst_depend in dct_hold_file.items():
-                final_index = -1
-                for depend in lst_depend:
-                    try:
-                        index = lst_manifest.index(depend)
-                    except ValueError:
-                        # element not in list, continue
-                        final_index = -1
-                        break
-                    if index > final_index:
-                        final_index = index
-                if final_index >= 0:
-                    lst_manifest.insert(final_index + 1, new_ele)
-                    del dct_hold_file[new_ele]
-                    # Need to break or crash on loop because dict has change
-                    break
-        if dct_hold_file:
-            _logger.error(f"Cannot reorder all manifest file: {dct_hold_file}")
-        self._lst_manifest_data_files = lst_manifest
-
-    def copy_directory(self, source_directory_path, directory_path):
-        """
-        Copy only directory without manipulation
-        :param source_directory_path:
-        :param directory_path:
-        :return:
-        """
-        absolute_path = os.path.join(
-            self._path, self._module_name, directory_path
-        )
-        # self.check_mkdir_and_create(absolute_path, is_file=False)
-        status = shutil.copytree(source_directory_path, absolute_path)
-
-    def copy_file(
-        self,
-        source_file_path,
-        file_path,
-        data_file=False,
-        search_and_replace=[],
-    ):
-        # TODO if no search_and_replace, use system copy instead of read file and write
-        # TODO problem, we need to add the filename in the system when calling write_file_*
-        # TODO or document it why using this technique
-        with open(source_file_path, "rb") as file_source:
-            content = file_source.read()
-
-        if search_and_replace:
-            # switch binary to string
-            content = content.decode("utf-8")
-            for search, replace in search_and_replace:
-                content = content.replace(search, replace)
-            self.write_file_str(file_path, content, data_file=data_file)
-        else:
-            self.write_file_binary(file_path, content, data_file=data_file)
-
-    def write_file_lst_content(
-        self,
-        file_path,
-        lst_content,
-        data_file=False,
-        insert_first=False,
-        empty_line_end_of_file=True,
-    ):
-        """
-        Function to create a file with some content
-        :param file_path:
-        :param lst_content:
-        :param data_file:
-        :param insert_first:
-        :param empty_line_end_of_file:
-        :return:
-        """
-
-        str_content = "\n".join(lst_content)
-        if empty_line_end_of_file and str_content and str_content[-1] != "\n":
-            str_content += "\n"
-
-        content = str_content.encode("utf-8")
-
-        try:
-            self.write_file_binary(
-                file_path,
-                content,
-                data_file=data_file,
-                insert_first=insert_first,
-            )
-        except Exception as e:
-            _logger.error(e)
-            raise e
-
-    def write_file_str(
-        self, file_path, content, mode="w", data_file=False, insert_first=False
-    ):
-        """
-        Function to create a file with some binary content
-        :param file_path:
-        :param content:
-        :param mode:
-        :param data_file:
-        :param insert_first:
-        :return:
-        """
-        self.write_file_binary(
-            file_path,
-            content,
-            mode=mode,
-            data_file=data_file,
-            insert_first=insert_first,
-        )
-
-    def write_file_binary(
-        self,
-        file_path,
-        content,
-        mode="wb",
-        data_file=False,
-        insert_first=False,
-    ):
-        """
-        Function to create a file with some binary content
-        :param file_path:
-        :param content:
-        :param mode:
-        :param data_file: Will be add in manifest
-        :param insert_first:
-        :return:
-        """
-
-        # file_path suppose to be a relative path
-        if file_path[0] == "/":
-            _logger.warning(f"Path {file_path} not suppose to start with '/'.")
-            file_path = file_path[1:]
-
-        absolute_path = os.path.join(self._path, self._module_name, file_path)
-        self._lst_path_file.add(absolute_path)
-
-        if data_file and file_path not in self._lst_manifest_data_files:
-            if insert_first:
-                self._lst_manifest_data_files.insert(0, file_path)
-            else:
-                self._lst_manifest_data_files.append(file_path)
-
-        self._check_import_python_file(file_path)
-
-        self.check_mkdir_and_create(absolute_path)
-
-        with open(absolute_path, mode) as file:
-            file.write(content)
-
-    @staticmethod
-    def _split_path_all(path):
-        all_parts = []
-        while 1:
-            parts = os.path.split(path)
-            if parts[0] == path:  # sentinel for absolute paths
-                all_parts.insert(0, parts[0])
-                break
-            elif parts[1] == path:  # sentinel for relative paths
-                all_parts.insert(0, parts[1])
-                break
-            else:
-                path = parts[0]
-                all_parts.insert(0, parts[1])
-        return all_parts
-
-    def _check_import_python_file(self, file_path):
-        if file_path and file_path[-3:] == ".py":
-            dir_name = os.path.dirname(file_path)
-            if dir_name == "tests":
-                # Ignore tests python file
-                return
-            if len(self._split_path_all(dir_name)) > 1:
-                # This is a odoo limitation, but we can support it if need it
-                _logger.warning(
-                    "You add python file more depth of 1 directory."
-                )
-                return
-            python_module_name = os.path.splitext(os.path.basename(file_path))[
-                0
-            ]
-            self._dct_import_dir[dir_name].append(python_module_name)
-
-    @staticmethod
-    def check_mkdir_and_create(file_path, is_file=True):
-        if is_file:
-            path_dir = os.path.dirname(file_path)
-        else:
-            path_dir = file_path
-        CodeGeneratorData.os_make_dirs(path_dir)
-
-    def sync_code(self, directory, name):
-        try:
-            # if not os.path.isdir(path_sync_code):
-            #     osmakedirs(path_sync_code)
-            # if module.clean_before_sync_code:
-            path_sync_code = os.path.join(directory, name)
-            if os.path.isdir(path_sync_code):
-                shutil.rmtree(path_sync_code)
-            shutil.copytree(self._module_path, path_sync_code)
-        except Exception as e:
-            _logger.error(e)
-
-    def generate_python_init_file(self, cg_module):
-        for component, lst_module in self._dct_import_dir.items():
-            init_path = os.path.join(component, "__init__.py")
-            if not component:
-                lst_module = [a for a in self._dct_import_dir.keys() if a]
-
-            lst_module.sort()
-
-            cw = CodeWriter()
-
-            if cg_module.license == "AGPL-3":
-                cw.emit(
-                    "# License AGPL-3.0 or later"
-                    " (https://www.gnu.org/licenses/agpl)"
-                )
-                cw.emit()
-            elif cg_module.license == "LGPL-3":
-                cw.emit(
-                    "# License LGPL-3.0 or later"
-                    " (https://www.gnu.org/licenses/lgpl)"
-                )
-                cw.emit()
-            else:
-                _logger.warning(f"License {cg_module.license} not supported.")
-
-            if component:
-                for module in lst_module:
-                    cw.emit(f"from . import {module}")
-            elif lst_module:
-                cw.emit(f"from . import {', '.join(lst_module)}")
-            for extra_import in self._dct_extra_module_init_path.get(
-                component, []
-            ):
-                cw.emit(extra_import)
-            self.write_file_str(init_path, cw.render())
-
-    def flake8_check(self):
-        workspace_path = os.path.normpath(
-            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
-        )
-        flake8_bin = os.path.join(workspace_path, ".venv", "bin", "flake8")
-        config_path = os.path.join(workspace_path, ".flake8")
-        cpu_count = os.cpu_count()
-        try:
-            out = subprocess.check_output(
-                [
-                    flake8_bin,
-                    "-j",
-                    str(cpu_count),
-                    f"--config={config_path}",
-                    self.module_path,
-                ]
-            )
-            result = out
-        except subprocess.CalledProcessError as e:
-            result = e.output.decode()
-
-        if result:
-            _logger.warning(result)
-
-    def pylint_check(self):
-        workspace_path = os.path.normpath(
-            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
-        )
-        cpu_count = os.cpu_count()
-        try:
-            out = subprocess.check_output(
-                [
-                    f"{workspace_path}/.venv/bin/pylint",
-                    "-j",
-                    str(cpu_count),
-                    "--load-plugins=pylint_odoo",
-                    "-e",
-                    "odoolint",
-                    self.module_path,
-                ]
-            )
-            result = out
-        except subprocess.CalledProcessError as e:
-            result = e.output.decode()
-
-        if result:
-            _logger.warning(result)
-
-    def auto_format(self):
-        workspace_path = os.path.normpath(
-            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
-        )
-        max_col = 79
-        use_prettier = True
-        use_format_black = True  # Else, oca-autopep8
-        use_html5print = False
-        enable_xml_formatter = False  # Else, prettier-xml
-        # Manual format with def with programmer style
-        for path_file in self.lst_path_file:
-            relative_path = path_file[len(self.module_path) + 1 :]
-            if path_file.endswith(".py"):
-                # TODO not optimal, too many write for nothing
-                if not use_format_black:
-                    lst_line_write = []
-                    has_change = False
-                    with open(path_file, "r") as source:
-                        for line in source.readlines():
-                            if (
-                                line.lstrip().startswith("def ")
-                                or line.lstrip().startswith("return ")
-                            ) and len(line) > max_col - 1:
-                                has_change = True
-                                next_tab_space = line.find("(") + 1
-                                first_cut = max_col
-                                first_cut = line.rfind(", ", 0, first_cut) + 1
-                                first_part = line[:first_cut]
-                                last_part = line[first_cut:].lstrip()
-                                str_line = (
-                                    f"{first_part}\n{' ' * next_tab_space}{last_part}"
-                                )
-                                lst_line_write.append(str_line[:-1])
-                            else:
-                                lst_line_write.append(line[:-1])
-                    if has_change:
-                        self.write_file_lst_content(
-                            relative_path, lst_line_write
-                        )
-
-            elif path_file.endswith(".js"):
-                if use_prettier:
-                    cmd = f"prettier --write --tab-width 4 {path_file}"
-                    result = subprocess_cmd(cmd)
-                    if result:
-                        _logger.info(result)
-                elif use_html5print:
-                    with open(path_file, "r") as source:
-                        lines = source.read()
-                        try:
-                            lines_out = html5print.JSBeautifier.beautify(
-                                lines, 4
-                            )
-                            self.write_file_str(relative_path, lines_out)
-                        except Exception as e:
-                            _logger.error(e)
-                            _logger.error(f"Check file {path_file}")
-                else:
-                    cmd = (
-                        f"cd {workspace_path};."
-                        f" .venv/bin/activate;css-html-prettify.py {path_file}"
-                    )
-                    result = subprocess_cmd(cmd)
-                    if result:
-                        _logger.warning(result)
-
-            elif path_file.endswith(".scss") or path_file.endswith(".css"):
-                if use_prettier:
-                    cmd = f"prettier --write {path_file}"
-                    result = subprocess_cmd(cmd)
-                    if result:
-                        _logger.info(result)
-                elif use_html5print:
-                    with open(path_file, "r") as source:
-                        lines = source.read()
-                        try:
-                            lines_out = html5print.CSSBeautifier.beautify(
-                                lines, 2
-                            )
-                            self.write_file_str(relative_path, lines_out)
-                        except Exception as e:
-                            _logger.error(e)
-                            _logger.error(f"Check file {path_file}")
-                else:
-                    cmd = (
-                        f"cd {workspace_path};."
-                        f" .venv/bin/activate;css-html-prettify.py {path_file}"
-                    )
-                    result = subprocess_cmd(cmd)
-                    if result:
-                        _logger.warning(result)
-
-            elif path_file.endswith(".html"):
-                if use_prettier:
-                    cmd = f"prettier --write {path_file}"
-                    result = subprocess_cmd(cmd)
-                    if result:
-                        _logger.info(result)
-                elif use_html5print:
-                    with open(path_file, "r") as source:
-                        lines = source.read()
-                        try:
-                            lines_out = html5print.HTMLBeautifier.beautify(
-                                lines, 4
-                            )
-                            self.write_file_str(relative_path, lines_out)
-                        except Exception as e:
-                            _logger.error(e)
-                            _logger.error(f"Check file {path_file}")
-                else:
-                    cmd = (
-                        f"cd {workspace_path};."
-                        f" .venv/bin/activate;css-html-prettify.py {path_file}"
-                    )
-                    result = subprocess_cmd(cmd)
-                    if result:
-                        _logger.warning(result)
-
-            elif path_file.endswith(".xml"):
-                if use_prettier and not enable_xml_formatter:
-                    cmd = (
-                        "prettier --xml-whitespace-sensitivity ignore"
-                        " --prose-wrap always --tab-width 4"
-                        " --no-bracket-spacing --print-width 120 --write"
-                        f" {path_file}"
-                    )
-                    result = subprocess_cmd(cmd)
-                    if result:
-                        _logger.info(result)
-
-        # Automatic format
-        # TODO check diff before and after format to auto improvement of generation
-        if use_format_black:
-            cmd = (
-                f"cd {workspace_path};. .venv/bin/activate;black -l {max_col}"
-                f" --experimental-string-processing -t py37 {self.module_path}"
-            )
-            result = subprocess_cmd(cmd)
-
-            if result:
-                _logger.warning(result)
-        else:
-            maintainer_path = os.path.join(
-                workspace_path, "script", "OCA_maintainer-tools"
-            )
-            cpu_count = os.cpu_count()
-            cmd = (
-                f"cd {maintainer_path};. env/bin/activate;cd"
-                f" {workspace_path};oca-autopep8 -j{cpu_count}"
-                f" --max-line-length {max_col} -ari {self.module_path}"
-            )
-            result = subprocess_cmd(cmd)
-
-            if result:
-                _logger.warning(result)
-
-        if enable_xml_formatter:
-            formatter = xmlformatter.Formatter(
-                indent="4",
-                indent_char=" ",
-                selfclose=True,
-                correct=True,
-                preserve=["pre"],
-                blanks=True,
-            )
-            for path_file in self.lst_path_file:
-                if path_file.endswith(".xml"):
-                    relative_path = path_file[len(self.module_path) + 1 :]
-                    self.write_file_binary(
-                        relative_path, formatter.format_file(path_file)
-                    )
-
-
-def subprocess_cmd(command):
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
-    proc_stdout = process.communicate()[0].strip()
-    return proc_stdout

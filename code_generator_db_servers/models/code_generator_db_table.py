@@ -1,16 +1,16 @@
+import base64
+import logging
+import os
 import re
+import time
+from collections import defaultdict
 
 import psycopg2
-from odoo import _, models, fields, api
-from odoo.exceptions import ValidationError
-from collections import defaultdict
-from odoo.models import MAGIC_COLUMNS
-import time
-import base64
-import os
 import unidecode
 
-import logging
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
+from odoo.models import MAGIC_COLUMNS
 
 _logger = logging.getLogger(__name__)
 
@@ -401,6 +401,14 @@ class CodeGeneratorDbTable(models.Model):
                 dct_field[
                     "is_hide_blacklist_form_view"
                 ] = field.is_hide_blacklist_form_view
+            if field.is_show_whitelist_kanban_view:
+                dct_field[
+                    "is_show_whitelist_kanban_view"
+                ] = field.is_show_whitelist_kanban_view
+            if field.is_hide_blacklist_kanban_view:
+                dct_field[
+                    "is_hide_blacklist_kanban_view"
+                ] = field.is_hide_blacklist_kanban_view
             if field.relation_table_id:
                 # Don't share field.relation, it's the relation with the table_name
                 dct_field["relation"] = field.relation_table_id.model_name
@@ -765,9 +773,12 @@ class CodeGeneratorDbTable(models.Model):
                                     f"{original_new_name_one2many}_{j}_ids"
                                 )
 
-                        description_name = new_name_one2many.replace(
-                            "_", " "
-                        ).title()
+                        if column_id.one2many_description:
+                            description_name = column_id.one2many_description
+                        else:
+                            description_name = new_name_one2many.replace(
+                                "_", " "
+                            ).title()
 
                         dct_one2many = {
                             "name": new_name_one2many,
@@ -778,6 +789,7 @@ class CodeGeneratorDbTable(models.Model):
                             "ttype": "one2many",
                             "relation": table_id.model_name,
                             "relation_field": column_id.field_name,
+                            "relation_field_id": column_id.id,
                             # "comodel_name": update_info.model_name,
                             # "inverse_name": update_info.new_field_name,
                         }
@@ -809,11 +821,14 @@ class CodeGeneratorDbTable(models.Model):
         return query + f" table_name = '{table_name}' "
 
     @staticmethod
-    def get_q_4constraints(table_name, column_name, fkey=False, sgdb=None):
+    def get_q_4constraints(
+        table_name, column_name, database, fkey=False, sgdb=None
+    ):
         """
         Function to obtain the SELECT query for a table constraints
         :param table_name:
         :param column_name:
+        :param database:
         :param fkey:
         :param sgdb:
         :return:
@@ -824,19 +839,19 @@ class CodeGeneratorDbTable(models.Model):
                 return f""" SELECT ccu.table_name, ccu.COLUMN_NAME FROM {'information_schema.table_constraints'} AS tc
                 JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
                 JOIN {'information_schema.constraint_column_usage'} AS ccu ON ccu.constraint_name = tc.constraint_name
-                WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table_name}'
+                WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table_name}' AND tc.table_schema = '{database}'
                 AND kcu.column_name = '{column_name}' """
 
             else:
                 return f""" SELECT kcu.referenced_table_name, kcu.REFERENCED_COLUMN_NAME FROM {'information_schema.table_constraints'} AS tc
                 JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
-                WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table_name}'
+                WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = '{table_name}' AND tc.table_schema = '{database}'
                 AND kcu.column_name = '{column_name}' """
 
         else:
             return f""" SELECT * FROM {'information_schema.table_constraints'} AS tc
             JOIN {'information_schema.key_column_usage'} AS kcu ON tc.constraint_name = kcu.constraint_name
-            WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_name = '{table_name}'
+            WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_name = '{table_name}' AND tc.table_schema = '{database}'
             AND kcu.column_name = '{column_name}' """
 
     @staticmethod
@@ -954,7 +969,7 @@ class CodeGeneratorDbTable(models.Model):
                 #     column_name = slice_column_name
 
                 str_query_4_constraints = self.get_q_4constraints(
-                    origin_table_name, column_name
+                    origin_table_name, column_name, database
                 )
                 cr.execute(str_query_4_constraints)
                 if (
@@ -962,7 +977,11 @@ class CodeGeneratorDbTable(models.Model):
                 ):  # if it is not a primary key
 
                     str_query_4_constraints_fkey = self.get_q_4constraints(
-                        origin_table_name, column_name, fkey=True, sgdb=sgdb
+                        origin_table_name,
+                        column_name,
+                        database,
+                        fkey=True,
+                        sgdb=sgdb,
                     )
                     cr.execute(str_query_4_constraints_fkey)
                     is_m2o = cr.fetchone()

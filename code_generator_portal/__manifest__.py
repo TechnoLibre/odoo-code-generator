@@ -7,7 +7,7 @@
     ),
     "author": "Mathben (mathben@technolibre.ca)",
     "category": "Extra Tools",
-    "depends": ["code_generator"],
+    "depends": ["code_generator", "portal"],
     "installable": True,
     "data": [
         "wizards/code_generator_generate_portal_wizard.xml",

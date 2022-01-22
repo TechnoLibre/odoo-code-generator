@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-
-from odoo import models, fields
+from odoo import fields, models
 
 
-class CodeGeneratorConfigSettings(models.TransientModel):
+class ResConfigSettings(models.TransientModel):
     _inherit = "res.config.settings"
 
     s_data2export = fields.Selection(

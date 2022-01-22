@@ -1,14 +1,14 @@
-from odoo import models, fields, api
-
 import os
 import shutil
 import tempfile
 import uuid
-from lxml.builder import E
-from lxml import etree as ET
 from collections import defaultdict
 
 from code_writer import CodeWriter
+from lxml import etree as ET
+from lxml.builder import E
+
+from odoo import api, fields, models
 from odoo.models import MAGIC_COLUMNS
 
 BREAK_LINE = ["\n"]

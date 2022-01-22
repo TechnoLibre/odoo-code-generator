@@ -1,7 +1,13 @@
-from odoo import _, models, fields, api
-from odoo.models import MAGIC_COLUMNS
-from lxml.builder import E
+import logging
+import uuid
+
 from lxml import etree as ET
+from lxml.builder import E
+
+from odoo import _, api, fields, models
+from odoo.models import MAGIC_COLUMNS
+
+_logger = logging.getLogger(__name__)
 
 MAGIC_FIELDS = MAGIC_COLUMNS + [
     "display_name",
@@ -24,13 +30,23 @@ def _fmt_title(word):
     return word.replace(".", " ").title()
 
 
-def _get_field_by_user(model):
+def _get_field_by_user(model_id, keep_name=False):
     lst_field = []
-    lst_magic_fields = MAGIC_FIELDS + ["name"]
-    for field in model.field_id:
-        if field.name not in lst_magic_fields:
-            lst_field.append(field)
-    return lst_field
+    lst_first_field = []
+    lst_second_field = []
+    if keep_name:
+        lst_magic_fields = MAGIC_FIELDS
+    else:
+        lst_magic_fields = MAGIC_FIELDS + ["name"]
+    for field_id in model_id.field_id:
+        if field_id.name not in lst_magic_fields:
+            if field_id.name == "name":
+                lst_first_field.append(field_id)
+            elif field_id.name == "email":
+                lst_second_field.append(field_id)
+            else:
+                lst_field.append(field_id)
+    return lst_first_field + lst_second_field + lst_field
 
 
 class CodeGeneratorGeneratePortalWizard(models.TransientModel):
@@ -47,6 +63,12 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
         ),
     )
 
+    portal_enable_create = fields.Boolean(
+        string="Enable portal creation",
+        default=False,
+        help="This will activate create form for all model.",
+    )
+
     @api.multi
     def button_generate_views(self):
         status = super(
@@ -58,11 +80,10 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
             self.code_generator_id.enable_generate_portal = False
             return status
 
-        self.code_generator_id.enable_generate_portal = True
+        if self.portal_enable_create:
+            self.code_generator_id.portal_enable_create = True
 
-        model_portal_mixin = self.env["ir.model"].search(
-            [("model", "=", "portal.mixin")]
-        )
+        self.code_generator_id.enable_generate_portal = True
 
         o2m_models = (
             self.code_generator_id.o2m_models
@@ -81,15 +102,15 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
         self.generate_portal_form_model(
             o2m_models, self.code_generator_id.name
         )
+        if self.portal_enable_create:
+            self.generate_portal_create_model(
+                o2m_models, self.code_generator_id.name
+            )
 
-        for model_id in o2m_models:
-            model_created_fields = model_id.field_id.filtered(
-                lambda field: field.name not in MAGIC_FIELDS
-            ).mapped("name")
+        o2m_models.add_model_inherit("portal.mixin")
 
-            if model_portal_mixin:
-                # TODO update it instead of overwrite it
-                model_id.m2o_inherit_model = model_portal_mixin.id
+        # Add portal code
+        self._add_portal_python_code(o2m_models)
 
         return True
 
@@ -98,32 +119,63 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
         if not self.enable_generate_all and not self.enable_generate_portal:
             return
 
-        for code_generator in self.code_generator_id:
-            lst_dependency = ["portal"]
-            lst_actual_dependency = [
-                a.depend_id.name for a in code_generator.dependencies_id
-            ]
-            for depend in lst_dependency:
-                # check duplicate
-                if depend in lst_actual_dependency:
-                    continue
-                module = self.env["ir.module.module"].search(
-                    [("name", "=", depend)]
-                )
-                if len(module) > 1:
-                    raise Exception(f"Duplicated dependencies: {depend}")
-                elif not len(module):
-                    raise Exception(f"Cannot found dependency: {depend}")
+        self.code_generator_id.add_module_dependency("portal")
 
-                value = {
-                    "module_id": code_generator.id,
-                    "depend_id": module.id,
-                    "name": module.display_name,
-                }
-                self.env["code.generator.module.dependency"].create(value)
+    @staticmethod
+    def _get_l_map(fn, collection):
+        """
+        Util function to get a list of a map operation
+        :param fn:
+        :param collection:
+        :return:
+        """
+
+        return list(map(fn, collection))
+
+    def _get_class_name(self, model):
+        """
+        Util function to get a model class name representation from a model name (code.generator -> CodeGenerator)
+        :param model:
+        :return:
+        """
+
+        # TODO move this method in ir.model
+        result = []
+        bypoint = model.split(".")
+        for byp in bypoint:
+            result += byp.split("_")
+        return "".join(self._get_l_map(lambda e: e.capitalize(), result))
+
+    def _add_portal_python_code(self, o2m_models):
+        lst_code = []
+        for model_id in o2m_models:
+            method_name = "_compute_access_url"
+            actual_code = self.env["code.generator.model.code"].search(
+                [
+                    ("m2o_module", "=", self.code_generator_id.id),
+                    ("m2o_model", "=", model_id.id),
+                    ("name", "=", method_name),
+                ]
+            )
+            if actual_code:
+                continue
+            var_name = model_id.model.replace(".", "_")
+            str_code = f"""super({self._get_class_name(model_id.model)}, self)._compute_access_url()
+for {var_name} in self:
+    {var_name}.access_url = '/my/{var_name}/%s' % {var_name}.id
+            """
+            dct_code = {
+                "code": str_code,
+                "name": method_name,
+                "param": "self",
+                # "sequence": 1,
+                "m2o_module": self.code_generator_id.id,
+                "m2o_model": model_id.id,
+            }
+            lst_code.append(dct_code)
+        self.env["code.generator.model.code"].create(lst_code)
 
     def generate_portal_menu_entry(self, o2m_models, module_name):
-        # TODO need to find another solution than linked with the model, need to link on portal
         model_created = o2m_models[0]
 
         """
@@ -151,7 +203,6 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
         key = f"{module_name}.portal_layout"
         priority = "40"
         inherit_id = self.env.ref("portal.portal_breadcrumbs").id
-        template_id = "portal_layout"
         position = "inside"
         expr = "//ol[hasclass('o_portal_submenu')]"
 
@@ -159,12 +210,26 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
         for model in o2m_models:
             # <li t-if="page_name == 'project' or project" t-attf-class="breadcrumb-item
             # #{'active ' if not project else ''}">
+            t_if_condition = _fmt_underscores(model.model)
+            if self.portal_enable_create:
+                page_name_condition = (
+                    f"page_name in ('{_fmt_underscores(model.model)}',"
+                    f" 'create_{_fmt_underscores(model.model)}') or"
+                    f" {_fmt_underscores(model.model)}"
+                )
+                t_if_condition += (
+                    " or page_name =="
+                    f" 'create_{_fmt_underscores(model.model)}'"
+                )
+            else:
+                page_name_condition = (
+                    f"page_name == '{_fmt_underscores(model.model)}' or "
+                    f"{_fmt_underscores(model.model)}"
+                )
+
             menu_xml = E.li(
                 {
-                    "t-if": (
-                        f"page_name == '{_fmt_underscores(model.model)}' or "
-                        f"{_fmt_underscores(model.model)}"
-                    ),
+                    "t-if": page_name_condition,
                     "t-attf-class": (
                         "breadcrumb-item #{'active ' if not "
                         f"{_fmt_underscores(model.model)}"
@@ -174,7 +239,7 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                 # <a t-if="project" t-attf-href="/my/projects?{{ keep_query() }}">Projects</a>
                 E.a(
                     {
-                        "t-if": _fmt_underscores(model.model),
+                        "t-if": t_if_condition,
                         "t-attf-href": (
                             f"/my/{_fmt_underscores(model.model)}s?"
                             "{{ keep_query() }}"
@@ -187,13 +252,20 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
             )
             lst_menu_xml.append(menu_xml)
             # <li t-if="project" class="breadcrumb-item active">
+
             menu_xml = E.li(
                 {
                     "t-if": _fmt_underscores(model.model),
                     "class": "breadcrumb-item active",
                 },
                 # <t t-esc="project.name"/>
-                E.t({"t-esc": f"{_fmt_underscores(model.model)}.name"}),
+                E.t(
+                    {
+                        "t-esc": (
+                            f"{_fmt_underscores(model.model)}.{model.rec_name}"
+                        )
+                    }
+                ),
             )
             lst_menu_xml.append(menu_xml)
 
@@ -205,7 +277,6 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
 
         view_value = self._create_ui_view(
             content,
-            template_id,
             key,
             qweb_name,
             priority,
@@ -238,7 +309,6 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
         key = f"{module_name}.portal_my_home"
         priority = "40"
         inherit_id = self.env.ref("portal.portal_my_home").id
-        template_id = "portal_my_home"
         position = "inside"
         lst_menu_xml = []
         for model in o2m_models:
@@ -266,6 +336,18 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                 ),
             )
             lst_menu_xml.append(menu_xml)
+            if self.portal_enable_create:
+                button_menu_xml = E.a(
+                    {
+                        "t-if": f"not {_fmt_underscores(model.model)}_count",
+                        "role": "button",
+                        "class": "btn btn-primary btn-block mb8",
+                        "href": f"/new/{_fmt_underscores(model.model)}",
+                    },
+                    E.i({"class": "fa fa-plus-circle"}),
+                    _fmt_title(model.model),
+                )
+                lst_menu_xml.append(button_menu_xml)
         expr = "//div[hasclass('o_portal_docs')]"
         content = ET.tostring(
             # <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
@@ -275,7 +357,6 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
 
         view_value = self._create_ui_view(
             content,
-            template_id,
             key,
             qweb_name,
             priority,
@@ -327,18 +408,55 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
             priority = "40"
             # inherit_id = self.env.ref("portal.portal_my_home").id
 
-            # <t t-call="portal.portal_layout">
-            root = E.t(
-                {"t-call": "portal.portal_layout"},
-                # <t t-set="breadcrumbs_searchbar" t-value="True"/>
-                E.t({"t-set": "breadcrumbs_searchbar", "t-value": "True"}),
-                # <t t-call="portal.portal_searchbar">
+            lst_item_portal = []
+
+            # <t t-set="breadcrumbs_searchbar" t-value="True"/>
+            lst_item_portal.append(
+                E.t({"t-set": "breadcrumbs_searchbar", "t-value": "True"})
+            )
+            # <t t-call="portal.portal_searchbar">
+            lst_item_portal.append(
                 E.t(
                     {"t-call": "portal.portal_searchbar"},
                     # <t t-set="title">Projects</t>
                     E.t({"t-set": "title"}, f"{_fmt_title(model.model)}s"),
-                ),
-                # <t t-if="not projects">
+                )
+            )
+
+            if self.portal_enable_create:
+                # <form method="POST" t-attf-action="/new/ticket">
+                lst_item_portal.append(
+                    E.form(
+                        {
+                            "method": "POST",
+                            "t-attf-action": (
+                                f"/new/{_fmt_underscores(model.model)}"
+                            ),
+                        },
+                        # <button name="create_new_ticket" type="action" class="btn btn-primary" groups="base.group_portal" style="float: right; margin-right: 5px;">New Ticket</button>
+                        E.button(
+                            {
+                                "name": f"create_new_{_fmt_underscores(model.model)}",
+                                "type": "action",
+                                "class": "btn btn-primary",
+                                # "groups": "base.group_portal",
+                                "style": "float: right; margin-right: 5px;",
+                            },
+                            f"New {_fmt_title(model.model)}",
+                        ),
+                        # <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        E.input(
+                            {
+                                "type": "hidden",
+                                "name": "csrf_token",
+                                "t-att-value": "request.csrf_token()",
+                            }
+                        ),
+                    )
+                )
+
+            # <t t-if="not projects">
+            lst_item_portal.append(
                 E.t(
                     {"t-if": f"not {_fmt_underscores(model.model)}s"},
                     # <div class="alert alert-warning mt8" role="alert">
@@ -346,8 +464,10 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                         {"class": "alert alert-warning mt8", "role": "alert"},
                         f"There are no {_fmt_underscores(model.model)}s.",
                     ),
-                ),
-                # <t t-call="portal.portal_table" t-if="projects">
+                )
+            )
+            # <t t-call="portal.portal_table" t-if="projects">
+            lst_item_portal.append(
                 E.t(
                     {
                         "t-if": f"{_fmt_underscores(model.model)}s",
@@ -378,7 +498,7 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                                     # <span t-field="project.name"/>
                                     E.span(
                                         {
-                                            "t-field": f"{_fmt_underscores(model.model)}.name"
+                                            "t-field": f"{_fmt_underscores(model.model)}.{model.rec_name}"
                                         }
                                     ),
                                 ),
@@ -397,13 +517,16 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                             ),
                         ),
                     ),
-                ),
+                )
             )
+
+            # <t t-call="portal.portal_layout">
+            root = E.t({"t-call": "portal.portal_layout"}, *lst_item_portal)
 
             content = ET.tostring(root, pretty_print=True)
 
             view_value = self._create_ui_view(
-                content, None, key, qweb_name, priority, None, model_created
+                content, key, qweb_name, priority, None, model_created
             )
             lst_views.append(view_value)
 
@@ -475,21 +598,321 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
 
             lst_field = _get_field_by_user(model)
             lst_card_body = []
+            lst_card_body_begin = []
+            lst_card_body_end = []
             for field in lst_field:
+                if field.ignore_on_code_generator_writer:
+                    continue
                 # E.div({'t-if': 'project.partner_id', 'class': 'col-12 col-md-6 mb-2 mb-md-0'},
-                card_body = E.div(
-                    {"class": "col-12 col-md-6 mb-2 mb-md-0"},
-                    f"{field.field_description}-",
-                    E.span(
-                        {
-                            "t-field": (
-                                f"{_fmt_underscores(model.model)}.{field.name}"
+
+                # TODO this fix missing association relation and relation_id (to create) to replace related_field_data_model
+                # if field.relation and not field.relation_table:
+                if field.relation:
+                    related_field_data_model = self.env["ir.model"].search(
+                        [("model", "=", field.relation)]
+                    )
+                else:
+                    related_field_data_model = None
+
+                # TODO this fix missing association relation_field with relation_field_id
+                if field.relation_field and not field.relation_field_id:
+                    if not field.relation:
+                        _logger.error(
+                            "Missing in a record for ir.model.fields the"
+                            " field relation, but relation_field contains"
+                            f" '{field.relation_field}' ."
+                        )
+                    else:
+                        field.relation_field_id = (
+                            self.env["ir.model.fields"]
+                            .search(
+                                [
+                                    ("model", "=", field.relation),
+                                    ("name", "=", field.relation_field),
+                                ]
                             )
-                        }
+                            .id
+                        )
+
+                str_field_data = (
+                    f"{_fmt_underscores(model.model)}.{field.name}"
+                )
+                if field.ttype == "one2many":
+                    if field.force_widget:
+                        _logger.warning(
+                            "Cannot support `force_widget` in portal from"
+                            f" one2many for field {field.name}."
+                        )
+
+                    lst_field_name_xml = []
+                    lst_field_variable_xml = []
+                    lst_field_to_compute = _get_field_by_user(
+                        field.relation_field_id.model_id, keep_name=True
+                    )
+                    for no_id, field_id in enumerate(lst_field_to_compute):
+                        if field_id.relation:
+                            related_field_id_data_model = self.env[
+                                "ir.model"
+                            ].search([("model", "=", field_id.relation)])
+                        else:
+                            related_field_id_data_model = None
+
+                        if field_id.ignore_on_code_generator_writer:
+                            continue
+
+                        # TODO add class="text-right" when force_widget with time
+
+                        field_id_value_name = f"{field.name}.{field_id.name}"
+
+                        if field_id.ttype == "html":
+                            t_field_id_show_data = "t-raw"
+                        else:
+                            t_field_id_show_data = "t-esc"
+
+                        field_id_value_xml = None
+
+                        if field_id.ttype == "many2one":
+                            # TODO ignore link when it's the same page? field_id.relation == field.model_id.model
+                            #  and same id... No, need some Javascript, cannot do that here
+                            field_id_value_xml = E.a(
+                                {
+                                    "t-attf-href": f"/my/{_fmt_underscores(field_id.relation)}/#{{{field_id_value_name}.id}}",
+                                    "t-field": f"{field_id_value_name}.{related_field_id_data_model.rec_name}",
+                                }
+                            )
+                        elif field_id.ttype in ("many2many", "one2many"):
+                            var_rec_name = self.env[
+                                field_id.relation
+                            ]._rec_name
+                            # TODO can be in conflict, if a field_id.name is item, or field_id.name[3:] exist
+                            sub_name_var = (
+                                field_id.name[:3]
+                                if len(field_id.name) > 3
+                                else "item"
+                            )
+
+                            field_id_value_xml = E.t(
+                                {
+                                    "t-foreach": f"{field_id_value_name}",
+                                    "t-as": sub_name_var,
+                                },
+                                E.a(
+                                    {
+                                        "t-attf-href": f"/my/{_fmt_underscores(field_id.relation)}/#{{{sub_name_var}.id}}",
+                                        "t-field": (
+                                            f"{sub_name_var}.{var_rec_name}"
+                                        ),
+                                    },
+                                ),
+                                E.br({"t-if": f"not {sub_name_var}_last"}),
+                            )
+                        elif field_id.name == "name":
+                            field_id_value_xml = E.a(
+                                {
+                                    "t-attf-href": f"/my/{_fmt_underscores(field_id.model_id.model)}/#{{{field.name}.id}}",
+                                    "t-field": f"{field_id_value_name}",
+                                }
+                            )
+                        elif field_id.force_widget:
+                            if field_id.force_widget == "image":
+                                field_id_value_xml = E.img(
+                                    {
+                                        "t-if": field_id_value_name,
+                                        "t-att-src": f"image_data_uri({field_id_value_name})",
+                                        "alt": field_id.name,
+                                        "class": (
+                                            "img img-fluid d-block mx-auto"
+                                        ),
+                                    }
+                                )
+                            elif field_id.force_widget == "link_button":
+                                field_id_value_xml = E.a(
+                                    {
+                                        "target": "_blank",
+                                        "t-attf-href": (
+                                            f"{{{{{field_id_value_name}}}}}"
+                                        ),
+                                        "t-field": field_id_value_name,
+                                    }
+                                )
+                            elif field_id.force_widget == "float_time":
+                                field_id_value_xml = E.span(
+                                    {
+                                        "t-field": field_id_value_name,
+                                        "t-options": (
+                                            '{"widget": "duration", "unit":'
+                                            ' "hour", "round": "minute"}'
+                                        ),
+                                    }
+                                )
+                            else:
+                                _logger.warning(
+                                    "Cannot support `force_widget`"
+                                    f" {field_id.force_widget} in portal"
+                                    " inside one2many for field"
+                                    f" {field_id.name}."
+                                )
+                        else:
+                            field_id_value_xml = E.t(
+                                {t_field_id_show_data: field_id_value_name}
+                            )
+
+                        if field_id_value_xml is None:
+                            _logger.warning(
+                                f"Not supported, field {field_id.name}"
+                            )
+                        else:
+                            column_xml = E.th({}, field_id.field_description)
+                            lst_field_name_xml.append(column_xml)
+                            data_column_xml = E.td({}, field_id_value_xml)
+                            lst_field_variable_xml.append(data_column_xml)
+
+                    card_body = E.div(
+                        {"class": "container", "t-if": str_field_data},
+                        # <hr class="mt-4 mb-1"/>
+                        E.hr({"class": "mt-4 mb-1"}),
+                        # <h5 class="mt-2 mb-2">Timesheets</h5>
+                        E.h5(
+                            {"class": "mt-2 mb-2"},
+                            field.field_description,
+                        ),
+                        # <table class="table table-sm">
+                        E.table(
+                            {"class": "table table-sm"},
+                            # <thead>
+                            E.thead(
+                                {},
+                                # <tr>
+                                E.tr(
+                                    {},
+                                    *lst_field_name_xml,
+                                    # <tr t-as="timesheet" t-foreach="task.timesheet_ids">
+                                ),
+                            ),
+                            E.tr(
+                                {
+                                    "t-foreach": f"{_fmt_underscores(model.model)}.{field.name}",
+                                    "t-as": field.name,
+                                },
+                                *lst_field_variable_xml,
+                            ),
+                        ),
+                    )
+                    lst_card_body_end.append(card_body)
+                elif field.ttype == "many2many":
+                    var_rec_name = self.env[field.relation]._rec_name
+                    # TODO can be in conflict, if a field.name is item, or field.name[3:] exist
+                    sub_name_var = (
+                        field.name[:3] if len(field.name) > 3 else "item"
+                    )
+
+                    xml_field_data = E.t(
+                        {
+                            "t-foreach": str_field_data,
+                            "t-as": sub_name_var,
+                        },
+                        E.a(
+                            {
+                                "t-attf-href": f"/my/{_fmt_underscores(field.relation)}/#{{{sub_name_var}.id}}",
+                                "t-field": f"{sub_name_var}.{var_rec_name}",
+                            },
+                        ),
+                        E.t({"t-if": f"not {sub_name_var}_last"}, ","),
+                    )
+                    if xml_field_data is not None:
+                        card_body = E.div(
+                            {"class": "col-12 col-md-6 mb-2 mb-md-0"},
+                            E.b({}, f"{field.field_description}:"),
+                            xml_field_data,
+                        )
+                        lst_card_body_begin.append(card_body)
+                else:
+                    xml_field_data = None
+                    if field.ttype in ("many2one",):
+                        xml_field_data = E.a(
+                            {
+                                "t-attf-href": f"/my/{_fmt_underscores(field.relation)}/#{{{str_field_data}.id}}",
+                                "t-field": f"{str_field_data}.{related_field_data_model.rec_name}",
+                            }
+                        )
+                    elif field.force_widget:
+                        if field.force_widget == "image":
+                            xml_field_data = E.img(
+                                {
+                                    "t-if": str_field_data,
+                                    "t-att-src": (
+                                        f"image_data_uri({str_field_data})"
+                                    ),
+                                    "alt": field.name,
+                                    "class": "img img-fluid d-block mx-auto",
+                                }
+                            )
+                        elif field.force_widget == "link_button":
+                            xml_field_data = E.a(
+                                {
+                                    "target": "_blank",
+                                    "t-attf-href": f"{{{{{str_field_data}}}}}",
+                                    "t-field": str_field_data,
+                                }
+                            )
+                        elif field.force_widget == "float_time":
+                            xml_field_data = E.span(
+                                {
+                                    "t-field": str_field_data,
+                                    "t-options": (
+                                        '{"widget": "duration", "unit":'
+                                        ' "hour", "round": "minute"}'
+                                    ),
+                                }
+                            )
+                        else:
+                            _logger.warning(
+                                "Cannot support `force_widget`"
+                                f" {field.force_widget} in portal for field"
+                                f" {field.name}."
+                            )
+                    else:
+                        if field.ttype == "html":
+                            t_show_data = "t-raw"
+                        else:
+                            t_show_data = "t-field"
+                        xml_field_data = E.span({t_show_data: str_field_data})
+
+                    if xml_field_data is not None:
+                        card_body = E.div(
+                            {"class": "col-12 col-md-6 mb-2 mb-md-0"},
+                            E.b({}, f"{field.field_description}:"),
+                            xml_field_data,
+                        )
+                        lst_card_body_begin.append(card_body)
+
+            lst_card_body = lst_card_body_begin + lst_card_body_end
+            lst_message_xml = []
+            if model.enable_activity:
+                msg_xml = E.div(
+                    {"class": "mt32"},
+                    E.h4(
+                        {}, E.strong({}, "Message and communication history")
+                    ),
+                    E.t(
+                        {"t-call": "portal.message_thread"},
+                        E.t(
+                            {
+                                "t-set": "object",
+                                "t-value": _fmt_underscores(model.model),
+                            }
+                        ),
+                        E.t(
+                            {
+                                "t-set": "token",
+                                "t-value": f"{_fmt_underscores(model.model)}.access_token",
+                            }
+                        ),
+                        E.t({"t-set": "pid", "t-value": "pid"}),
+                        E.t({"t-set": "hask", "t-value": "hash"}),
                     ),
                 )
-                lst_card_body.append(card_body)
-
+                lst_message_xml.append(msg_xml)
             # <t t-call="portal.portal_layout">
             root = E.t(
                 {"t-call": "portal.portal_layout"},
@@ -506,7 +929,7 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                             {
                                 "t-set": "backend_url",
                                 "t-value": (
-                                    f"'/web#return_label=Website&model={module_name}.{model.model}&id=%s&view_type=form'"
+                                    f"'/web#return_label=Website&model={model.model}&id=%s&view_type=form'"
                                     f" % ({_fmt_underscores(model.model)}.id)"
                                 ),
                             }
@@ -530,9 +953,7 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                             # <span t-field="project.name"/>
                             E.span(
                                 {
-                                    "t-field": (
-                                        f"{_fmt_underscores(model.model)}.name"
-                                    )
+                                    "t-field": f"{_fmt_underscores(model.model)}.{model.rec_name}"
                                 }
                             )
                             # TODO need binding variable
@@ -608,12 +1029,450 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
                     #                             E.address({'t-field': 'project.user_id',
                     #                                        't-options': '{"widget": "contact", "fields": ["name", "email", "phone"]}'}))))))
                 ),
+                *lst_message_xml,
             )
 
             content = ET.tostring(root, pretty_print=True)
 
             view_value = self._create_ui_view(
-                content, None, key, qweb_name, None, None, model_created
+                content, key, qweb_name, None, None, model_created
+            )
+            lst_views.append(view_value)
+
+        return lst_views
+
+    def generate_portal_create_model(self, o2m_models, module_name):
+        model_created = o2m_models[0]
+        dct_replace = {}
+
+        """
+          <template id="portal_create_ticket" name="Create Ticket">
+            <t t-call="portal.portal_layout">
+              <div class="container">
+                <div class="row">
+                  <div class="col-md-12">
+                    <h1 class="text-center">Send a new ticket</h1>
+                  </div>
+                </div>
+              </div>
+
+              <form action="/submitted/ticket" method="POST" class="form-horizontal mt32" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                <div class="form-group">
+                  <label class="col-md-3 col-sm-4 control-label" for="name">Name</label>
+                  <div class="col-md-7 col-sm-8">
+                    <input type="text" class="form-control" name="name" t-attf-value="#{name}" required="True"/>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-md-3 col-sm-4 control-label" for="email">Email</label>
+                  <div class="col-md-7 col-sm-8">
+                    <input type="email" class="form-control" name="email" required="True" t-attf-value="#{email}" readonly="True" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-md-3 col-sm-4 control-label" for="category">Category</label>
+                  <div class="col-md-7 col-sm-8">
+                    <select class="form-control" id="category" name="category" required="True">
+                      <t t-foreach="categories" t-as="cat">
+                        <option t-attf-value="#{cat.id}"><t t-esc="cat.name"/></option>
+                      </t>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-md-3 col-sm-4 control-label" for="subject">Subject</label>
+                  <div class="col-md-7 col-sm-8">
+                    <input type="text" class="form-control" name="subject" required="True"/>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-md-3 col-sm-4 control-label" for="attachment">Add Attachments</label>
+                  <div class="col-md-7 col-sm-8">
+                      <div class="btn btn-default btn-file col-md-12"><input class="form-control o_website_form_input" name="attachment" id="attachment" type="file" multiple="multiple"/></div>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-md-3 col-dm-4 control-label" for="description">Description</label>
+                  <div class="col-md-7 col-sm-8">
+                    <textarea class="form-control" name="description" style="min-height: 120px" required="True"></textarea>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div class="col-md-offset-3 col-sm-offset-4 col-sm-8 col-md-7">
+                    <button class="btn btn-primary btn-lg">Submit Ticket</button>
+                  </div>
+                </div>
+              </form>
+            </t>
+          </template>
+        """
+        lst_views = []
+        for model_id in o2m_models:
+            qweb_name = f"Create {_fmt_title(model_id.model)}"
+            key = f"portal_create_{_fmt_underscores(model_id.model)}"
+            # priority = "40"
+            # inherit_id = self.env.ref("portal.portal_my_home").id
+
+            lst_field = _get_field_by_user(model_id, keep_name=True)
+            lst_item_form = []
+
+            item_xml = E.input(
+                {
+                    "type": "hidden",
+                    "name": "csrf_token",
+                    "t-att-value": "request.csrf_token()",
+                }
+            )
+            lst_item_form.append(item_xml)
+
+            # Bind model field
+            lst_data_field_name = ["name", "email"]
+            for field_id in lst_field:
+                sub_item = None
+                if field_id.ignore_on_code_generator_writer:
+                    continue
+                if field_id.ttype == "char":
+                    dct_sub_item = {
+                        "type": "text",
+                        "class": "form-control",
+                        "name": field_id.name,
+                    }
+
+                    if field_id.name in lst_data_field_name:
+                        dct_sub_item["t-attf-value"] = (
+                            "#{" + field_id.name + "}"
+                        )
+                    else:
+                        dct_sub_item[
+                            "t-att-value"
+                        ] = f"default_{field_id.name}"
+
+                    if field_id.required:
+                        dct_sub_item["required"] = "True"
+
+                    if field_id.readonly:
+                        dct_sub_item["readonly"] = "True"
+
+                    sub_item = E.input(dct_sub_item)
+                elif field_id.ttype in ("text", "html"):
+                    dct_sub_item = {
+                        "class": "form-control",
+                        "name": field_id.name,
+                        "style": "min-height: 120px",
+                    }
+
+                    if field_id.name in lst_data_field_name:
+                        default_value = "#{" + field_id.name + "}"
+                    else:
+                        default_value = f"default_{field_id.name}"
+
+                    if field_id.required:
+                        dct_sub_item["required"] = "True"
+
+                    if field_id.readonly:
+                        dct_sub_item["readonly"] = "True"
+
+                    sub_item = E.textarea(
+                        dct_sub_item, E.t({"t-esc": default_value})
+                    )
+                    str_to_replace = ET.tostring(sub_item)
+                    # Don't format textarea, because it's added space in value
+                    str_uuid = str(uuid.uuid4())
+                    dct_replace[str_uuid.encode()] = str_to_replace
+                    sub_item = str_uuid
+                elif field_id.ttype == "binary":
+                    dct_sub_item = {
+                        "class": "form-control o_website_form_input",
+                        "id": field_id.name,
+                        # "multiple": "multiple",
+                        "name": field_id.name,
+                        "type": "file",
+                    }
+
+                    if field_id.required:
+                        dct_sub_item["required"] = "True"
+
+                    sub_item = E.div(
+                        {"class": "btn btn-default btn-file col-md-12"},
+                        E.input(dct_sub_item),
+                    )
+                elif field_id.ttype in ("many2one",):
+                    var_rec_name = self.env[field_id.relation]._rec_name
+
+                    dct_select_attr = {
+                        "class": "form-control",
+                        "id": field_id.name,
+                        "name": field_id.name,
+                    }
+
+                    if field_id.required:
+                        dct_select_attr["required"] = "True"
+
+                    # TODO can be in conflict, if a field_id.name is item, or field_id.name[3:] exist
+                    sub_name_var = (
+                        field_id.name[:3] if len(field_id.name) > 3 else "item"
+                    )
+
+                    sub_item = E.select(
+                        dct_select_attr,
+                        E.t(
+                            {"t-foreach": field_id.name, "t-as": sub_name_var},
+                            E.option(
+                                {
+                                    "t-attf-value": f"#{{{sub_name_var}.id}}",
+                                    "t-att-selected": (
+                                        f"default_{field_id.name} =="
+                                        f" {sub_name_var}.id"
+                                    ),
+                                },
+                                E.t(
+                                    {"t-esc": f"{sub_name_var}.{var_rec_name}"}
+                                ),
+                            ),
+                        ),
+                    )
+                elif field_id.ttype == "one2many":
+                    pass
+                elif field_id.ttype in (
+                    "many2many",
+                    # "one2many"
+                ):
+                    # TODO enable one2many when support in submitted
+                    var_rec_name = self.env[field_id.relation]._rec_name
+                    # TODO can be in conflict, if a field_id.name is item, or field_id.name[3:] exist
+                    sub_name_var = (
+                        field_id.name[:3] if len(field_id.name) > 3 else "item"
+                    )
+
+                    dct_input_attr = {
+                        "type": "checkbox",
+                        "name": field_id.name,
+                        "t-att-id": (
+                            f"'{field_id.name}_' +"
+                            f" {sub_name_var}.{var_rec_name} + '_' +"
+                            f" str({sub_name_var}_index)"
+                        ),
+                        "t-att-value": f"{sub_name_var}.id",
+                        "t-att-checked": (
+                            f"{sub_name_var}.id in default_{field_id.name}"
+                        ),
+                    }
+
+                    if field_id.required:
+                        dct_input_attr["required"] = "required"
+
+                    sub_item = E.t(
+                        {"t-foreach": field_id.name, "t-as": sub_name_var},
+                        E.input(dct_input_attr),
+                        E.label(
+                            {
+                                "t-att-for": (
+                                    f"'{field_id.name}_' +"
+                                    f" {sub_name_var}.{var_rec_name} + '_' +"
+                                    f" str({sub_name_var}_index)"
+                                ),
+                                "t-att-string": (
+                                    f"{sub_name_var}.{var_rec_name}"
+                                ),
+                            },
+                            E.t({"t-esc": f"{sub_name_var}.{var_rec_name}"}),
+                        ),
+                    )
+                elif field_id.ttype == "boolean":
+                    dct_input_attr = {
+                        "type": "checkbox",
+                        "name": field_id.name,
+                        "t-att-id": field_id.name,
+                        "t-att-value": "True",
+                        "t-att-checked": f"default_{field_id.name}",
+                    }
+
+                    if field_id.required:
+                        dct_input_attr["required"] = "required"
+
+                    sub_item = E.input(dct_input_attr)
+                elif field_id.ttype == "selection":
+                    dct_select_attr = {
+                        "class": "form-control",
+                        "id": field_id.name,
+                        "name": field_id.name,
+                    }
+
+                    if field_id.required:
+                        dct_select_attr["required"] = "True"
+
+                    # TODO can be in conflict, if a field_id.name is item, or field_id.name[3:] exist
+                    sub_name_var = (
+                        field_id.name[:3] if len(field_id.name) > 3 else "item"
+                    )
+
+                    sub_item = E.select(
+                        dct_select_attr,
+                        E.t(
+                            {
+                                "t-foreach": field_id.name,
+                                "t-as": sub_name_var,
+                                "t-att-selected": (
+                                    f"default_{field_id.name} =="
+                                    f" {sub_name_var}[0]"
+                                ),
+                            },
+                            E.option(
+                                {"t-attf-value": f"#{{{sub_name_var}[0]}}"},
+                                E.t({"t-esc": f"{sub_name_var}[1]"}),
+                            ),
+                        ),
+                    )
+                elif field_id.ttype in ("float", "integer", "monetary"):
+                    dct_sub_item = {
+                        "type": "text",
+                        "class": "form-control",
+                        "name": field_id.name,
+                    }
+                    if field_id.force_widget == "float_time":
+                        dct_sub_item["placeholder"] = "hh:mm"
+
+                    if field_id.name in lst_data_field_name:
+                        dct_sub_item["t-attf-value"] = (
+                            "#{" + field_id.name + "}"
+                        )
+                    else:
+                        dct_sub_item[
+                            "t-att-value"
+                        ] = f"default_{field_id.name}"
+
+                    if field_id.required:
+                        dct_sub_item["required"] = "True"
+
+                    if field_id.readonly:
+                        dct_sub_item["readonly"] = "True"
+
+                    sub_item = E.input(dct_sub_item)
+                elif field_id.ttype in ("datetime", "date"):
+                    id_name = f"{field_id.name}_datepicker"
+                    dct_sub_item = {
+                        "type": "text",
+                        "class": "form-control datetimepicker-input",
+                        "t-att-data-target": id_name,
+                        "t-att-name": "prefix",
+                        "t-att-value": f"default_{field_id.name}",
+                    }
+
+                    sub_item = E.div(
+                        {
+                            "class": "input-group date",
+                            "data-target-input": "nearest",
+                            "t-att-id": id_name,
+                        },
+                        E.input(dct_sub_item),
+                        E.div(
+                            {
+                                "class": "input-group-append",
+                                "t-att-data-target": id_name,
+                                "data-toggle": "datetimepicker",
+                            },
+                            E.div(
+                                {"class": "input-group-text"},
+                                E.i({"class": "fa fa-calendar"}),
+                            ),
+                        ),
+                    )
+                else:
+                    _logger.warning(
+                        f"Type '{field_id.ttype}' not supported to generate in"
+                        " portal."
+                    )
+
+                if field_id.force_widget and field_id.force_widget not in (
+                    "link_button",
+                    "image",
+                    "float_time",
+                ):
+                    # TODO support image, show upload image and open tools to work the picture
+                    _logger.warning(
+                        f"Force widget '{field_id.force_widget}', type"
+                        f" '{field_id.ttype}' not supported to generate in"
+                        " portal."
+                    )
+
+                if sub_item is not None:
+                    item_xml = E.div(
+                        {"class": "form-group"},
+                        E.label(
+                            {
+                                "class": "col-md-3 col-sm-4 control-label",
+                                "for": field_id.name,
+                            },
+                            field_id.name.capitalize(),
+                        ),
+                        E.div({"class": "col-md-7 col-sm-8"}, sub_item),
+                    )
+                    lst_item_form.append(item_xml)
+
+            item_xml = E.div(
+                {"class": "form-group"},
+                E.div(
+                    {
+                        "class": (
+                            "col-md-offset-3 col-sm-offset-4 col-sm-8 col-md-7"
+                        )
+                    },
+                    E.button(
+                        {"class": "btn btn-primary btn-lg"},
+                        f"Submit {_fmt_title(model_id.model)}",
+                    ),
+                ),
+            )
+            lst_item_form.append(item_xml)
+
+            form_xml = E.form(
+                {
+                    "action": (
+                        f"/submitted/{model_id.name.lower().replace(' ', '_')}"
+                    ),
+                    "method": "POST",
+                    "class": "form-horizontal mt32",
+                    "enctype": "multipart/form-data",
+                },
+                *lst_item_form,
+            )
+
+            # <t t-call="portal.portal_layout">
+            root = E.t(
+                {"t-call": "portal.portal_layout"},
+                # <t groups="project.group_project_user" t-set="o_portal_fullwidth_alert">
+                # TODO how associate group_project_user?
+                # E.t({'t-set': 'o_portal_fullwidth_alert', 'groups': 'project.group_project_user'},
+                E.div(
+                    {"class": "container"},
+                    E.div(
+                        {"class": "row"},
+                        E.div(
+                            {"class": "col-md-12"},
+                            E.h1(
+                                {"class": "text-center"},
+                                "Send a new"
+                                f" {model_id.name.lower().replace('_', ' ')}",
+                            ),
+                        ),
+                    ),
+                ),
+                form_xml,
+            )
+
+            content = ET.tostring(root, pretty_print=True)
+
+            for key_uid, value in dct_replace.items():
+                new_value = (
+                    b"\n<!-- prettier-ignore-start -->"
+                    + value
+                    + b"<!-- prettier-ignore-end -->\n"
+                )
+                content = content.replace(key_uid, new_value)
+
+            view_value = self._create_ui_view(
+                content, key, qweb_name, None, None, model_created
             )
             lst_views.append(view_value)
 
@@ -622,7 +1481,6 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
     def _create_ui_view(
         self,
         content,
-        template_id,
         key,
         qweb_name,
         priority,

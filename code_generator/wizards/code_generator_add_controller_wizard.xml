@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <odoo>
   <record id="code_generator_add_controller_action" model="ir.actions.act_window">
     <field name="name">Controller</field>

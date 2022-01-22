@@ -1,4 +1,4 @@
-<?xml version= "1.0" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <odoo>
 
   <record model="ir.ui.view" id="ir_model_form_inherited">
@@ -24,11 +24,9 @@
                    class="m2o_module_input"
                    invisible="context.get('hide_m2o_module', False)"/>
 
-            <field name="m2o_inherit_py_class" options="{'no_create': True, 'no_edit': True}"
-                   attrs="{'readonly': [('id', '!=', False)]}"/>
-            <field name="m2o_inherit_model" options="{'no_create': True, 'no_edit': True}"
-                   class="m2o_inherit_model_input" attrs="{'readonly': [('id', '!=', False)]}"/>
-            <field name="nomenclator" class="nomenclator_input"/>
+            <field name="m2o_inherit_py_class"/>
+            <field name="inherit_model_ids"/>
+            <field name="nomenclator"/>
           </group>
           <group attrs="{'invisible': [('id', '=', False)]}">
             <field name="o2m_server_constrains">

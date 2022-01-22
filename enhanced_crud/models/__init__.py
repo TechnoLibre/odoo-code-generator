@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-from . import res_config_settings, enhanced_crud
+from . import enhanced_crud, res_config_settings

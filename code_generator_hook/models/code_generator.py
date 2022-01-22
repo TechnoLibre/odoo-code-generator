@@ -1,4 +1,4 @@
-from odoo import models, fields, api, modules, tools
+from odoo import api, fields, models, modules, tools
 
 
 class CodeGeneratorModule(models.Model):
@@ -78,8 +78,21 @@ class CodeGeneratorModule(models.Model):
         help="Use default value to generate template wizard.",
     )
 
+    disable_generate_access = fields.Boolean(
+        help="Disable the writing access.",
+    )
+
+    enable_cg_generate_portal = fields.Boolean(
+        string="Wizard enable code generator portal",
+        help="Add template of portal to wizard.",
+    )
+
     enable_generate_portal = fields.Boolean(
         string="Wizard enable portal", help="Add template of portal to wizard."
+    )
+
+    enable_cg_portal_enable_create = fields.Boolean(
+        help="Template will generate 'portal_enable_create'."
     )
 
     enable_template_website_snippet_view = fields.Boolean(
@@ -95,6 +108,13 @@ class CodeGeneratorModule(models.Model):
         help="Read generated code to fill the generator with fields.",
     )
 
+    disable_fix_code_generator_sequence = fields.Boolean(
+        string="Disable fix sequence",
+        help=(
+            "Don't force sequence of model in view, if True, always auto mode."
+        ),
+    )
+
     ignore_fields = fields.Char(
         string="Ignored field",
         help=(
@@ -105,4 +125,18 @@ class CodeGeneratorModule(models.Model):
     template_module_path_generated_extension = fields.Char(
         string="Path of os.path value to generated path module",
         help="Add parameters of os.path directory where module is generated.",
+        default=".",
+    )
+
+    template_generate_website_snippet_type = fields.Char(
+        help="Choose content,effect,feature,structure",
+        default="effect",
+    )
+
+    template_generate_website_snippet_generic_model = fields.Char(
+        string="website snippet feature with generic model",
+        help=(
+            "Separate model name by ';' to create a list. Will generate field"
+            " of all this model."
+        ),
     )

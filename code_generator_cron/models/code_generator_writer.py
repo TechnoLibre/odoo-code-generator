@@ -1,8 +1,9 @@
-from odoo import models, fields, api
-
 import os
-from lxml.builder import E
+
 from lxml import etree as ET
+from lxml.builder import E
+
+from odoo import api, fields, models
 
 BREAK_LINE_OFF = "\n"
 XML_VERSION_HEADER = '<?xml version="1.0" encoding="utf-8"?>' + BREAK_LINE_OFF

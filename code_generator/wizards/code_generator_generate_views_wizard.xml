@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <odoo>
   <record id="code_generator_generate_views_action" model="ir.actions.act_window">
     <field name="name">Generate Views</field>
@@ -32,8 +32,8 @@
           </group>
           <notebook>
             <page name="internal_view" string="Internal view">
-              <group string="Model View List" attrs="{'invisible': [('all_model', '=', True)]}">
-                <field name="selected_model_list_view_ids" nolabel="1"/>
+              <group string="Model View Tree" attrs="{'invisible': [('all_model', '=', True)]}">
+                <field name="selected_model_tree_view_ids" nolabel="1"/>
               </group>
               <group string="Model View Form" attrs="{'invisible': [('all_model', '=', True)]}">
                 <field name="selected_model_form_view_ids" nolabel="1"/>

@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
-
-from odoo import models, fields, api, modules, tools
-
-from code_writer import CodeWriter
-from lxml.builder import E
-from lxml import etree as ET
 import os
+
+from lxml import etree as ET
+from lxml.builder import E
+
+from odoo import api, fields, models, modules, tools
 
 BREAK_LINE = ["\n"]
 BREAK_LINE_OFF = "\n"
@@ -15,24 +13,48 @@ XML_VERSION_HEADER = '<?xml version="1.0" encoding="utf-8"?>' + BREAK_LINE_OFF
 class CodeGeneratorWriter(models.Model):
     _inherit = "code.generator.writer"
 
-    def get_lst_file_generate(self, module):
+    def get_lst_file_generate(self, module, python_controller_writer):
         if module.enable_generate_website_leaflet:
             # Controller
-            self._set_website_leaflet_controller_file(module)
+            self._set_website_leaflet_controller_file(python_controller_writer)
             self._set_website_leaflet_static_file(module)
             self._set_website_leaflet_static_javascript_file(module)
 
-        super(CodeGeneratorWriter, self).get_lst_file_generate(module)
+        super(CodeGeneratorWriter, self).get_lst_file_generate(
+            module, python_controller_writer
+        )
 
-    def _set_website_leaflet_controller_file(self, module):
+    def _set_website_leaflet_controller_file(self, python_controller_writer):
         """
         Function to set the module hook file
-        :param module:
+        :param python_controller_writer:
         :return:
         """
 
+        lst_header = [
+            "from odoo import http",
+            "from operator import attrgetter",
+            "import json",
+            "import numpy",
+            "from pyproj import Transformer",
+            "from odoo.http import request",
+            "from collections import defaultdict",
+        ]
+
+        file_path = f"{self.code_generator_data.controllers_path}/main.py"
+
+        python_controller_writer.add_controller(
+            file_path,
+            lst_header,
+            self._cb_set_website_leaflet_controller_file,
+        )
+
+    def _cb_set_website_leaflet_controller_file(self, module, cw):
         lst_fields = []
         lst_model = []
+        active_id = None
+        open_popup_id = None
+        html_text_id = None
         for a in module.o2m_models:
             active_id = a.field_id.filtered(lambda key: key.name == "active")
             open_popup_id = a.field_id.filtered(
@@ -55,69 +77,68 @@ class CodeGeneratorWriter(models.Model):
         assert len(lst_model) == 1
         model_id = lst_model[0]
 
-        cw = CodeWriter()
-        cw.emit("from odoo import http")
-        cw.emit("from operator import attrgetter")
-        cw.emit("import json")
-        cw.emit("import numpy")
-        cw.emit("from pyproj import Transformer")
-        cw.emit("from odoo.http import request")
-        cw.emit("from collections import defaultdict")
-        cw.emit("")
-        cw.emit("")
-        cw.emit("class MapFeatureController(http.Controller):")
-        cw.emit("")
+        cw.emit(
+            f"@http.route(['/{module.name}/map/config'], type='json',"
+            ' auth="public", website=True, methods=["POST", "GET"],'
+            " csrf=False)"
+        )
+        cw.emit("def map_detail(self):")
         with cw.indent():
+            cw.emit('name = "test"')
+            cw.emit("lat = 45.587134")
+            cw.emit("lng = -73.733368")
+            cw.emit("enable = True")
+            cw.emit("size_width = 800")
+            cw.emit("size_height = 600")
+            cw.emit('provider = "CartoDB"')
+            cw.emit("zoom = 13")
+            cw.emit("categories = {}")
+            # cw.emit(f"for i in http.request.env['{model_id.model}'].search([[\"active\", \"=\", True]]):")
+            # with cw.indent():
+            #     cw.emit("categories[i.id] = {")
+            #     with cw.indent():
+            #         cw.emit("\"name\": i.name,")
+            #         cw.emit("\"description\": i.description,")
+            # with cw.indent():
+            #     cw.emit("}")
+        with cw.indent():
+            cw.emit("features = defaultdict(list)")
             cw.emit(
-                f"@http.route(['/{module.name}/map/config'], type='json',"
-                ' auth="public", website=True,'
+                'transformer = Transformer.from_crs("epsg:3857", "epsg:4326")'
             )
+        cw.emit("")
         with cw.indent():
+            str_search = ""
+            if active_id:
+                str_search = '("active", "=", True)'
+            cw.emit(
+                "map_feature_ids ="
+                f' request.env["{model_id.model}"].sudo().search([{str_search}])'
+            )
+            cw.emit("for feature in map_feature_ids:")
             with cw.indent():
-                with cw.indent():
-                    with cw.indent():
-                        cw.emit("methods=['POST', 'GET'], csrf=False)")
-        with cw.indent():
-            cw.emit("def map_detail(self):")
-            with cw.indent():
-                cw.emit('name = "test"')
-                cw.emit("lat = 45.587134")
-                cw.emit("lng = -73.733368")
-                cw.emit("enable = True")
-                cw.emit("size_width = 800")
-                cw.emit("size_height = 600")
-                cw.emit('provider = "CartoDB"')
-                cw.emit("zoom = 13")
-                cw.emit("categories = {}")
-                # cw.emit(f"for i in http.request.env['{model_id.model}'].search([[\"active\", \"=\", True]]):")
-                # with cw.indent():
-                #     cw.emit("categories[i.id] = {")
-                #     with cw.indent():
-                #         cw.emit("\"name\": i.name,")
-                #         cw.emit("\"description\": i.description,")
-                # with cw.indent():
-                #     cw.emit("}")
-            with cw.indent():
-                cw.emit("features = defaultdict(list)")
-                cw.emit(
-                    'transformer = Transformer.from_crs("epsg:3857",'
-                    ' "epsg:4326")'
-                )
-            cw.emit("")
-            with cw.indent():
-                str_search = ""
-                if active_id:
-                    str_search = '("active", "=", True)'
-                cw.emit(
-                    "map_feature_ids ="
-                    f' request.env["{model_id.model}"].sudo().search([{str_search}])'
-                )
-                cw.emit("for feature in map_feature_ids:")
-                with cw.indent():
-                    cw.emit("value = {}")
+                cw.emit("value = {}")
 
-                    if len(lst_fields) == 1:
-                        for field_id in lst_fields:
+                if len(lst_fields) == 1:
+                    for field_id in lst_fields:
+                        cw.emit(f"if not feature.{field_id.name}:")
+                        with cw.indent():
+                            cw.emit(f"continue")
+                        if field_id.ttype == "geo_polygon":
+                            cw.emit(
+                                "xy ="
+                                f" feature.{field_id.name}.exterior.coords.xy"
+                            )
+                        else:
+                            cw.emit(f"xy = feature.{field_id.name}.xy")
+                else:
+                    cw.emit("# Help robot, ignore this")
+                    cw.emit("if False:")
+                    with cw.indent():
+                        cw.emit("pass")
+                    for field_id in lst_fields:
+                        cw.emit(f'elif feature.type == "{field_id.name}":')
+                        with cw.indent():
                             cw.emit(f"if not feature.{field_id.name}:")
                             with cw.indent():
                                 cw.emit(f"continue")
@@ -128,54 +149,54 @@ class CodeGeneratorWriter(models.Model):
                                 )
                             else:
                                 cw.emit(f"xy = feature.{field_id.name}.xy")
-                    else:
-                        cw.emit("# Help robot, ignore this")
-                        cw.emit("if False:")
-                        with cw.indent():
-                            cw.emit("pass")
-                        for field_id in lst_fields:
-                            cw.emit(f'elif feature.type == "{field_id.name}":')
-                            with cw.indent():
-                                cw.emit(f"if not feature.{field_id.name}:")
-                                with cw.indent():
-                                    cw.emit(f"continue")
-                                if field_id.ttype == "geo_polygon":
-                                    cw.emit(
-                                        "xy ="
-                                        f" feature.{field_id.name}.exterior.coords.xy"
-                                    )
-                                else:
-                                    cw.emit(f"xy = feature.{field_id.name}.xy")
-            cw.emit("")
+        cw.emit("")
+        with cw.indent():
             with cw.indent():
+                cw.emit("coord_UTM = numpy.column_stack(xy).tolist()")
+                cw.emit(
+                    "coord_lat_long = [transformer.transform(*i) for i in"
+                    " coord_UTM]"
+                )
+        # cw.emit("")
+        with cw.indent():
+            # with cw.indent():
+            #     cw.emit("if feature.category_id:")
+            #     with cw.indent():
+            #         cw.emit("value[\"category_id\"] = feature.category_id.id")
+            if open_popup_id:
                 with cw.indent():
-                    cw.emit("coord_UTM = numpy.column_stack(xy).tolist()")
-                    cw.emit(
-                        "coord_lat_long = [transformer.transform(*i) for i in"
-                        " coord_UTM]"
-                    )
-            # cw.emit("")
-            with cw.indent():
-                # with cw.indent():
-                #     cw.emit("if feature.category_id:")
-                #     with cw.indent():
-                #         cw.emit("value[\"category_id\"] = feature.category_id.id")
-                if open_popup_id:
+                    cw.emit("if feature.open_popup:")
                     with cw.indent():
-                        cw.emit("if feature.open_popup:")
-                        with cw.indent():
-                            cw.emit('value["open_popup"] = feature.open_popup')
-                if html_text_id:
-                    with cw.indent():
-                        cw.emit("if feature.html_text:")
-                        with cw.indent():
-                            cw.emit('value["html_popup"] = feature.html_text')
-            cw.emit("")
-            with cw.indent():
+                        cw.emit('value["open_popup"] = feature.open_popup')
+            if html_text_id:
                 with cw.indent():
+                    cw.emit("if feature.html_text:")
+                    with cw.indent():
+                        cw.emit('value["html_popup"] = feature.html_text')
+        cw.emit("")
+        with cw.indent():
+            with cw.indent():
 
-                    if len(lst_fields) == 1:
-                        for field_id in lst_fields:
+                if len(lst_fields) == 1:
+                    for field_id in lst_fields:
+                        if field_id.ttype == "geo_point":
+                            cw.emit('value["coordinates"] = coord_lat_long[0]')
+                            cw.emit('features["markers"].append(value)')
+                        else:
+                            cw.emit('value["coordinates"] = coord_lat_long')
+                            if field_id.ttype == "geo_polygon":
+                                cw.emit('features["areas"].append(value)')
+                            elif field_id.ttype == "geo_line":
+                                cw.emit('features["lines"].append(value)')
+                else:
+                    cw.emit("# Help robot, ignore this")
+                    cw.emit("if False:")
+                    with cw.indent():
+                        cw.emit("pass")
+
+                    for field_id in lst_fields:
+                        cw.emit(f'elif feature.type == "{field_id.name}":')
+                        with cw.indent():
                             if field_id.ttype == "geo_point":
                                 cw.emit(
                                     'value["coordinates"] = coord_lat_long[0]'
@@ -189,60 +210,21 @@ class CodeGeneratorWriter(models.Model):
                                     cw.emit('features["areas"].append(value)')
                                 elif field_id.ttype == "geo_line":
                                     cw.emit('features["lines"].append(value)')
-                    else:
-                        cw.emit("# Help robot, ignore this")
-                        cw.emit("if False:")
-                        with cw.indent():
-                            cw.emit("pass")
-
-                        for field_id in lst_fields:
-                            cw.emit(f'elif feature.type == "{field_id.name}":')
-                            with cw.indent():
-                                if field_id.ttype == "geo_point":
-                                    cw.emit(
-                                        'value["coordinates"] ='
-                                        " coord_lat_long[0]"
-                                    )
-                                    cw.emit(
-                                        'features["markers"].append(value)'
-                                    )
-                                else:
-                                    cw.emit(
-                                        'value["coordinates"] = coord_lat_long'
-                                    )
-                                    if field_id.ttype == "geo_polygon":
-                                        cw.emit(
-                                            'features["areas"].append(value)'
-                                        )
-                                    elif field_id.ttype == "geo_line":
-                                        cw.emit(
-                                            'features["lines"].append(value)'
-                                        )
-            cw.emit("")
+        cw.emit()
         with cw.indent():
+            cw.emit("return {")
             with cw.indent():
-                cw.emit("return {")
-                with cw.indent():
-                    cw.emit('"name": name,')
-                    cw.emit('"lat": lat,')
-                    cw.emit('"lng": lng,')
-                    cw.emit('"enable": enable,')
-                    cw.emit('"size_width": size_width,')
-                    cw.emit('"size_height": size_height,')
-                    cw.emit('"zoom": zoom,')
-                    cw.emit('"provider": provider,')
-                    cw.emit('"features": features,')
-                    cw.emit('"categories": categories,')
-            with cw.indent():
-                cw.emit("}")
-
-        out = cw.render()
-
-        l_model = out.split("\n")
-
-        file_path = f"{self.code_generator_data.controllers_path}/main.py"
-
-        self.code_generator_data.write_file_lst_content(file_path, l_model)
+                cw.emit('"name": name,')
+                cw.emit('"lat": lat,')
+                cw.emit('"lng": lng,')
+                cw.emit('"enable": enable,')
+                cw.emit('"size_width": size_width,')
+                cw.emit('"size_height": size_height,')
+                cw.emit('"zoom": zoom,')
+                cw.emit('"provider": provider,')
+                cw.emit('"features": features,')
+                cw.emit('"categories": categories,')
+            cw.emit("}")
 
     def _set_website_leaflet_static_file(self, module):
         """

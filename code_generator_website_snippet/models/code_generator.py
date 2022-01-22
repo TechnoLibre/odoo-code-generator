@@ -1,4 +1,4 @@
-from odoo import models, fields, api, modules, tools
+from odoo import api, fields, models, modules, tools
 
 
 class CodeGenerator(models.Model):
@@ -10,6 +10,15 @@ class CodeGenerator(models.Model):
         help=(
             "This variable need to be True to generate website snippet if"
             " enable_generate_all is False"
+        ),
+    )
+
+    generate_website_snippet_generic_model = fields.Char(
+        string="website snippet feature with generic model",
+        default=False,
+        help=(
+            "Separate model name by ';' to create a list. Will generate field"
+            " of all this model."
         ),
     )
 

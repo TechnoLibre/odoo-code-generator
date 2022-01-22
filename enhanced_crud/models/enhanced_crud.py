@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from lxml import etree
-from odoo import api, models, fields as ofields, _
+
+from odoo import _, api
+from odoo import fields as ofields
+from odoo import models
 
 CURRENTTARGETDOMAIN = [
     ("target", "=", "current"),

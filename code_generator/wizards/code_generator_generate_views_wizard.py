@@ -2666,8 +2666,7 @@ pass''',
                 else:
                     v["action"] = "ir.actions.act_window,%s" % action_id.id
 
-                if menu_id.sequence != 10:
-                    v["sequence"] = menu_id.sequence
+                v["sequence"] = menu_id.sequence
 
                 if menu_id.web_icon:
                     v["web_icon"] = menu_id.web_icon

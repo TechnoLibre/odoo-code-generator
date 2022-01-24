@@ -142,8 +142,7 @@ class ExtractorView:
                 dct_menu_value["name"] = menu_id.name
             if menu_id.web_icon:
                 dct_menu_value["web_icon"] = menu_id.web_icon
-            if menu_id.sequence != 10:
-                dct_menu_value["sequence"] = menu_id.sequence
+            dct_menu_value["sequence"] = menu_id.sequence
             if menu_id.parent_id:
                 menu_data_parent_id = self.env["ir.model.data"].search(
                     [

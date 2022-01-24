@@ -1168,7 +1168,7 @@ class CodeGeneratorWriter(models.Model):
             if not menu.active:
                 dct_menu_item["active"] = "False"
 
-            if menu.sequence != 10:
+            if len(lst_menu) == 1 and menu.sequence != 10 or len(lst_menu) > 1:
                 dct_menu_item["sequence"] = str(menu.sequence)
 
             if menu.parent_id:

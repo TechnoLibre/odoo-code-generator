@@ -387,8 +387,7 @@ class CodeGeneratorWriter(models.Model):
                             if menu_id.web_icon:
                                 cw.emit(f'"web_icon": "{menu_id.web_icon}",')
                             cw.emit(f'"id_name": "{menu_id.id_name}",')
-                            if menu_id.sequence != 10:
-                                cw.emit(f'"sequence": {menu_id.sequence},')
+                            cw.emit(f'"sequence": {menu_id.sequence},')
                             if menu_id.parent_id_name:
                                 cw.emit(
                                     '"parent_id_name":'

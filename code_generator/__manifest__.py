@@ -2,17 +2,12 @@
     "name": "Code Generator",
     "version": "12.0.0",
     "summary": "Code Generator Module",
-    "description": (
-        "A solution to export into code most of the things that we can do in"
-        " Odoo, models, views, groups, permissions, menus, etc"
-    ),
-    "author": (
-        "Raisel Rodríguez Cabrera (rrcabrera@estudiantes.uci.cu), Bluisknot"
-        " (bluisknot@gmail.com), Mathben (mathben@technolibre.ca)"
-    ),
+    "description": "An application to generate ERPLibre module.",
+    "author": "Mathben (mathben@technolibre.ca)",
     "category": "Extra Tools",
     "depends": ["base", "mail"],
     "installable": True,
+    "license": "AGPL-3",
     "data": [
         "security/code_generator.xml",
         "security/ir.model.access.csv",

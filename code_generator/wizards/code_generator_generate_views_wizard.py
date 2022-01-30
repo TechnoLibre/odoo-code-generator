@@ -77,7 +77,6 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
     code_generator_view_ids = fields.Many2many(
         comodel_name="code.generator.view",
         string="Code Generator View",
-        ondelete="cascade",
     )
 
     date = fields.Date(
@@ -127,12 +126,6 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         string="Selected Model Kanban View",
     )
 
-    selected_model_tree_view_ids = fields.Many2many(
-        comodel_name="ir.model",
-        relation="selected_model_tree_view_ids_ir_model",
-        string="Selected Model Tree View",
-    )
-
     selected_model_pivot_view_ids = fields.Many2many(
         comodel_name="ir.model",
         relation="selected_model_pivot_view_ids_ir_model",
@@ -149,6 +142,12 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
         comodel_name="ir.model",
         relation="selected_model_timeline_view_ids_ir_model",
         string="Selected Model Timeline View",
+    )
+
+    selected_model_tree_view_ids = fields.Many2many(
+        comodel_name="ir.model",
+        relation="selected_model_tree_view_ids_ir_model",
+        string="Selected Model Tree View",
     )
 
     user_id = fields.Many2one(

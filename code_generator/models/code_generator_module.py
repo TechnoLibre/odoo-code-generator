@@ -22,10 +22,7 @@ class CodeGeneratorModule(models.Model):
 
     author = fields.Char(readonly=False)
 
-    category_id = fields.Many2one(
-        string="Category",
-        readonly=False,
-    )
+    category_id = fields.Many2one(readonly=False)
 
     code_generator_act_window_id = fields.One2many(
         comodel_name="code.generator.act_window",
@@ -51,38 +48,32 @@ class CodeGeneratorModule(models.Model):
 
     dependencies_id = fields.One2many(
         comodel_name="code.generator.module.dependency",
-        inverse_name="module_id",
-        string="Dependencies module",
         readonly=False,
+        string="Dependencies module",
     )
 
     dependencies_template_id = fields.One2many(
         comodel_name="code.generator.module.template.dependency",
         inverse_name="module_id",
         string="Dependencies template module",
-        readonly=False,
     )
 
     description = fields.Text(readonly=False)
 
-    # Dev binding code
-    enable_sync_code = fields.Boolean(
-        string="Enable Sync Code",
-        default=False,
-        help="Will sync with code on drive when generate.",
-    )
-
     enable_pylint_check = fields.Boolean(
         string="Enable Pylint check",
-        default=False,
         help="Show pylint result at the end of generation.",
+    )
+
+    # Dev binding code
+    enable_sync_code = fields.Boolean(
+        help="Will sync with code on drive when generate."
     )
 
     external_dependencies_id = fields.One2many(
         comodel_name="code.generator.module.external.dependency",
         inverse_name="module_id",
         string="External Dependencies",
-        readonly=False,
     )
 
     icon_child_image = fields.Binary(string="Generated icon")
@@ -105,7 +96,6 @@ class CodeGeneratorModule(models.Model):
 
     nomenclator_only = fields.Boolean(
         string="Only export data",
-        default=False,
         help="Useful to export data with existing model.",
     )
 
@@ -195,27 +185,33 @@ class CodeGeneratorModule(models.Model):
 
     published_version = fields.Char(readonly=False)
 
-    shortdesc = fields.Char(readonly=False, required=True)
+    shortdesc = fields.Char(
+        readonly=False,
+        required=True,
+    )
 
-    state = fields.Selection(readonly=False, default="uninstalled")
+    state = fields.Selection(
+        readonly=False,
+        default="uninstalled",
+    )
 
     summary = fields.Char(readonly=False)
-
-    template_model_name = fields.Char(
-        string="Functions models",
-        help="Add model from list, separate by ';' and generate template.",
-    )
 
     template_inherit_model_name = fields.Char(
         string="Functions models inherit",
         help="Add model from list, separate by ';' and generate template.",
     )
 
+    template_model_name = fields.Char(
+        string="Functions models",
+        help="Add model from list, separate by ';' and generate template.",
+    )
+
     template_module_id = fields.Many2one(
         comodel_name="ir.module.module",
         string="Template module id",
-        help="Child module to generate.",
         compute="_fill_template_module_id",
+        help="Child module to generate.",
     )
 
     template_module_name = fields.Char(

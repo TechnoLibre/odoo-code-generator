@@ -114,11 +114,11 @@ class IrModelFields(models.Model):
 
     code_generator_calendar_view_sequence = fields.Integer(
         string="calendar view sequence",
+        default=-1,
         help=(
             "Sequence to write this field in calendar view from Code"
             " Generator."
         ),
-        default=-1,
     )
 
     code_generator_compute = fields.Char(
@@ -128,22 +128,23 @@ class IrModelFields(models.Model):
 
     code_generator_form_simple_view_sequence = fields.Integer(
         string="Form simple view sequence",
+        default=-1,
         help=(
             "Sequence to write this field in form simple view from Code"
             " Generator."
         ),
-        default=-1,
     )
 
     code_generator_graph_view_sequence = fields.Integer(
         string="graph view sequence",
-        help="Sequence to write this field in graph view from Code Generator.",
         default=-1,
+        help="Sequence to write this field in graph view from Code Generator.",
     )
 
     code_generator_ir_model_fields_ids = fields.One2many(
         comodel_name="code.generator.ir.model.fields",
         inverse_name="m2o_fields",
+        string="Code Generator Ir Model Fields",
         help=(
             "Link to update field when generate, because it cannot update"
             " ir.model.fields in runtime"
@@ -152,30 +153,30 @@ class IrModelFields(models.Model):
 
     code_generator_kanban_view_sequence = fields.Integer(
         string="Kanban view sequence",
+        default=-1,
         help=(
             "Sequence to write this field in kanban view from Code Generator."
         ),
-        default=-1,
     )
 
     code_generator_pivot_view_sequence = fields.Integer(
         string="pivot view sequence",
-        help="Sequence to write this field in pivot view from Code Generator.",
         default=-1,
+        help="Sequence to write this field in pivot view from Code Generator.",
     )
 
     code_generator_search_sequence = fields.Integer(
         string="Search sequence",
-        help="Sequence to write this field in search from Code Generator.",
         default=-1,
+        help="Sequence to write this field in search from Code Generator.",
     )
 
     code_generator_search_view_sequence = fields.Integer(
         string="search view sequence",
+        default=-1,
         help=(
             "Sequence to write this field in search view from Code Generator."
         ),
-        default=-1,
     )
 
     # This is used to choose order to show field in model
@@ -190,8 +191,8 @@ class IrModelFields(models.Model):
     # TODO or maybe it's useful in first iteration of code generator, remove this later when A USE C GENERATE B
     code_generator_tree_view_sequence = fields.Integer(
         string="Tree view sequence",
-        help="Sequence to write this field in tree view from Code Generator.",
         default=-1,
+        help="Sequence to write this field in tree view from Code Generator.",
     )
 
     default = fields.Char(string="Default value")

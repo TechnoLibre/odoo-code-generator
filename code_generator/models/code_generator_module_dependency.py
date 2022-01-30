@@ -6,14 +6,6 @@ class CodeGeneratorModuleDependency(models.Model):
     _inherit = "ir.module.module.dependency"
     _description = "Code Generator Module Dependency"
 
-    depend_id = fields.Many2one(
-        comodel_name="ir.module.module",
-        string="Dependency",
-        compute=None,
-    )
+    depend_id = fields.Many2one(compute=None)
 
-    module_id = fields.Many2one(
-        comodel_name="code.generator.module",
-        string="Module",
-        ondelete="cascade",
-    )
+    module_id = fields.Many2one(comodel_name="code.generator.module")

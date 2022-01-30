@@ -7,7 +7,6 @@ class CodeGeneratorModuleExternalDependency(models.Model):
 
     application_type = fields.Selection(
         selection=[("python", "python"), ("bin", "bin")],
-        string="Application Type",
         default="python",
     )
 

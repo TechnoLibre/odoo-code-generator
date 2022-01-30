@@ -33,8 +33,8 @@ class IrModel(models.Model):
     )
 
     diagram_arrow_label = fields.Char(
-        help="Diagram label, data to show when draw a line.",
         default="['name']",
+        help="Diagram label, data to show when draw a line.",
     )
 
     diagram_arrow_object = fields.Char(
@@ -59,8 +59,8 @@ class IrModel(models.Model):
     diagram_node_object = fields.Char(help="Diagram model name for node.")
 
     diagram_node_shape_field = fields.Char(
-        help="Diagram node field shape.",
         default="rectangle:True",
+        help="Diagram node field shape.",
     )
 
     diagram_node_xpos_field = fields.Char(
@@ -87,7 +87,6 @@ class IrModel(models.Model):
         comodel_name="code.generator.ir.model.dependency",
         string="Inherit ir Model",
         help="Inherit Model",
-        ondelete="cascade",
     )
 
     m2o_inherit_py_class = fields.Many2one(
@@ -153,8 +152,8 @@ class IrModel(models.Model):
     o2m_constraints = fields.One2many(
         comodel_name="ir.model.constraint",
         inverse_name="model",
-        string="Constraints",
         domain=[("type", "=", "u"), ("message", "!=", None)],
+        string="Constraints",
     )
 
     o2m_reports = fields.One2many(
@@ -167,7 +166,6 @@ class IrModel(models.Model):
     o2m_server_action = fields.One2many(
         comodel_name="ir.actions.server",
         inverse_name="model_id",
-        string="Server action",
         domain=[
             ("binding_type", "=", "action"),
             "|",
@@ -175,6 +173,7 @@ class IrModel(models.Model):
             ("state", "=", "multi"),
             ("usage", "=", "ir_actions_server"),
         ],
+        string="Server action",
     )
 
     o2m_server_constrains = fields.One2many(

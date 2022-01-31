@@ -1849,6 +1849,27 @@ class CodeGeneratorWriter(models.Model):
             xmlreport_file_path, l_model_report_file, data_file=True
         )
 
+    def _get_rec_name_inherit_model(self, model):
+        # search in inherit
+        lst_rec_name_inherit = []
+        for inherit_model in model.inherit_model_ids:
+            model_inherit_id = inherit_model.depend_id
+            if model_inherit_id.id != model.id:
+                lst_rec_name_inherit.append(
+                    self._get_rec_name_inherit_model(model_inherit_id)
+                )
+        result_rec_name = None
+        new_rec_name = self.env[model.model]._rec_name
+        if new_rec_name and new_rec_name != "name":
+            result_rec_name = new_rec_name
+        elif model.rec_name and model.rec_name != "name":
+            result_rec_name = model.rec_name
+        # Ignore rec_name if same of inherit parent
+        if lst_rec_name_inherit and result_rec_name:
+            if result_rec_name in lst_rec_name_inherit:
+                return None
+        return result_rec_name
+
     def _set_model_py_file(self, module, model, model_model):
         """
         Function to set the model files
@@ -1938,8 +1959,9 @@ class CodeGeneratorWriter(models.Model):
                 cw.emit(f"_description = '{new_description}'")
             elif not lst_inherit or add_name:
                 cw.emit(f"_description = '{model.name}'")
-            if model.rec_name and model.rec_name != "name":
-                cw.emit(f"_rec_name = '{model.rec_name}'")
+            rec_name = self._get_rec_name_inherit_model(model)
+            if rec_name:
+                cw.emit(f"_rec_name = '{rec_name}'")
 
             # TODO _order, _local_fields, _period_number, _inherits, _log_access, _auto, _parent_store
             # TODO _parent_name

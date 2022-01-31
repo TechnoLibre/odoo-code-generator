@@ -15,6 +15,8 @@ class CodeGeneratorIrModelFields(models.Model):
         help="Compute method to code_generator_writer.",
     )
 
+    default_lambda = fields.Char(string="Default lambda value")
+
     filter_field_attribute = fields.Char(
         help=(
             "Separate by ; to enumerate your attribute to filter, like a"

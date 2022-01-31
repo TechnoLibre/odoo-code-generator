@@ -192,6 +192,8 @@ class IrModelFields(models.Model):
 
     default = fields.Char(string="Default value")
 
+    default_lambda = fields.Char(string="Default lambda value")
+
     force_widget = fields.Selection(
         FORCE_WIDGET_TYPES,
         string="Force widget",
@@ -346,6 +348,12 @@ class IrModelFields(models.Model):
                 self.code_generator_ir_model_fields_ids.is_show_whitelist_model_inherit
             )
         return self.is_show_whitelist_model_inherit
+
+    @api.model
+    def get_default_lambda(self):
+        if self.code_generator_ir_model_fields_ids:
+            return self.code_generator_ir_model_fields_ids.default_lambda
+        return self.default_lambda
 
     @api.model
     def get_code_generator_compute(self):

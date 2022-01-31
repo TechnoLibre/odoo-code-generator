@@ -2359,22 +2359,48 @@ class CodeGeneratorWriter(models.Model):
                         " 'onchange' and 'always'."
                     )
 
-            if f2export.default:
-                # TODO support default = None
-                # TODO validate with type for boolean
-                if f2export.default == "True":
-                    dct_field_attribute["default"] = True
-                elif f2export.default == "False":
-                    dct_field_attribute["default"] = False
-                elif f2export.ttype == "integer":
-                    dct_field_attribute["default"] = int(f2export.default)
-                elif f2export.ttype in ("char", "selection"):
-                    dct_field_attribute["default"] = f2export.default
+            # Get default value
+            default_lambda = f2export.get_default_lambda()
+            if default_lambda:
+                dct_field_attribute["default"] = default_lambda
+            else:
+                default_value = None
+                if f2export.default:
+                    default_value = f2export.default
                 else:
-                    _logger.warning(
-                        f"Not supported default type {f2export.ttype}"
+                    dct_default_value = self.env[model.model].default_get(
+                        [f2export.name]
                     )
-                    dct_field_attribute["default"] = f2export.default
+                    if dct_default_value:
+                        default_value = dct_default_value.get(f2export.name)
+                if default_value:
+                    # TODO support default = None
+                    if f2export.ttype == "boolean" and (
+                        default_value == "True" or default_value is True
+                    ):
+                        dct_field_attribute["default"] = True
+                    elif f2export.ttype == "boolean" and (
+                        default_value == "False" or default_value is False
+                    ):
+                        # TODO Only if the field inherit, else None it
+                        dct_field_attribute["default"] = False
+                    elif f2export.ttype == "integer":
+                        dct_field_attribute["default"] = int(default_value)
+                    elif f2export.ttype in (
+                        "char",
+                        "selection",
+                        "text",
+                        "html",
+                    ):
+                        dct_field_attribute["default"] = default_value
+                    else:
+                        _logger.warning(
+                            f"Not supported default type '{f2export.ttype}',"
+                            f" field name '{f2export.name}', model"
+                            f" '{f2export.model_id.model}', value"
+                            f" '{default_value}'"
+                        )
+                        dct_field_attribute["default"] = default_value
 
             # TODO support states
 
@@ -2440,6 +2466,7 @@ class CodeGeneratorWriter(models.Model):
                     a.strip() for a in lst_attribute_to_filter if a.strip()
                 ]
 
+            has_endline = False
             lst_first_field_attribute = []
             lst_field_attribute = []
             lst_last_field_attribute = []
@@ -2451,15 +2478,31 @@ class CodeGeneratorWriter(models.Model):
                     continue
                 if type(value) is str:
                     # TODO find another solution than removing \n, this cause error with cw.CodeWriter
+                    copy_value = value.replace("'", "\\'")
                     value = value.replace("\n", " ").replace("'", "\\'")
                     if key == "comodel_name":
                         lst_first_field_attribute.append(f"{key}='{value}'")
                     elif key == "ondelete":
                         lst_last_field_attribute.append(f"{key}='{value}'")
                     else:
-                        if key == "default" and value.startswith("lambda"):
-                            # Exception for lambda
-                            lst_field_attribute.append(f"{key}={value}")
+                        if key == "default":
+                            if (
+                                value.startswith("lambda")
+                                or value.startswith("date")
+                                or value.startswith("datetime")
+                            ):
+                                # Exception for lambda
+                                lst_field_attribute.append(f"{key}={value}")
+                            else:
+                                if "\n" in copy_value:
+                                    has_endline = True
+                                    lst_field_attribute.append(
+                                        f"{key}='''{copy_value}'''"
+                                    )
+                                else:
+                                    lst_field_attribute.append(
+                                        f"{key}='{copy_value}'"
+                                    )
                         else:
                             lst_field_attribute.append(f"{key}='{value}'")
                 elif type(value) is list:
@@ -2475,14 +2518,34 @@ class CodeGeneratorWriter(models.Model):
                 + lst_last_field_attribute
             )
 
-            cw.emit_list(
-                lst_field_attribute,
-                ("(", ")"),
-                before=(
+            if not has_endline:
+                cw.emit_list(
+                    lst_field_attribute,
+                    ("(", ")"),
+                    before=(
+                        f"{f2export.name} ="
+                        f" {self._get_odoo_ttype_class(f2export.ttype)}"
+                    ),
+                )
+            else:
+                cw.emit(
                     f"{f2export.name} ="
-                    f" {self._get_odoo_ttype_class(f2export.ttype)}"
-                ),
-            )
+                    f" {self._get_odoo_ttype_class(f2export.ttype)}("
+                )
+                with cw.indent():
+                    for item in lst_field_attribute:
+                        if "\n" in item:
+                            lst_item = item.split("\n")
+                            cw.emit(f"{lst_item[0]}")
+                            i_last = len(lst_item) - 2
+                            for i, inter_item in enumerate(lst_item[1:]):
+                                if i == i_last:
+                                    cw.emit_raw(f"{inter_item},\n")
+                                else:
+                                    cw.emit_raw(f"{inter_item}\n")
+                        else:
+                            cw.emit(f"{item},")
+                cw.emit(")")
 
             if compute:
                 cw.emit()

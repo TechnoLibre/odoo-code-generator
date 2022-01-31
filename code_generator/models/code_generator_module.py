@@ -449,6 +449,11 @@ class CodeGeneratorModule(models.Model):
                             field_info,
                             value_ir_model_fields,
                         )
+                        self._update_dict(
+                            "default_lambda",
+                            field_info,
+                            value_ir_model_fields,
+                        )
 
                         self.env["code.generator.ir.model.fields"].create(
                             value_ir_model_fields

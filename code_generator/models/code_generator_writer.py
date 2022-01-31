@@ -2263,6 +2263,11 @@ class CodeGeneratorWriter(models.Model):
         for f2export in f2exports:
             # Check odoo/odoo/fields.py in documentation
             cw.emit()
+            extra_info = (
+                self.env[f2export.model]
+                .fields_get(f2export.name)
+                .get(f2export.name)
+            )
             dct_field_attribute = {}
 
             code_generator_compute = f2export.get_code_generator_compute()
@@ -2305,8 +2310,11 @@ class CodeGeneratorWriter(models.Model):
                         dct_field_attribute["column1"] = f2export.column1
                         dct_field_attribute["column2"] = f2export.column2
 
+                domain_info = extra_info.get("domain")
                 if f2export.domain and f2export.domain != "[]":
                     dct_field_attribute["domain"] = f2export.domain
+                elif domain_info and domain_info != "[]":
+                    dct_field_attribute["domain"] = domain_info
 
                 if (
                     f2export.ttype == "many2one"

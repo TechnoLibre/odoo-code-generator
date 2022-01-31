@@ -1364,6 +1364,11 @@ class CodeGeneratorWriter(models.Model):
 
         dct_var_id_view = {}
         for field_id in f2exports:
+            extra_info = (
+                self.env[model_id.model]
+                .fields_get(field_id.name)
+                .get(field_id.name)
+            )
             dct_field_value = {}
             dct_field = {}
             var_id_view = f"field_{field_id.name}_id"
@@ -1385,6 +1390,10 @@ class CodeGeneratorWriter(models.Model):
 
             if field_id.required:
                 dct_field_value["required"] = field_id.required
+
+            field_domain = extra_info.get("domain")
+            if field_domain:
+                dct_field_value["domain"] = field_domain
 
             if field_id.help:
                 dct_field_value["help"] = field_id.help

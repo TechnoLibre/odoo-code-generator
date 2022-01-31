@@ -1404,7 +1404,14 @@ class CodeGeneratorWriter(models.Model):
 
                 default_value = ast_attr.get("default")
                 if default_value:
-                    if field_id.ttype not in (
+                    if type(default_value) is str and (
+                        default_value.startswith("lambda ")
+                        or default_value.startswith("date.")
+                        or default_value.startswith("datetime.")
+                        or default_value.startswith("fields.Date")
+                    ):
+                        dct_field_value["default_lambda"] = default_value
+                    elif field_id.ttype not in (
                         "char",
                         "selection",
                         "text",

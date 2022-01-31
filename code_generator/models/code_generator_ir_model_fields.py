@@ -6,9 +6,8 @@ class CodeGeneratorIrModelFields(models.Model):
     _description = "Code Generator Fields"
 
     name = fields.Char(
-        string="Name",
-        help="Name of selected field.",
         compute="_change_m2o_fields",
+        help="Name of selected field.",
     )
 
     code_generator_compute = fields.Char(

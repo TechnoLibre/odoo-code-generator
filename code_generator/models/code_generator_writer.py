@@ -2261,8 +2261,11 @@ class CodeGeneratorWriter(models.Model):
             f2exports = self.env["ir.model.fields"].browse(lst_id)
 
         for f2export in f2exports:
+            # Check odoo/odoo/fields.py in documentation
             cw.emit()
             dct_field_attribute = {}
+
+            code_generator_compute = f2export.get_code_generator_compute()
 
             # TODO use if cannot find information
             # field_selection = self.env[f2export.model].fields_get(f2export.name).get(f2export.name)
@@ -2327,8 +2330,9 @@ class CodeGeneratorWriter(models.Model):
             if f2export.related:
                 dct_field_attribute["related"] = f2export.related
 
-            if f2export.readonly:
+            if f2export.readonly and not code_generator_compute:
                 # TODO force readonly at false when inherit and origin is True
+                # Note that a computed field without an inverse method is readonly by default.
                 dct_field_attribute["readonly"] = True
 
             if f2export.required:
@@ -2381,7 +2385,6 @@ class CodeGeneratorWriter(models.Model):
 
             compute = f2export.compute and f2export.depends
 
-            code_generator_compute = f2export.get_code_generator_compute()
             if code_generator_compute:
                 dct_field_attribute["compute"] = code_generator_compute
             elif compute:
@@ -2403,7 +2406,8 @@ class CodeGeneratorWriter(models.Model):
             # TODO support store
             if f2export.store and f2export.code_generator_compute:
                 dct_field_attribute["store"] = True
-            elif not f2export.store:
+            elif not f2export.store and not code_generator_compute:
+                # By default, a computed field is not stored to the database, and is computed on-the-fly.
                 dct_field_attribute["store"] = False
 
             # TODO support compute_sudo
@@ -2411,7 +2415,7 @@ class CodeGeneratorWriter(models.Model):
             if f2export.translate:
                 dct_field_attribute["translate"] = True
 
-            if not f2export.selectable:
+            if not f2export.selectable and f2export.ttype == "one2many":
                 dct_field_attribute["selectable"] = False
 
             # TODO support digits, check dp.get_precision('Account')

@@ -367,34 +367,38 @@ class IrModelFields(models.Model):
     def get_selection(self):
         return_value = []
 
-        if self.ttype == "reference" or self.ttype == "selection":
-            if self.selection and self.selection != "[]":
-                try:
-                    # Transform string in list
-                    lst_selection = ast.literal_eval(self.selection)
-                    # lst_selection = [f"'{a}'" for a in lst_selection]
-                    return_value = lst_selection
-                except Exception as e:
-                    _logger.error(
-                        f"The selection of field {self.name} is not a"
-                        f" list: '{self.selection}'."
-                    )
-            elif (
-                self.code_generator_ir_model_fields_ids
-                and self.code_generator_ir_model_fields_ids.selection
-                and self.code_generator_ir_model_fields_ids.selection != "[()]"
-            ):
-                try:
-                    # Transform string in list
-                    lst_selection = ast.literal_eval(
-                        self.code_generator_ir_model_fields_ids.selection
-                    )
-                    return_value = lst_selection
-                except Exception as e:
-                    _logger.error(
-                        f"The selection of field {self.name} is not a"
-                        f" list: '{self.selection}'."
-                    )
+        if self.ttype not in ("reference", "selection"):
+            return
+
+        if self.selection and self.selection != "[]":
+            try:
+                # Transform string in list
+                lst_selection = ast.literal_eval(self.selection)
+                # lst_selection = [f"'{a}'" for a in lst_selection]
+                return_value = lst_selection
+            except Exception as e:
+                _logger.error(
+                    f"The selection of field {self.name} is not a"
+                    f" list: '{self.selection}'."
+                )
+        elif (
+            self.code_generator_ir_model_fields_ids
+            and self.code_generator_ir_model_fields_ids.selection
+            and self.code_generator_ir_model_fields_ids.selection != "[()]"
+        ):
+            try:
+                # Transform string in list
+                lst_selection = ast.literal_eval(
+                    self.code_generator_ir_model_fields_ids.selection
+                )
+                return_value = lst_selection
+            except Exception as e:
+                _logger.error(
+                    f"The selection of field {self.name} is not a"
+                    f" list: '{self.selection}'."
+                )
+        if not return_value:
+            return_value = self.env[self.model]._fields[self.name].selection
         return return_value
 
     @api.model

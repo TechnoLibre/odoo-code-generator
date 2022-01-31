@@ -2271,10 +2271,10 @@ class CodeGeneratorWriter(models.Model):
             # field_selection = self.env[f2export.model].fields_get(f2export.name).get(f2export.name)
 
             # Respect sequence in list, order listed by human preference
-
-            str_selection = f2export.get_selection()
             if f2export.ttype in ("selection", "reference"):
-                dct_field_attribute["selection"] = str_selection
+                str_selection = f2export.get_selection()
+                if str_selection:
+                    dct_field_attribute["selection"] = str_selection
 
             if f2export.ttype in ["many2one", "one2many", "many2many"]:
                 if f2export.relation:

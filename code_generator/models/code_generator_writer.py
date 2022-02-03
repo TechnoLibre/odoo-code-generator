@@ -799,7 +799,7 @@ class CodeGeneratorWriter(models.Model):
             else self._lower_replace(group.name.replace(" /", ""))
         )
 
-    def _get_model_data_name(self, model):
+    def _get_model_data_name(self, model, module_name=""):
         """
         Function to obtain the res_id-like model name (code.generator.module -> code_generator_module)
         :param model:
@@ -807,8 +807,8 @@ class CodeGeneratorWriter(models.Model):
         """
 
         return (
-            self._get_ir_model_data(model)
-            if self._get_ir_model_data(model)
+            self._get_ir_model_data(model, module_name=module_name)
+            if self._get_ir_model_data(model, module_name=module_name)
             else "model_%s" % self._get_model_model(model.model)
         )
 
@@ -836,8 +836,12 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        if not creating and self._get_ir_model_data(action):
-            action_name = self._get_ir_model_data(action)
+        if not creating and self._get_ir_model_data(
+            action, module_name=module.name
+        ):
+            action_name = self._get_ir_model_data(
+                action, module_name=module.name
+            )
             if not module or "." not in action_name:
                 return action_name
             lst_action = action_name.split(".")
@@ -882,7 +886,7 @@ class CodeGeneratorWriter(models.Model):
         return f"action_{self._lower_replace(action.name)}"
 
     def _get_menu_data_name(
-        self, menu, ignore_module=False, ignore_module_name=None
+        self, menu, ignore_module=False, ignore_module_name=None, module=None
     ):
         """
         Function to obtain the res_id-like menu name
@@ -890,7 +894,7 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
 
-        menu_name = self._get_ir_model_data(menu)
+        menu_name = self._get_ir_model_data(menu, module_name=module.name)
         if menu_name:
             if "." in menu_name:
                 module_name, menu_name_short = menu_name.split(".")
@@ -987,7 +991,7 @@ class CodeGeneratorWriter(models.Model):
                         #     record_value.mapped(
                         #         lambda rvalue: "(4, ref('%s'))"
                         #         % self._get_ir_model_data(
-                        #             rvalue, give_a_default=True
+                        #             rvalue, give_a_default=True, module_name=module.name
                         #         )
                         #     )
                         # )
@@ -1001,7 +1005,9 @@ class CodeGeneratorWriter(models.Model):
                             record_value.mapped(
                                 lambda rvalue: "ref(%s)"
                                 % self._get_ir_model_data(
-                                    rvalue, give_a_default=True
+                                    rvalue,
+                                    give_a_default=True,
+                                    module_name=module.name,
                                 )
                             )
                         )
@@ -1095,11 +1101,15 @@ class CodeGeneratorWriter(models.Model):
 
         # Group by parent_id
         lst_menu_root = menus.filtered(lambda x: not x.parent_id).sorted(
-            key=lambda x: self._get_menu_data_name(x).split(".")[-1]
+            key=lambda x: self._get_menu_data_name(x, module=module).split(
+                "."
+            )[-1]
         )
         lst_menu_item = menus.filtered(lambda x: x.parent_id and x.child_id)
         lst_menu_last_child = menus.filtered(lambda x: not x.child_id).sorted(
-            key=lambda x: self._get_menu_data_name(x).split(".")[-1]
+            key=lambda x: self._get_menu_data_name(x, module=module).split(
+                "."
+            )[-1]
         )
         nb_root = len(lst_menu_root)
         nb_item = len(lst_menu_item)
@@ -1126,7 +1136,9 @@ class CodeGeneratorWriter(models.Model):
             if lst_menu_to_order:
                 lst_menu_ordered = sorted(
                     lst_menu_to_order,
-                    key=lambda x: self._get_menu_data_name(x).split(".")[-1],
+                    key=lambda x: self._get_menu_data_name(
+                        x, module=module
+                    ).split(".")[-1],
                 )
                 for menu_ordered in lst_menu_ordered:
                     lst_menu.append(menu_ordered)
@@ -1145,7 +1157,9 @@ class CodeGeneratorWriter(models.Model):
 
         for i, menu in enumerate(lst_menu):
 
-            menu_id = self._get_menu_data_name(menu, ignore_module=True)
+            menu_id = self._get_menu_data_name(
+                menu, ignore_module=True, module=module
+            )
             dct_menu_item = {"id": menu_id}
             if menu.name != menu_id:
                 dct_menu_item["name"] = menu.name
@@ -1173,7 +1187,9 @@ class CodeGeneratorWriter(models.Model):
 
             if menu.parent_id:
                 dct_menu_item["parent"] = self._get_menu_data_name(
-                    menu.parent_id, ignore_module_name=module.name
+                    menu.parent_id,
+                    ignore_module_name=module.name,
+                    module=module,
                 )
 
             if menu.groups_id:
@@ -1252,12 +1268,12 @@ class CodeGeneratorWriter(models.Model):
                 new_content += "\n"
         return new_content
 
-    def _set_model_xmlview_file(self, model, model_model, module):
+    def _set_model_xmlview_file(self, module, model, model_model):
         """
         Function to set the model xml files
+        :param module:
         :param model:
         :param model_model:
-        :param module:
         :return:
         """
 
@@ -1454,7 +1470,7 @@ class CodeGeneratorWriter(models.Model):
 
                 if act_window.binding_model_id:
                     binding_model = self._get_model_data_name(
-                        act_window.binding_model_id
+                        act_window.binding_model_id, module_name=module.name
                     )
                     lst_field.append(
                         E.field(
@@ -1647,14 +1663,16 @@ class CodeGeneratorWriter(models.Model):
                     {
                         "name": "model_id",
                         "ref": self._get_model_data_name(
-                            server_action.model_id
+                            server_action.model_id, module_name=module.name
                         ),
                     }
                 ),
                 E.field(
                     {
                         "name": "binding_model_id",
-                        "ref": self._get_model_data_name(model),
+                        "ref": self._get_model_data_name(
+                            model, module_name=module.name
+                        ),
                     }
                 ),
             ]
@@ -1750,9 +1768,10 @@ class CodeGeneratorWriter(models.Model):
                 xml_file_path, str_content_template, data_file=True
             )
 
-    def _set_model_xmlreport_file(self, model, model_model):
+    def _set_model_xmlreport_file(self, module, model, model_model):
         """
 
+        :param module:
         :param model:
         :param model_model:
         :return:
@@ -1830,7 +1849,9 @@ class CodeGeneratorWriter(models.Model):
             if report.binding_model_id:
                 l_model_report_file.append(
                     '<field name="binding_model_id" ref="%s" />'
-                    % self._get_model_data_name(report.binding_model_id)
+                    % self._get_model_data_name(
+                        report.binding_model_id, module_name=module.name
+                    )
                 )
 
             if report.groups_id:
@@ -2135,7 +2156,7 @@ class CodeGeneratorWriter(models.Model):
 
         return l_model_csv_access
 
-    def _get_model_rules(self, model):
+    def _get_model_rules(self, module, model):
         """
         Function to obtain the model rules
         :param model:
@@ -2158,12 +2179,19 @@ class CodeGeneratorWriter(models.Model):
             else:
                 l_model_rules.append(
                     '<record model="ir.rule" id="%s_rrule_%s">'
-                    % (self._get_model_data_name(rule.model_id), rule.id)
+                    % (
+                        self._get_model_data_name(
+                            rule.model_id, module_name=module.name
+                        ),
+                        rule.id,
+                    )
                 )
 
             l_model_rules.append(
                 '<field name="model_id" ref="%s"/>'
-                % self._get_model_data_name(rule.model_id)
+                % self._get_model_data_name(
+                    rule.model_id, module_name=module.name
+                )
             )
 
             if rule.domain_force:
@@ -2460,7 +2488,7 @@ class CodeGeneratorWriter(models.Model):
             # TODO support search
 
             # TODO support store
-            if f2export.store and f2export.code_generator_compute:
+            if f2export.store and code_generator_compute:
                 dct_field_attribute["store"] = True
             elif not f2export.store and not code_generator_compute:
                 # By default, a computed field is not stored to the database, and is computed on-the-fly.
@@ -2644,10 +2672,10 @@ class CodeGeneratorWriter(models.Model):
             if not module.nomenclator_only:
                 # Wizard
                 self._set_model_py_file(module, model, model_model)
-                self._set_model_xmlview_file(model, model_model, module)
+                self._set_model_xmlview_file(module, model, model_model)
 
                 # Report
-                self._set_model_xmlreport_file(model, model_model)
+                self._set_model_xmlreport_file(module, model, model_model)
 
             parameters = self.env["ir.config_parameter"].sudo()
             s_data2export = parameters.get_param(
@@ -2661,7 +2689,7 @@ class CodeGeneratorWriter(models.Model):
             if not module.nomenclator_only:
                 l_model_csv_access += self._get_model_access(module, model)
 
-                l_model_rules += self._get_model_rules(model)
+                l_model_rules += self._get_model_rules(module, model)
 
         l_model_csv_access = sorted(
             list(set(l_model_csv_access)),

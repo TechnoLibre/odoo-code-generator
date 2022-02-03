@@ -80,7 +80,7 @@ return''',
                         module,
                         name=ir_cron_id.name,
                         user_id_ref=self._get_ir_model_data(
-                            ir_cron_id.user_id
+                            ir_cron_id.user_id, module_name=module.name
                         ),
                         interval_number=ir_cron_id.interval_number,
                         interval_type=ir_cron_id.interval_type,
@@ -216,7 +216,9 @@ return''',
             i += 1
 
             model_id_name = self._get_ir_model_data(
-                ir_cron_id.model_id, give_a_default=True
+                ir_cron_id.model_id,
+                give_a_default=True,
+                module_name=module.name,
             )
             if model_id_name.startswith("ir_"):
                 model_id_name = model_id_name[3:]
@@ -227,7 +229,9 @@ return''',
                     {
                         "name": "user_id",
                         "ref": self._get_ir_model_data(
-                            ir_cron_id.user_id, give_a_default=True
+                            ir_cron_id.user_id,
+                            give_a_default=True,
+                            module_name=module.name,
                         ),
                     }
                 ),

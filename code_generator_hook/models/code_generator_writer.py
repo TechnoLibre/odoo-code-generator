@@ -287,6 +287,11 @@ class CodeGeneratorWriter(models.Model):
                                 cw.emit('"module": MODULE_NAME,')
                                 cw.emit(f'"res_id": act_server_id.id,')
                                 cw.emit(f'"noupdate": True,')
+                if act_server.comment:
+                    cw.emit("else:")
+                    with cw.indent():
+                        comment = act_server.comment.replace('"', '\\"')
+                        cw.emit(f'act_server_id.comment = "{comment}"')
         else:
             cw.emit("pass")
         cw.emit()

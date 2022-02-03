@@ -113,26 +113,71 @@ return''',
         code_name="action_backup_all",
     ):
         cw.emit("##### Cron")
-        with cw.block(before="value =", delim=("{", "}")):
-            cw.emit('"m2o_module": code_generator_id.id,')
-            cw.emit(f'"name": "{name}",')
-            cw.emit(f"\"user_id\": env.ref('{user_id_ref}').id,")
-            cw.emit(f'"interval_number": {interval_number},')
-            cw.emit(f'"interval_type": "{interval_type}",')
-            cw.emit(f'"numbercall": {numbercall},')
-            cw.emit(f'"nextcall_template": "{nextcall_template}",')
-            cw.emit(f'"model_id": {var_model_id}.id,')
-            cw.emit(f'"state": "{state}",')
-            cw.emit(f'"code": "{code}",')
-        cw.emit('cron_id = env["ir.cron"].create(value)')
+        with cw.block(
+            before="cron_id = env['ir.cron'].search(",
+            delim=("[", "]"),
+            after=")",
+        ):
+            cw.emit(f'("name", "=", "{name}"),')
+            cw.emit(f'("user_id", "=", env.ref(\'{user_id_ref}\').id),')
+            cw.emit(f'("interval_number", "=", {interval_number}),')
+            cw.emit(f'("interval_type", "=", "{interval_type}"),')
+            cw.emit(f'("numbercall", "=", {numbercall}),')
+            cw.emit(f'("nextcall_template" , "=", "{nextcall_template}"),')
+            cw.emit(f'("model_id", "=", {var_model_id}.id),')
+            cw.emit(f'("state", "=", "{state}"),')
+            cw.emit(f'("code", "=", "{code}"),')
+        cw.emit("if not cron_id:")
+        with cw.indent():
+            with cw.block(before="value =", delim=("{", "}")):
+                cw.emit('"m2o_module": code_generator_id.id,')
+                cw.emit(f'"name": "{name}",')
+                cw.emit(f"\"user_id\": env.ref('{user_id_ref}').id,")
+                cw.emit(f'"interval_number": {interval_number},')
+                cw.emit(f'"interval_type": "{interval_type}",')
+                cw.emit(f'"numbercall": {numbercall},')
+                cw.emit(f'"nextcall_template": "{nextcall_template}",')
+                cw.emit(f'"model_id": {var_model_id}.id,')
+                cw.emit(f'"state": "{state}",')
+                cw.emit(f'"code": "{code}",')
+            cw.emit('cron_id = env["ir.cron"].create(value)')
         cw.emit()
-        with cw.block(before="value =", delim=("{", "}")):
-            cw.emit(f'"name": {cron_id_name_var},')
-            cw.emit(f'"model": "ir.cron",')
-            cw.emit(f'"module": MODULE_NAME,')
-            cw.emit(f'"res_id": cron_id.id,')
-            cw.emit(f'"noupdate": True,')
-        cw.emit('env["ir.model.data"].create(value)')
+
+        with cw.block(
+            before="cron_id_name_id = env['ir.model.data'].search(",
+            delim=("[", "]"),
+            after=")",
+        ):
+            cw.emit(f'("name", "=", {cron_id_name_var}),')
+            cw.emit(f'("model", "=", "ir.cron"),')
+            cw.emit(f'("module", "=", MODULE_NAME),')
+            cw.emit(f'("res_id", "=", cron_id.id),')
+            cw.emit(f'("noupdate", "=", True),')
+
+        cw.emit("if not cron_id_name_id:")
+        with cw.indent():
+            with cw.block(
+                before="cron_id_name_id = env['ir.model.data'].search(",
+                delim=("[", "]"),
+                after=")",
+            ):
+                cw.emit(f'("name", "=", {cron_id_name_var}),')
+                cw.emit(f'("model", "=", "ir.cron"),')
+                cw.emit(f'("module", "=", MODULE_NAME),')
+                cw.emit(f'("noupdate", "=", True),')
+            cw.emit("if cron_id_name_id:")
+            with cw.indent():
+                cw.emit("# cron exist but his id is not associate")
+                cw.emit("cron_id_name_id.res_id = cron_id.id")
+            cw.emit("else:")
+            with cw.indent():
+                with cw.block(before="value =", delim=("{", "}")):
+                    cw.emit(f'"name": {cron_id_name_var},')
+                    cw.emit(f'"model": "ir.cron",')
+                    cw.emit(f'"module": MODULE_NAME,')
+                    cw.emit(f'"res_id": cron_id.id,')
+                    cw.emit(f'"noupdate": True,')
+                cw.emit('env["ir.model.data"].create(value)')
         cw.emit()
         code_ids = self.env["code.generator.model.code"].search(
             [

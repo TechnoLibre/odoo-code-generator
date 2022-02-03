@@ -2267,15 +2267,29 @@ pass''',
         # dct_value_to_create["ir.ui.view"].append(ir_ui_view_value)
 
         if code_generator_view_id.id_name:
-            self.env["ir.model.data"].create(
-                {
-                    "name": code_generator_view_id.id_name,
-                    "model": "ir.ui.view",
-                    "module": code_generator_view_id.code_generator_id.name,
-                    "res_id": view_value.id,
-                    "noupdate": True,  # If it's False, target record (res_id) will be removed while module update
-                }
+            ir_model_data_id = self.env["ir.model.data"].search(
+                [
+                    ("name", "=", code_generator_view_id.id_name),
+                    ("model", "=", "ir.ui.view"),
+                    (
+                        "module",
+                        "=",
+                        code_generator_view_id.code_generator_id.name,
+                    ),
+                ]
             )
+            if ir_model_data_id:
+                ir_model_data_id.res_id = view_value.id
+            else:
+                self.env["ir.model.data"].create(
+                    {
+                        "name": code_generator_view_id.id_name,
+                        "model": "ir.ui.view",
+                        "module": code_generator_view_id.code_generator_id.name,
+                        "res_id": view_value.id,
+                        "noupdate": True,  # If it's False, target record (res_id) will be removed while module update
+                    }
+                )
 
         return view_value
 
@@ -2630,17 +2644,31 @@ pass''',
                         v["res_model"] = model_name
                     action_id = self.env["ir.actions.act_window"].create(v)
                     if menu_id.m2o_act_window.id_name:
-                        # Write id name
-                        self.env["ir.model.data"].create(
-                            {
-                                "name": menu_id.m2o_act_window.id_name,
-                                "model": "ir.actions.act_window",
-                                "module": module.name,
-                                "res_id": action_id.id,
-                                "noupdate": True,
-                                # If it's False, target record (res_id) will be removed while module update
-                            }
+                        ir_model_data_id = self.env["ir.model.data"].search(
+                            [
+                                ("name", "=", menu_id.m2o_act_window.id_name),
+                                ("model", "=", "ir.actions.act_window"),
+                                (
+                                    "module",
+                                    "=",
+                                    module.name,
+                                ),
+                            ]
                         )
+                        if ir_model_data_id:
+                            ir_model_data_id.res_id = action_id.id
+                        else:
+                            # Write id name
+                            self.env["ir.model.data"].create(
+                                {
+                                    "name": menu_id.m2o_act_window.id_name,
+                                    "model": "ir.actions.act_window",
+                                    "module": module.name,
+                                    "res_id": action_id.id,
+                                    "noupdate": True,
+                                    # If it's False, target record (res_id) will be removed while module update
+                                }
+                            )
                 elif not menu_id.ignore_act_window:
                     # Create action
                     v = {
@@ -2685,11 +2713,25 @@ pass''',
 
                 new_menu_id = self.env["ir.ui.menu"].create(v)
 
-                v_ir_model_data = {
-                    "name": menu_id.id_name,
-                    "model": "ir.ui.menu",
-                    "module": module.name,
-                    "res_id": new_menu_id.id,
-                    "noupdate": True,
-                }
-                self.env["ir.model.data"].create(v_ir_model_data)
+                ir_model_data_id = self.env["ir.model.data"].search(
+                    [
+                        ("name", "=", menu_id.id_name),
+                        ("model", "=", "ir.ui.menu"),
+                        (
+                            "module",
+                            "=",
+                            module.name,
+                        ),
+                    ]
+                )
+                if ir_model_data_id:
+                    ir_model_data_id.res_id = new_menu_id.id
+                else:
+                    v_ir_model_data = {
+                        "name": menu_id.id_name,
+                        "model": "ir.ui.menu",
+                        "module": module.name,
+                        "res_id": new_menu_id.id,
+                        "noupdate": True,
+                    }
+                    self.env["ir.model.data"].create(v_ir_model_data)

@@ -51,7 +51,6 @@ return''',
             ]
         )
         if module.template_module_id and act_server_ids:
-            cw.emit("##### Cron")
             for act_server_id in act_server_ids:
                 var_model_id = (
                     f"model_{act_server_id.model_name.replace('.', '_')}"
@@ -60,130 +59,103 @@ return''',
                     [("ir_actions_server_id", "=", act_server_id.id)]
                 )
                 for ir_cron_id in ir_cron_ids:
-                    with cw.block(before="value =", delim=("{", "}")):
-                        cw.emit('"m2o_module": code_generator_id.id,')
-                        cw.emit(f'"name": "{ir_cron_id.name}",')
-                        cw.emit(
-                            '"user_id":'
-                            f" env.ref('{self._get_ir_model_data(ir_cron_id.user_id)}').id,"
-                        )
-                        cw.emit(
-                            f'"interval_number": {ir_cron_id.interval_number},'
-                        )
-                        cw.emit(
-                            f'"interval_type": "{ir_cron_id.interval_type}",'
-                        )
-                        cw.emit(f'"numbercall": {ir_cron_id.numbercall},')
-                        cw.emit(
-                            '"nextcall_template":'
-                            f' "{self._process_nextcall(ir_cron_id)}",'
-                        )
-                        cw.emit(f'"model_id": {var_model_id}.id,')
-                        cw.emit(f'"state": "{ir_cron_id.state}",')
-                        cw.emit(f'"code": "{ir_cron_id.code}",')
-                    cw.emit('cron_id = env["ir.cron"].create(value)')
-                    cw.emit()
                     ir_model_data_id = self.env["ir.model.data"].search(
                         [
                             ("model", "=", "ir.cron"),
                             ("res_id", "=", ir_cron_id.id),
                         ]
                     )
-                    with cw.block(before="value =", delim=("{", "}")):
-                        if ir_model_data_id:
-                            cw.emit(f'"name": "{ir_model_data_id.name}",')
-                        else:
-                            cw.emit('"name": cron_id.name,')
-                        cw.emit(f'"model": "ir.cron",')
-                        cw.emit(f'"module": MODULE_NAME,')
-                        cw.emit(f'"res_id": cron_id.id,')
-                        cw.emit(f'"noupdate": True,')
-                    cw.emit('env["ir.model.data"].create(value)')
-                    cw.emit()
+                    if ir_model_data_id:
+                        cron_id_name_var = f'"{ir_model_data_id.name}"'
+                    else:
+                        cron_id_name_var = "cron_id.name"
                     code_name = (
                         ir_cron_id.code
                         if not ir_cron_id.code.startswith("model.")
                         else ir_cron_id.code[6:-2]
                     )
-                    code_ids = self.env["code.generator.model.code"].search(
-                        [
-                            ("name", "=", code_name),
-                            ("m2o_model", "=", model_model),
-                            ("m2o_module", "=", module.id),
-                        ]
+                    self._write_cron(
+                        cw,
+                        model_model,
+                        module,
+                        name=ir_cron_id.name,
+                        user_id_ref=self._get_ir_model_data(
+                            ir_cron_id.user_id
+                        ),
+                        interval_number=ir_cron_id.interval_number,
+                        interval_type=ir_cron_id.interval_type,
+                        numbercall=ir_cron_id.numbercall,
+                        nextcall_template=self._process_nextcall(ir_cron_id),
+                        var_model_id=var_model_id,
+                        state=ir_cron_id.state,
+                        code=ir_cron_id.code,
+                        cron_id_name_var=cron_id_name_var,
+                        code_name=code_name,
                     )
-                    if not code_ids:
-                        cw.emit(f"# {code_name} function cron")
-                        with cw.block(before="value =", delim=("{", "}")):
-                            # TODO add code in code generator to be create later
-                            # TODO refactor this code from code memory
-                            cw.emit(
-                                '"code": \'\'\'"""Run all scheduled'
-                                ' backups."""'
-                            )
-                            cw.emit_raw(
-                                "return self.search([]).action_backup()''',\n"
-                            )
-                            # TODO END refactor from code memory
-                            cw.emit(f'"name": "{code_name}",')
-                            # TODO here too
-                            cw.emit('"decorator": "@api.model",')
-                            # TODO here too
-                            cw.emit('"param": "self",')
-                            cw.emit('"m2o_module": code_generator_id.id,')
-                            cw.emit(f'"m2o_model": {var_model_id}.id,')
-                        cw.emit(
-                            'env["code.generator.model.code"].create(value)'
-                        )
-                    cw.emit()
         elif module.enable_cron_template:
-            cw.emit("##### Cron")
-            name = "Backup Scheduler"
-            # TODO create more generic code
+            self._write_cron(cw, model_model, module)
+
+    def _write_cron(
+        self,
+        cw,
+        model_model,
+        module,
+        name="Backup Scheduler",
+        user_id_ref="base.user_root",
+        interval_number=1,
+        interval_type="days",
+        numbercall=-1,
+        nextcall_template="(datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d 03:00:00')",
+        var_model_id="model_db_backup",
+        state="code",
+        code="model.action_backup_all()",
+        cron_id_name_var="cron_id.name",
+        code_name="action_backup_all",
+    ):
+        cw.emit("##### Cron")
+        with cw.block(before="value =", delim=("{", "}")):
+            cw.emit('"m2o_module": code_generator_id.id,')
+            cw.emit(f'"name": "{name}",')
+            cw.emit(f"\"user_id\": env.ref('{user_id_ref}').id,")
+            cw.emit(f'"interval_number": {interval_number},')
+            cw.emit(f'"interval_type": "{interval_type}",')
+            cw.emit(f'"numbercall": {numbercall},')
+            cw.emit(f'"nextcall_template": "{nextcall_template}",')
+            cw.emit(f'"model_id": {var_model_id}.id,')
+            cw.emit(f'"state": "{state}",')
+            cw.emit(f'"code": "{code}",')
+        cw.emit('cron_id = env["ir.cron"].create(value)')
+        cw.emit()
+        with cw.block(before="value =", delim=("{", "}")):
+            cw.emit(f'"name": {cron_id_name_var},')
+            cw.emit(f'"model": "ir.cron",')
+            cw.emit(f'"module": MODULE_NAME,')
+            cw.emit(f'"res_id": cron_id.id,')
+            cw.emit(f'"noupdate": True,')
+        cw.emit('env["ir.model.data"].create(value)')
+        cw.emit()
+        code_ids = self.env["code.generator.model.code"].search(
+            [
+                ("name", "=", code_name),
+                ("m2o_model", "=", model_model),
+                ("m2o_module", "=", module.id),
+            ]
+        )
+        if not code_ids:
+            cw.emit(f"# {code_name} function cron")
             with cw.block(before="value =", delim=("{", "}")):
+                # TODO create code if not exist and move this code above all code
+                # TODO add code in code generator to be create later
+                # TODO refactor this code from code memory
+                cw.emit('"code": \'\'\'"""Run all scheduled backups."""')
+                cw.emit_raw("return self.search([]).action_backup()''',\n")
+                cw.emit(f'"name": "{code_name}",')
+                cw.emit('"decorator": "@api.model",')
+                cw.emit('"param": "self",')
                 cw.emit('"m2o_module": code_generator_id.id,')
-                cw.emit(f'"name": "{name}",')
-                cw.emit("\"user_id\": env.ref('base.user_root').id,")
-                cw.emit('"interval_number": 1,')
-                cw.emit('"interval_type": "days",')
-                cw.emit('"numbercall": -1,')
-                cw.emit(
-                    '"nextcall_template": "(datetime.now() +'
-                    " timedelta(days=1)).strftime('%Y-%m-%d 03:00:00')\","
-                )
-                cw.emit('"model_id": model_db_backup.id,')
-                cw.emit('"state": "code",')
-                cw.emit('"code": "model.action_backup_all()",')
-            cw.emit('cron_id = env["ir.cron"].create(value)')
-            cw.emit()
-            with cw.block(before="value =", delim=("{", "}")):
-                cw.emit(f'"name": cron_id.name,')
-                cw.emit(f'"model": "ir.cron",')
-                cw.emit(f'"module": MODULE_NAME,')
-                cw.emit(f'"res_id": cron_id.id,')
-                cw.emit(f'"noupdate": True,')
-            cw.emit('env["ir.model.data"].create(value)')
-            cw.emit()
-            code_ids = self.env["code.generator.model.code"].search(
-                [
-                    ("name", "=", "action_backup_all"),
-                    ("m2o_model", "=", model_model),
-                    ("m2o_module", "=", module.id),
-                ]
-            )
-            if not code_ids:
-                cw.emit("# action_backup_all function cron")
-                with cw.block(before="value =", delim=("{", "}")):
-                    # TODO create code if not exist and move this code above all code
-                    cw.emit('"code": \'\'\'"""Run all scheduled backups."""')
-                    cw.emit_raw("return self.search([]).action_backup()''',\n")
-                    cw.emit('"name": "action_backup_all",')
-                    cw.emit('"decorator": "@api.model",')
-                    cw.emit('"param": "self",')
-                    cw.emit('"m2o_module": code_generator_id.id,')
-                    cw.emit('"m2o_model": model_db_backup.id,')
-                cw.emit('env["code.generator.model.code"].create(value)')
-            cw.emit()
+                cw.emit(f'"m2o_model": {var_model_id}.id,')
+            cw.emit('env["code.generator.model.code"].create(value)')
+        cw.emit()
 
     def set_xml_data_file(self, module):
         super(CodeGeneratorWriter, self).set_xml_data_file(module)

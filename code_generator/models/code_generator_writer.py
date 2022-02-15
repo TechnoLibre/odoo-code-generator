@@ -330,6 +330,7 @@ class CodeGeneratorWriter(models.Model):
             if module.icon and os.path.isfile(module.icon):
                 with open(module.icon, "rb") as file:
                     content = file.read()
+                icon_path = module.icon
             else:
                 if application_icon:
                     icon_path = application_icon[

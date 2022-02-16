@@ -1884,12 +1884,35 @@ class CodeGeneratorWriter(models.Model):
             xmlreport_file_path, l_model_report_file, data_file=True
         )
 
+    @staticmethod
+    def _get_lst_inherit_model(model_id):
+        lst_model = []
+
+        def recursive_get_inherit_model(actual_model_id):
+            """
+            actual_model_id is code.generator.ir.model.dependency
+            """
+            lst_model_id = [a.id for a in lst_model] + model_id.ids
+            if actual_model_id.depend_id.id not in lst_model_id:
+                new_model_id = actual_model_id.depend_id
+                lst_model.append(new_model_id)
+                if new_model_id.inherit_model_ids:
+                    for new_inherit_model_id in new_model_id.inherit_model_ids:
+                        recursive_get_inherit_model(new_inherit_model_id)
+
+        if model_id.inherit_model_ids:
+            for inherit_model_id in model_id.inherit_model_ids:
+                recursive_get_inherit_model(inherit_model_id)
+
+        return lst_model
+
     def _get_rec_name_inherit_model(self, model):
         # search in inherit
         lst_rec_name_inherit = []
         for inherit_model in model.inherit_model_ids:
             model_inherit_id = inherit_model.depend_id
             if model_inherit_id.id != model.id:
+                # TODO can remove recursive and use _get_lst_inherit_model to get all rec_name model
                 lst_rec_name_inherit.append(
                     self._get_rec_name_inherit_model(model_inherit_id)
                 )
@@ -2268,74 +2291,53 @@ class CodeGeneratorWriter(models.Model):
         )
         return E.field({"name": "groups_id", "eval": f"[(6,0, [{var}])]"})
 
-    def _get_model_fields(self, cw, model):
-        """
-        Function to obtain the model fields
-        :param model:
-        :return:
-        """
-
-        # TODO detect if contain code_generator_sequence, else order by name
-        f2exports = model.field_id.filtered(
-            lambda field: field.name not in MAGIC_FIELDS
-        ).sorted(key=lambda r: r.code_generator_sequence)
-
-        if model.inherit_model_ids:
-            is_whitelist = any(
-                [a.is_show_whitelist_model_inherit_call() for a in f2exports]
-            )
-            if is_whitelist:
-                f2exports = f2exports.filtered(
-                    lambda field: field.name not in MAGIC_FIELDS
-                    and not field.is_hide_blacklist_model_inherit
-                    and (
-                        not is_whitelist
-                        or (
-                            is_whitelist
-                            and field.is_show_whitelist_model_inherit_call()
-                        )
-                    )
-                )
-            else:
-                father_ids = self.env["ir.model"].browse(
-                    [a.depend_id.id for a in model.inherit_model_ids]
-                )
-                set_unique_field = set()
-                for father_id in father_ids:
-                    fatherfieldnames = father_id.field_id.filtered(
-                        lambda field: field.name not in MAGIC_FIELDS
-                    ).mapped("name")
-                    set_unique_field.update(fatherfieldnames)
-                f2exports = f2exports.filtered(
-                    lambda field: field.name not in list(set_unique_field)
-                )
-
-        # Force field name first
-        field_rec_name = model.rec_name if model.rec_name else model._rec_name
-        if not field_rec_name:
-            field_rec_name = "name"
-        lst_field_rec_name = f2exports.filtered(
-            lambda field: field.name == field_rec_name
+    def _generate_field_from_model(
+        self, f2export, model_name, lst_field_inherit, dct_field_attr_diff
+    ):
+        # Check odoo/odoo/fields.py in documentation
+        if lst_field_inherit and not dct_field_attr_diff:
+            return [], False, None, False
+        has_endline = False
+        lst_attribute_to_filter = []
+        lst_first_field_attribute = []
+        lst_field_attribute = []
+        compute = None
+        lst_last_field_attribute = []
+        extra_info = (
+            self.env[f2export.model]
+            .fields_get(f2export.name)
+            .get(f2export.name)
         )
-        if lst_field_rec_name:
-            lst_field_not_name = f2exports.filtered(
-                lambda field: field.name != field_rec_name
-            )
-            lst_id = lst_field_rec_name.ids + lst_field_not_name.ids
-            f2exports = self.env["ir.model.fields"].browse(lst_id)
+        dct_field_attribute = {}
 
-        for f2export in f2exports:
-            # Check odoo/odoo/fields.py in documentation
-            cw.emit()
-            extra_info = (
-                self.env[f2export.model]
-                .fields_get(f2export.name)
-                .get(f2export.name)
-            )
-            dct_field_attribute = {}
+        code_generator_compute = f2export.get_code_generator_compute()
 
-            code_generator_compute = f2export.get_code_generator_compute()
-
+        # TODO not optimal to remove attributes, but more easy ;-)
+        if dct_field_attr_diff:
+            for attr_key, lst_value in dct_field_attr_diff.items():
+                dct_field_attribute[attr_key] = getattr(f2export, attr_key)
+            # Rename attribute
+            if "relation" in dct_field_attribute.keys():
+                dct_field_attribute["comodel_name"] = dct_field_attribute[
+                    "relation"
+                ]
+                del dct_field_attribute["relation"]
+            if "field_description" in dct_field_attribute.keys():
+                dct_field_attribute["string"] = dct_field_attribute[
+                    "field_description"
+                ]
+                del dct_field_attribute["field_description"]
+            if "relation_field" in dct_field_attribute.keys():
+                dct_field_attribute["inverse_name"] = dct_field_attribute[
+                    "relation_field"
+                ]
+                del dct_field_attribute["relation_field"]
+            if "relation_table" in dct_field_attribute.keys():
+                dct_field_attribute["relation"] = dct_field_attribute[
+                    "relation_table"
+                ]
+                del dct_field_attribute["relation_table"]
+        else:
             # TODO use if cannot find information
             # field_selection = self.env[f2export.model].fields_get(f2export.name).get(f2export.name)
 
@@ -2440,7 +2442,7 @@ class CodeGeneratorWriter(models.Model):
                 if f2export.default:
                     default_value = f2export.default
                 else:
-                    dct_default_value = self.env[model.model].default_get(
+                    dct_default_value = self.env[model_name].default_get(
                         [f2export.name]
                     )
                     if dct_default_value:
@@ -2475,7 +2477,6 @@ class CodeGeneratorWriter(models.Model):
                         dct_field_attribute["default"] = default_value
 
             # TODO support states
-
             if f2export.groups:
                 dct_field_attribute["groups"] = f2export.groups.mapped(
                     lambda g: self._get_group_data_name(g)
@@ -2525,7 +2526,6 @@ class CodeGeneratorWriter(models.Model):
             # elif f2export.ttype != 'one2many' and not f2export.related and not compute and not f2export.copied:
             #     dct_field_attribute["copy"] = False
 
-            lst_attribute_to_filter = []
             if (
                 f2export.code_generator_ir_model_fields_ids
                 and f2export.code_generator_ir_model_fields_ids.filter_field_attribute
@@ -2538,58 +2538,163 @@ class CodeGeneratorWriter(models.Model):
                     a.strip() for a in lst_attribute_to_filter if a.strip()
                 ]
 
-            has_endline = False
-            lst_first_field_attribute = []
-            lst_field_attribute = []
-            lst_last_field_attribute = []
-            for key, value in dct_field_attribute.items():
-                if (
-                    lst_attribute_to_filter
-                    and key not in lst_attribute_to_filter
-                ):
-                    continue
-                if type(value) is str:
-                    # TODO find another solution than removing \n, this cause error with cw.CodeWriter
-                    copy_value = value.replace("'", "\\'")
-                    value = value.replace("\n", " ").replace("'", "\\'")
-                    if key == "comodel_name":
-                        lst_first_field_attribute.append(f"{key}='{value}'")
-                    elif key == "ondelete":
-                        lst_last_field_attribute.append(f"{key}='{value}'")
-                    else:
-                        if key == "default":
-                            if (
-                                value.startswith("lambda")
-                                or value.startswith("date")
-                                or value.startswith("datetime")
-                            ):
-                                # Exception for lambda
-                                lst_field_attribute.append(f"{key}={value}")
-                            else:
-                                if "\n" in copy_value:
-                                    has_endline = True
-                                    lst_field_attribute.append(
-                                        f"{key}='''{copy_value}'''"
-                                    )
-                                else:
-                                    lst_field_attribute.append(
-                                        f"{key}='{copy_value}'"
-                                    )
-                        else:
-                            lst_field_attribute.append(f"{key}='{value}'")
-                elif type(value) is list:
-                    # TODO find another solution than removing \n, this cause error with cw.CodeWriter
-                    new_value = str(value).replace("\n", " ")
-                    lst_field_attribute.append(f"{key}={new_value}")
+        for key, value in dct_field_attribute.items():
+            if lst_attribute_to_filter and key not in lst_attribute_to_filter:
+                continue
+            if type(value) is str:
+                # TODO find another solution than removing \n, this cause error with cw.CodeWriter
+                copy_value = value.replace("'", "\\'")
+                value = value.replace("\n", " ").replace("'", "\\'")
+                if key == "comodel_name":
+                    lst_first_field_attribute.append(f"{key}='{value}'")
+                elif key == "ondelete":
+                    lst_last_field_attribute.append(f"{key}='{value}'")
                 else:
-                    lst_field_attribute.append(f"{key}={value}")
+                    if key == "default":
+                        if (
+                            value.startswith("lambda")
+                            or value.startswith("date")
+                            or value.startswith("datetime")
+                        ):
+                            # Exception for lambda
+                            lst_field_attribute.append(f"{key}={value}")
+                        else:
+                            if "\n" in copy_value:
+                                has_endline = True
+                                lst_field_attribute.append(
+                                    f"{key}='''{copy_value}'''"
+                                )
+                            else:
+                                lst_field_attribute.append(
+                                    f"{key}='{copy_value}'"
+                                )
+                    else:
+                        lst_field_attribute.append(f"{key}='{value}'")
+            elif type(value) is list:
+                # TODO find another solution than removing \n, this cause error with cw.CodeWriter
+                new_value = str(value).replace("\n", " ")
+                lst_field_attribute.append(f"{key}={new_value}")
+            else:
+                lst_field_attribute.append(f"{key}={value}")
 
-            lst_field_attribute = (
-                lst_first_field_attribute
-                + lst_field_attribute
-                + lst_last_field_attribute
+        lst_field_attribute = (
+            lst_first_field_attribute
+            + lst_field_attribute
+            + lst_last_field_attribute
+        )
+
+        return lst_field_attribute, has_endline, compute, True
+
+    def _get_model_fields(self, cw, model):
+        """
+        Function to obtain the model fields
+        :param model:
+        :return:
+        """
+        # TODO detect if contain code_generator_sequence, else order by name
+        f2exports = model.field_id.filtered(
+            lambda field: field.name not in MAGIC_FIELDS
+        ).sorted(key=lambda r: r.code_generator_sequence)
+
+        lst_inherit_model = self._get_lst_inherit_model(model)
+
+        if model.inherit_model_ids:
+            is_whitelist = any(
+                [a.is_show_whitelist_model_inherit_call() for a in f2exports]
             )
+            if is_whitelist:
+                f2exports = f2exports.filtered(
+                    lambda field: field.name not in MAGIC_FIELDS
+                    and not field.is_hide_blacklist_model_inherit
+                    and (
+                        not is_whitelist
+                        or (
+                            is_whitelist
+                            and field.is_show_whitelist_model_inherit_call()
+                        )
+                    )
+                )
+            # else:
+            #     father_ids = self.env["ir.model"].browse(
+            #         [a.depend_id.id for a in model.inherit_model_ids]
+            #     )
+            #     set_unique_field = set()
+            #     for father_id in father_ids:
+            #         fatherfieldnames = father_id.field_id.filtered(
+            #             lambda field: field.name not in MAGIC_FIELDS
+            #         ).mapped("name")
+            #         set_unique_field.update(fatherfieldnames)
+            #     f2exports = f2exports.filtered(
+            #         lambda field: field.name not in list(set_unique_field)
+            #     )
 
+        # Force field name first
+        field_rec_name = model.rec_name if model.rec_name else model._rec_name
+        if not field_rec_name:
+            field_rec_name = "name"
+        lst_field_rec_name = f2exports.filtered(
+            lambda field: field.name == field_rec_name
+        )
+        if lst_field_rec_name:
+            lst_field_not_name = f2exports.filtered(
+                lambda field: field.name != field_rec_name
+            )
+            lst_id = lst_field_rec_name.ids + lst_field_not_name.ids
+            f2exports = self.env["ir.model.fields"].browse(lst_id)
+
+        lst_field_to_write = []
+        for f2export in f2exports:
+            lst_field_inherit = [
+                b
+                for a in lst_inherit_model
+                for b in a.field_id
+                if b.name == f2export.name
+            ]
+            # TODO update this list
+            # Documentation to understand how attributes work, check file odoo/odoo/addons/base/models/ir_model.py function _instanciate_attrs
+            lst_attribute_check_diff = [
+                "readonly",
+                "required",
+                "field_description",  # String
+                "relation_field",  # inverse_name
+                "relation",  # comodel_name
+                "relation_table",  # relation
+                # "default",
+                "help",
+                # "context",
+                # "compute",
+                # "domain",
+            ]
+            dct_field_attr_diff = defaultdict(list)
+            for field_inherit in lst_field_inherit:
+                for attr_name in lst_attribute_check_diff:
+                    try:
+                        actual_value = getattr(f2export, attr_name)
+                    except Exception as e:
+                        print(e)
+                    inherit_value = getattr(field_inherit, attr_name)
+                    if actual_value != inherit_value:
+                        dct_field_attr_diff[attr_name].append(inherit_value)
+            (
+                lst_field_attribute,
+                has_endline,
+                compute,
+                do_generate,
+            ) = self._generate_field_from_model(
+                f2export, model.model, lst_field_inherit, dct_field_attr_diff
+            )
+            if do_generate:
+                lst_field_to_write.append(
+                    (lst_field_attribute, f2export, has_endline, compute)
+                )
+
+        for (
+            lst_field_attribute,
+            f2export,
+            has_endline,
+            compute,
+        ) in lst_field_to_write:
+            cw.emit()
             if not has_endline:
                 cw.emit_list(
                     lst_field_attribute,

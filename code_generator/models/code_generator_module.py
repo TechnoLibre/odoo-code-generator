@@ -401,12 +401,14 @@ class CodeGeneratorModule(models.Model):
     def add_update_model(
         self,
         model_model,
-        model_name,
+        model_name=None,
         dct_field=None,
         dct_model=None,
         lst_depend_model=None,
     ):
         model_id = self.env["ir.model"].search([("model", "=", model_model)])
+        if model_name is None:
+            model_name = model_model.replace(".", "_")
         # Check if exist or create it
         if model_id:
             model_id.m2o_module = self.id

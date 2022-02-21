@@ -475,12 +475,18 @@ class CodeGeneratorModule(models.Model):
                         dct_model,
                         value,
                     )
+            rec_name = dct_model.get("rec_name")
+            has_already_rec_name = False
+            if not rec_name:
+                rec_name = "name"
+            else:
+                has_already_rec_name = True
 
             # Update fields values
             lst_field_value = []
             if dct_field:
                 for field_name, field_info in dct_field.items():
-                    if field_name == "name":
+                    if field_name == rec_name:
                         has_field_name = True
 
                     field_id = self.env["ir.model.fields"].search(
@@ -507,7 +513,7 @@ class CodeGeneratorModule(models.Model):
             if lst_field_value:
                 value["field_id"] = lst_field_value
 
-            if "rec_name" not in value.keys():
+            if not has_already_rec_name:
                 if has_field_name:
                     value["rec_name"] = "name"
                 else:

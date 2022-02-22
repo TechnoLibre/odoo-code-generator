@@ -358,9 +358,25 @@ class IrModelFields(models.Model):
     @api.model
     def get_code_generator_compute(self):
         if self.code_generator_ir_model_fields_ids:
-            return (
-                self.code_generator_ir_model_fields_ids.code_generator_compute
-            )
+            if len(self.code_generator_ir_model_fields_ids) > 1:
+                # Check if multiple field before crash without message
+                lst_model = set(
+                    [
+                        a.m2o_fields.model
+                        for a in self.code_generator_ir_model_fields_ids
+                    ]
+                )
+                lst_field = [
+                    a.name for a in self.code_generator_ir_model_fields_ids
+                ]
+                raise Exception(
+                    f"Cannot compute multiple field. In model {lst_model},"
+                    f" List of field: {lst_field}"
+                )
+            else:
+                return (
+                    self.code_generator_ir_model_fields_ids.code_generator_compute
+                )
         return self.code_generator_compute
 
     @api.model

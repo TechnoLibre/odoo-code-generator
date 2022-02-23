@@ -785,6 +785,19 @@ class CodeGeneratorWriter(models.Model):
         else:
             result = False
 
+        # Need to limit to 128 char, else can crash like when loading i18n po and id is too long
+        if type(result) is str:
+            # Remove strange char
+            # TODO find another way to remove not alpha numeric char, but accept '_'
+            result = (
+                result.replace(",", "")
+                .replace("'", "")
+                .replace('"', "")
+                .replace("(", "")
+                .replace(")", "")
+            )
+            # TODO maybe check duplicate
+            return result[:120]
         return result
 
     def _get_group_data_name(self, group):

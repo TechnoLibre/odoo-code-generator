@@ -2294,6 +2294,7 @@ class CodeGeneratorWriter(models.Model):
     def _generate_field_from_model(
         self, f2export, model_name, lst_field_inherit, dct_field_attr_diff
     ):
+        # Documentation to understand how attributes work, check file odoo/odoo/addons/base/models/ir_model.py function _instanciate_attrs
         # Check odoo/odoo/fields.py in documentation
         if lst_field_inherit and not dct_field_attr_diff:
             return [], False, None, False
@@ -2389,7 +2390,41 @@ class CodeGeneratorWriter(models.Model):
                         ] = f2export.relation_table
                         dct_field_attribute["column1"] = f2export.column1
                         dct_field_attribute["column2"] = f2export.column2
-
+                    elif (
+                        dct_field_attribute.get("relation") is None
+                        and f2export.relation_table
+                        and f2export.relation
+                        and len(f2export.relation_table) > 63
+                    ):
+                        # TODO need to validate it's not exist, the new relation table
+                        # relation can be empty, the system will generate it, but crash if highter then 63
+                        new_relation_table = (
+                            f"{f2export.name}_{f2export.model.replace('.', '_')}_rel"
+                        )
+                        if len(new_relation_table) > 63:
+                            # again!
+                            lst_split_relation_t = f2export.relation_table[
+                                :-4
+                            ].split("_")
+                            if lst_split_relation_t[0] == "x":
+                                lst_split_relation_t = lst_split_relation_t[1:]
+                            # Take only first later of each word
+                            new_relation_table = (
+                                "_".join(
+                                    [
+                                        a[0]
+                                        for a in lst_split_relation_t.split(
+                                            "_"
+                                        )
+                                    ]
+                                )
+                                + "_rel"
+                            )
+                            if len(new_relation_table) > 63:
+                                new_relation_table = new_relation_table[
+                                    :63
+                                ].trim("_")
+                        dct_field_attribute["relation"] = new_relation_table
                 domain_info = extra_info.get("domain")
                 if f2export.domain and f2export.domain != "[]":
                     dct_field_attribute["domain"] = f2export.domain

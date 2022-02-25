@@ -415,6 +415,8 @@ class CodeGeneratorModule(models.Model):
 
             if dct_field:
                 for field_name, field_info in dct_field.items():
+                    if field_info.get("ttype") == "many2many":
+                        self._check_relation_many2many(model_model, field_info)
                     field_id = self.env["ir.model.fields"].search(
                         [
                             ("model", "=", model_model),
@@ -486,6 +488,9 @@ class CodeGeneratorModule(models.Model):
             lst_field_value = []
             if dct_field:
                 for field_name, field_info in dct_field.items():
+                    if field_info.get("ttype") == "many2many":
+                        self._check_relation_many2many(model_model, field_info)
+
                     if field_name == rec_name:
                         has_field_name = True
 
@@ -528,6 +533,26 @@ class CodeGeneratorModule(models.Model):
             model_id.add_model_inherit(lst_depend_model)
 
         return model_id
+
+    def _check_relation_many2many(self, model_model, field_value):
+        relation_name = field_value.get("relation")
+        comodel_name = relation_name.replace(".", "_")
+        str_model_model = model_model.replace(".", "_")
+        if not comodel_name:
+            _logger.warning(f"Missing relation for field_value {field_value}")
+        else:
+            # Source, file odoo/odoo/addons/base/models/ir_model.py function _custom_many2many_names
+            # relation = self.env["ir.model.fields"]._custom_many2many_names(model_name, comodel_name)
+            # Execution error will come from file odoo/odoo/fields.py, function check_pg_name
+            relation = f"x_{comodel_name}_{str_model_model}_rel"
+            if len(relation) > 63:
+                _logger.warning(
+                    "The size is too high, please reduce size of model name"
+                    f" of '{model_model}' ({len(model_model)}) or"
+                    f" '{field_value.get('relation')}' ({len(relation_name)}),"
+                    " automatic relation will be broke, max 63 chars. Result"
+                    f" ({len(relation)}) '{relation}'"
+                )
 
     @api.model
     def add_update_model_one2many(

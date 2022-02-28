@@ -2352,12 +2352,22 @@ class CodeGeneratorWriter(models.Model):
                     "relation_table"
                 ]
                 del dct_field_attribute["relation_table"]
+            if "copied" in dct_field_attribute.keys():
+                dct_field_attribute["copy"] = dct_field_attribute["copied"]
+                del dct_field_attribute["copied"]
         else:
             # TODO use if cannot find information
             # field_selection = self.env[f2export.model].fields_get(f2export.name).get(f2export.name)
 
+            if f2export.related:
+                dct_field_attribute["related"] = f2export.related
+
             # Respect sequence in list, order listed by human preference
-            if f2export.ttype in ("selection", "reference"):
+            if (
+                f2export.ttype in ("selection", "reference")
+                and not f2export.related
+            ):
+                # cannot support selection item with related attributes
                 str_selection = f2export.get_selection()
                 if str_selection:
                     dct_field_attribute["selection"] = str_selection
@@ -2484,7 +2494,9 @@ class CodeGeneratorWriter(models.Model):
             # Get default value
             default_lambda = f2export.get_default_lambda()
             if default_lambda:
-                dct_field_attribute["default"] = default_lambda
+                dct_field_attribute["default"] = default_lambda.replace(
+                    "'", '"'
+                )
             else:
                 default_value = None
                 if f2export.default:
@@ -2598,26 +2610,21 @@ class CodeGeneratorWriter(models.Model):
                 elif key == "ondelete":
                     lst_last_field_attribute.append(f"{key}='{value}'")
                 else:
-                    if key == "default":
-                        if (
-                            value.startswith("lambda")
-                            or value.startswith("date")
-                            or value.startswith("datetime")
-                        ):
-                            # Exception for lambda
-                            lst_field_attribute.append(f"{key}={value}")
-                        else:
-                            if "\n" in copy_value:
-                                has_endline = True
-                                lst_field_attribute.append(
-                                    f"{key}='''{copy_value}'''"
-                                )
-                            else:
-                                lst_field_attribute.append(
-                                    f"{key}='{copy_value}'"
-                                )
+                    if (
+                        value.startswith("lambda")
+                        or value.startswith("date")
+                        or value.startswith("datetime")
+                    ):
+                        # Exception for lambda
+                        lst_field_attribute.append(f"{key}={value}")
                     else:
-                        lst_field_attribute.append(f"{key}='{value}'")
+                        if "\n" in copy_value:
+                            has_endline = True
+                            lst_field_attribute.append(
+                                f"{key}='''{copy_value}'''"
+                            )
+                        else:
+                            lst_field_attribute.append(f"{key}='{copy_value}'")
             elif type(value) is list:
                 # TODO find another solution than removing \n, this cause error with cw.CodeWriter
                 new_value = str(value).replace("\n", " ")

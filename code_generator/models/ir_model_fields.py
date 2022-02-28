@@ -1,5 +1,9 @@
 import ast
+import inspect
 import logging
+import types
+
+import astor
 
 from odoo import _, api, fields, models, tools
 from odoo.exceptions import UserError, ValidationError
@@ -415,7 +419,45 @@ class IrModelFields(models.Model):
                 )
         if not return_value:
             return_value = self.env[self.model]._fields[self.name].selection
+            if isinstance(return_value, types.FunctionType):
+                source_code = (
+                    inspect.getsource(return_value).strip().strip(",")
+                )
+                selection_equal_str = "selection="
+                # Clean variable assignment if exist
+                pos = source_code.find(" = fields.Selection(")
+                if pos > 0:
+                    source_code = source_code[pos + 3 :].strip()
+                    return_value = self._extract_lambda_in_selection(
+                        source_code
+                    )
+                elif selection_equal_str in source_code:
+                    return_value = source_code[
+                        source_code.find(selection_equal_str)
+                        + len(selection_equal_str) :
+                    ]
         return return_value
+
+    def _extract_lambda_in_selection(self, source_code):
+        # TODO move this function in code extractor
+        # Extract lambda name
+        tree = ast.parse(source_code)
+
+        class LambdaVisitor(ast.NodeVisitor):
+            def __init__(self):
+                _new_source = None
+
+            def visit_Lambda(self, node):
+                self._new_source = astor.to_source(node).strip()
+                if self._new_source[0] == "(" and self._new_source[-1] == ")":
+                    self._new_source = self._new_source[1:-1]
+
+            def get_result(self):
+                return self._new_source
+
+        visitor = LambdaVisitor()
+        visitor.visit(tree)
+        return visitor.get_result()
 
     @api.model
     def create(self, vals):

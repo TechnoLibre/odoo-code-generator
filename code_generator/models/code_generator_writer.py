@@ -2318,7 +2318,10 @@ class CodeGeneratorWriter(models.Model):
         # TODO not optimal to remove attributes, but more easy ;-)
         if dct_field_attr_diff:
             for attr_key, lst_value in dct_field_attr_diff.items():
-                dct_field_attribute[attr_key] = getattr(f2export, attr_key)
+                if attr_key == "default":
+                    dct_field_attribute[attr_key] = self._get_default(f2export)
+                else:
+                    dct_field_attribute[attr_key] = getattr(f2export, attr_key)
             # Exception for compute
             if "compute" in dct_field_attr_diff.keys():
                 new_value_compute = self._get_compute_fct(f2export)
@@ -2715,7 +2718,7 @@ class CodeGeneratorWriter(models.Model):
                 "relation_field",  # inverse_name
                 "relation",  # comodel_name
                 "relation_table",  # relation
-                "default",
+                # "default",
                 "help",
                 # "context",
                 "compute",
@@ -2734,6 +2737,9 @@ class CodeGeneratorWriter(models.Model):
                     if actual_value != inherit_value:
                         dct_field_attr_diff[attr_name].append(inherit_value)
                 self._find_field_computed(
+                    dct_field_attr_diff, f2export, field_inherit
+                )
+                self._find_field_default(
                     dct_field_attr_diff, f2export, field_inherit
                 )
             (
@@ -2818,6 +2824,18 @@ class CodeGeneratorWriter(models.Model):
             return field_relation.compute
         return False
 
+    def _get_default(self, field_id):
+        default_value = field_id.get_default_lambda()
+        if not default_value:
+            default_value = self.env[field_id.model].default_get(
+                [field_id.name]
+            )
+            if default_value:
+                default_value = default_value.get(field_id.name)
+        if not default_value:
+            default_value = False
+        return default_value
+
     def _find_field_computed(
         self, dct_field_attr_diff, f2export, field_inherit
     ):
@@ -2825,6 +2843,14 @@ class CodeGeneratorWriter(models.Model):
         actual_compute = self._get_compute_fct(f2export)
         if inherit_compute and not actual_compute:
             dct_field_attr_diff["compute"] = inherit_compute
+
+    def _find_field_default(
+        self, dct_field_attr_diff, f2export, field_inherit
+    ):
+        inherit_default = self._get_default(field_inherit)
+        actual_default = self._get_default(f2export)
+        if inherit_default != actual_default:
+            dct_field_attr_diff["default"] = inherit_default
 
     @api.model_create_multi
     def create(self, vals_list):

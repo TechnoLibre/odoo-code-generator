@@ -2311,11 +2311,25 @@ class CodeGeneratorWriter(models.Model):
         dct_field_attribute = {}
 
         code_generator_compute = f2export.get_code_generator_compute()
+        if not code_generator_compute and not f2export.related:
+            code_generator_compute = self._get_compute_fct(f2export)
 
         # TODO not optimal to remove attributes, but more easy ;-)
         if dct_field_attr_diff:
             for attr_key, lst_value in dct_field_attr_diff.items():
                 dct_field_attribute[attr_key] = getattr(f2export, attr_key)
+            # Exception for compute
+            if "compute" in dct_field_attr_diff.keys():
+                new_value_compute = self._get_compute_fct(f2export)
+                if not new_value_compute:
+                    dct_field_attribute["compute"] = None
+                    if dct_field_attribute.get("store"):
+                        # no need to store when no compute
+                        del dct_field_attribute["store"]
+                    if dct_field_attribute.get("readonly") is False:
+                        del dct_field_attribute["readonly"]
+                else:
+                    dct_field_attribute["compute"] = new_value_compute
             # Rename attribute
             if "relation" in dct_field_attribute.keys():
                 dct_field_attribute["comodel_name"] = dct_field_attribute[
@@ -2405,7 +2419,6 @@ class CodeGeneratorWriter(models.Model):
                 dct_field_attribute["related"] = f2export.related
 
             if f2export.readonly and not code_generator_compute:
-                # TODO force readonly at false when inherit and origin is True
                 # Note that a computed field without an inverse method is readonly by default.
                 dct_field_attribute["readonly"] = True
 
@@ -2659,13 +2672,15 @@ class CodeGeneratorWriter(models.Model):
                 "relation_field",  # inverse_name
                 "relation",  # comodel_name
                 "relation_table",  # relation
-                # "default",
+                "default",
                 "help",
                 # "context",
-                # "compute",
-                # "domain",
+                "compute",
+                "domain",
+                "store",
             ]
             dct_field_attr_diff = defaultdict(list)
+            # TODO éviter d'écraser une valeur pour le multi héritage
             for field_inherit in lst_field_inherit:
                 for attr_name in lst_attribute_check_diff:
                     try:
@@ -2675,6 +2690,9 @@ class CodeGeneratorWriter(models.Model):
                     inherit_value = getattr(field_inherit, attr_name)
                     if actual_value != inherit_value:
                         dct_field_attr_diff[attr_name].append(inherit_value)
+                self._find_field_computed(
+                    dct_field_attr_diff, f2export, field_inherit
+                )
             (
                 lst_field_attribute,
                 has_endline,
@@ -2744,6 +2762,26 @@ class CodeGeneratorWriter(models.Model):
                 for line in l_compute:
                     with cw.indent():
                         cw.emit(line.rstrip())
+
+    def _get_compute_fct(self, field_id):
+        model_name = field_id.model
+        lst_field = [
+            a
+            for a in self.env[model_name]._field_computed.keys()
+            if a.name == field_id.name
+        ]
+        if lst_field:
+            field_relation = lst_field[0]
+            return field_relation.compute
+        return False
+
+    def _find_field_computed(
+        self, dct_field_attr_diff, f2export, field_inherit
+    ):
+        inherit_compute = self._get_compute_fct(field_inherit)
+        actual_compute = self._get_compute_fct(f2export)
+        if inherit_compute and not actual_compute:
+            dct_field_attr_diff["compute"] = inherit_compute
 
     @api.model_create_multi
     def create(self, vals_list):

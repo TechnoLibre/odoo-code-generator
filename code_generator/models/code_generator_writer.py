@@ -2026,7 +2026,7 @@ class CodeGeneratorWriter(models.Model):
 
             self._get_model_constrains(cw, model, module)
 
-            self._get_model_fields(cw, model)
+            self._get_model_fields(cw, model, module)
 
             # code_ids = self.env["code.generator.model.code"].search(
             #     [("m2o_module", "=", module.id)]
@@ -2640,7 +2640,7 @@ class CodeGeneratorWriter(models.Model):
 
         return lst_field_attribute, has_endline, compute, True
 
-    def _get_model_fields(self, cw, model):
+    def _get_model_fields(self, cw, model, module):
         """
         Function to obtain the model fields
         :param model:
@@ -2649,6 +2649,7 @@ class CodeGeneratorWriter(models.Model):
         # TODO detect if contain code_generator_sequence, else order by name
         f2exports = model.field_id.filtered(
             lambda field: field.name not in MAGIC_FIELDS
+            and field.modules == module.name
         ).sorted(key=lambda r: r.code_generator_sequence)
 
         lst_inherit_model = self._get_lst_inherit_model(model)

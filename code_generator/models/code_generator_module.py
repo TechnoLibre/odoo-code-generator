@@ -406,6 +406,13 @@ class CodeGeneratorModule(models.Model):
         dct_model=None,
         lst_depend_model=None,
     ):
+        # When this is called, all field is in whitelist
+        for field_name, field_info in dct_field.items():
+            if (
+                field_info.get("is_show_whitelist_model_inherit") is None
+                and field_info.get("is_hide_blacklist_model_inherit") is None
+            ):
+                field_info["is_show_whitelist_model_inherit"] = True
         model_id = self.env["ir.model"].search([("model", "=", model_model)])
         if model_name is None:
             model_name = model_model.replace(".", "_")
@@ -555,11 +562,14 @@ class CodeGeneratorModule(models.Model):
                 )
 
     @api.model
-    def add_update_model_one2many(
-        self,
-        model_model,
-        dct_field,
-    ):
+    def add_update_model_one2many(self, model_model, dct_field):
+        # When this is called, all field is in whitelist
+        for field_name, field_info in dct_field.items():
+            if (
+                field_info.get("is_show_whitelist_model_inherit") is None
+                and field_info.get("is_hide_blacklist_model_inherit") is None
+            ):
+                field_info["is_show_whitelist_model_inherit"] = True
         model_id = self.env["ir.model"].search([("model", "=", model_model)])
         # Check if exist or create it
         if model_id:

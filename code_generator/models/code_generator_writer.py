@@ -2362,8 +2362,37 @@ class CodeGeneratorWriter(models.Model):
             # TODO use if cannot find information
             # field_selection = self.env[f2export.model].fields_get(f2export.name).get(f2export.name)
 
+            related_field_id = None
             if f2export.related:
                 dct_field_attribute["related"] = f2export.related
+                # Get related field if, it works like inherit
+                (
+                    related_inside_field,
+                    related_outside_field,
+                ) = f2export.related.split(".")
+                # This need to be a many2many
+                related_model_name = f2export.model_id.field_id.filtered(
+                    lambda field: field.name == related_inside_field
+                ).relation
+                related_outside_field_id = self.env["ir.model.fields"].search(
+                    [
+                        ("model", "=", related_model_name),
+                        ("name", "=", related_inside_field),
+                    ],
+                    limit=1,
+                )
+                if not related_outside_field_id:
+                    _logger.error(
+                        "Cannot find related field from field"
+                        f" '{f2export.name}' and model '{f2export.model}'"
+                    )
+                else:
+                    # Get is model and search outside field
+                    related_field_id = (
+                        related_outside_field_id.model_id.field_id.filtered(
+                            lambda field: field.name == related_outside_field
+                        )
+                    )
 
             # Respect sequence in list, order listed by human preference
             if (
@@ -2456,7 +2485,12 @@ class CodeGeneratorWriter(models.Model):
                 and f2export.name.replace("_", " ").title()
                 != f2export.field_description
             ):
-                dct_field_attribute["string"] = f2export.field_description
+                if not (
+                    related_field_id
+                    and related_field_id.field_description
+                    == f2export.field_description
+                ):
+                    dct_field_attribute["string"] = f2export.field_description
 
             if (
                 f2export.ttype == "char" or f2export.ttype == "reference"
@@ -2468,7 +2502,11 @@ class CodeGeneratorWriter(models.Model):
 
             if f2export.readonly and not code_generator_compute:
                 # Note that a computed field without an inverse method is readonly by default.
-                dct_field_attribute["readonly"] = True
+                if not (
+                    related_field_id
+                    and related_field_id.readonly == f2export.readonly
+                ):
+                    dct_field_attribute["readonly"] = True
 
             if f2export.required:
                 dct_field_attribute["required"] = True
@@ -2581,7 +2619,11 @@ class CodeGeneratorWriter(models.Model):
             # TODO support store
             if f2export.store and code_generator_compute:
                 dct_field_attribute["store"] = True
-            elif not f2export.store and not code_generator_compute:
+            elif (
+                not f2export.store
+                and not code_generator_compute
+                and not related_field_id
+            ):
                 # By default, a computed field is not stored to the database, and is computed on-the-fly.
                 dct_field_attribute["store"] = False
 

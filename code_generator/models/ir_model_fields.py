@@ -198,6 +198,8 @@ class IrModelFields(models.Model):
 
     default_lambda = fields.Char(string="Default lambda value")
 
+    field_context = fields.Char()
+
     force_widget = fields.Selection(
         FORCE_WIDGET_TYPES,
         string="Force widget",
@@ -358,6 +360,12 @@ class IrModelFields(models.Model):
         if self.code_generator_ir_model_fields_ids:
             return self.code_generator_ir_model_fields_ids.default_lambda
         return self.default_lambda
+
+    @api.model
+    def get_field_context(self):
+        if self.code_generator_ir_model_fields_ids:
+            return self.code_generator_ir_model_fields_ids.field_context
+        return self.field_context
 
     @api.model
     def get_code_generator_compute(self):

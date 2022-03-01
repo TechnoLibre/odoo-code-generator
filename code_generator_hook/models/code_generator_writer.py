@@ -1449,6 +1449,11 @@ class CodeGeneratorWriter(models.Model):
                         "force_widget"
                     )
 
+                if "context" in ast_attr.keys():
+                    dct_field_value["field_context"] = str(
+                        ast_attr.get("context")
+                    )
+
                 compute = ast_attr.get("compute") if ast_attr else None
                 if compute:
                     if field_id.store:

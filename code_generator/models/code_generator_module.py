@@ -597,7 +597,20 @@ class CodeGeneratorModule(models.Model):
 
                     self.env["ir.model.fields"].create(value_field_one2many)
                 else:
-                    _logger.error("What to do to update a one2many?")
+                    if "field_context" in field_info.keys():
+                        value_ir_model_fields = {
+                            "m2o_fields": field_id.id,
+                        }
+                        # TODO find missing attribute
+                        self._update_dict(
+                            "field_context",
+                            field_info,
+                            value_ir_model_fields,
+                        )
+                        self.env["code.generator.ir.model.fields"].create(
+                            value_ir_model_fields
+                        )
+                    # _logger.error("What to do to update a one2many?")
         else:
             _logger.error(
                 f"The model '{model_model}' is not existing, need to be create"

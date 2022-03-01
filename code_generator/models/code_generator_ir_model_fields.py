@@ -17,6 +17,8 @@ class CodeGeneratorIrModelFields(models.Model):
 
     default_lambda = fields.Char(string="Default lambda value")
 
+    field_context = fields.Char()
+
     filter_field_attribute = fields.Char(
         help=(
             "Separate by ; to enumerate your attribute to filter, like a"

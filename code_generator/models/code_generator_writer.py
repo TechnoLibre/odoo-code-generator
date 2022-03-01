@@ -2476,6 +2476,19 @@ class CodeGeneratorWriter(models.Model):
             if f2export.index:
                 dct_field_attribute["index"] = True
 
+            field_context = f2export.get_field_context()
+            if field_context:
+                # Extract content from string
+                try:
+                    dct_field_context = ast.literal_eval(field_context)
+                    dct_field_attribute["context"] = dct_field_context
+                except Exception as e:
+                    _logger.error(
+                        f"Cannot extract dict from context '{field_context}'"
+                        f" for field '{f2export.name}' in model"
+                        f" '{f2export.model}'"
+                    )
+
             if f2export.track_visibility:
                 if f2export.track_visibility in ("onchange", "always"):
                     dct_field_attribute[

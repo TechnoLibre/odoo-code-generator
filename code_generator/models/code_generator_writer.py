@@ -2590,8 +2590,11 @@ class CodeGeneratorWriter(models.Model):
             if f2export.translate:
                 dct_field_attribute["translate"] = True
 
-            if not f2export.selectable and f2export.ttype == "one2many":
-                dct_field_attribute["selectable"] = False
+            # TODO not working, but no module need it
+            # if not f2export.selectable and f2export.ttype == "one2many":
+            #     # Default is True
+            #     # Check _reflect_field_params in file odoo/odoo/addons/base/models/ir_model.py
+            #     dct_field_attribute["selectable"] = False
 
             # TODO support digits, check dp.get_precision('Account')
 

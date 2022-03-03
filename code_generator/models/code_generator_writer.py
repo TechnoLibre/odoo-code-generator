@@ -2650,9 +2650,14 @@ class CodeGeneratorWriter(models.Model):
         :return:
         """
         # TODO detect if contain code_generator_sequence, else order by name
+        # TODO some field.modules containts space, this is why it strip each element
+        # the field.modules is full when the module is installed, check file odoo/odoo/addons/base/models/ir_model.py fct _in_modules
         f2exports = model.field_id.filtered(
             lambda field: field.name not in MAGIC_FIELDS
-            and field.modules == module.name
+            and (
+                module.name in [a.strip() for a in field.modules.split(",")]
+                or not field.modules
+            )
         ).sorted(key=lambda r: r.code_generator_sequence)
 
         lst_inherit_model = self._get_lst_inherit_model(model)

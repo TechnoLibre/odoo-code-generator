@@ -7,16 +7,16 @@ class IrActionsReport(models.Model):
     m2o_model = fields.Many2one(
         comodel_name="ir.model",
         string="Code generator Model",
-        help="Model related with this report",
         compute="_compute_m2os",
         store=True,
+        help="Model related with this report",
     )
 
     m2o_template = fields.Many2one(
         comodel_name="ir.ui.view",
         string="Template",
-        help="Template related with this report",
         compute="_compute_m2os",
+        help="Template related with this report",
     )
 
     @api.depends("model", "report_name")

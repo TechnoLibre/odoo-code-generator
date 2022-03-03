@@ -5,8 +5,6 @@ class ResConfigSettings(models.TransientModel):
     _inherit = "res.config.settings"
 
     s_data2export = fields.Selection(
-        string="Model data to export",
-        help="Model data to export",
         selection=[
             (
                 "nonomenclator",
@@ -18,6 +16,8 @@ class ResConfigSettings(models.TransientModel):
                 " nomenclator.",
             ),
         ],
+        string="Model data to export",
         default="nomenclator",
         config_parameter="code_generator.s_data2export",
+        help="Model data to export",
     )

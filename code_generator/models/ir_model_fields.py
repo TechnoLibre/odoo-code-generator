@@ -1,5 +1,9 @@
 import ast
+import inspect
 import logging
+import types
+
+import astor
 
 from odoo import _, api, fields, models, tools
 from odoo.exceptions import UserError, ValidationError
@@ -110,11 +114,11 @@ class IrModelFields(models.Model):
 
     code_generator_calendar_view_sequence = fields.Integer(
         string="calendar view sequence",
+        default=-1,
         help=(
             "Sequence to write this field in calendar view from Code"
             " Generator."
         ),
-        default=-1,
     )
 
     code_generator_compute = fields.Char(
@@ -124,22 +128,23 @@ class IrModelFields(models.Model):
 
     code_generator_form_simple_view_sequence = fields.Integer(
         string="Form simple view sequence",
+        default=-1,
         help=(
             "Sequence to write this field in form simple view from Code"
             " Generator."
         ),
-        default=-1,
     )
 
     code_generator_graph_view_sequence = fields.Integer(
         string="graph view sequence",
-        help="Sequence to write this field in graph view from Code Generator.",
         default=-1,
+        help="Sequence to write this field in graph view from Code Generator.",
     )
 
     code_generator_ir_model_fields_ids = fields.One2many(
         comodel_name="code.generator.ir.model.fields",
         inverse_name="m2o_fields",
+        string="Code Generator Ir Model Fields",
         help=(
             "Link to update field when generate, because it cannot update"
             " ir.model.fields in runtime"
@@ -148,30 +153,30 @@ class IrModelFields(models.Model):
 
     code_generator_kanban_view_sequence = fields.Integer(
         string="Kanban view sequence",
+        default=-1,
         help=(
             "Sequence to write this field in kanban view from Code Generator."
         ),
-        default=-1,
     )
 
     code_generator_pivot_view_sequence = fields.Integer(
         string="pivot view sequence",
-        help="Sequence to write this field in pivot view from Code Generator.",
         default=-1,
+        help="Sequence to write this field in pivot view from Code Generator.",
     )
 
     code_generator_search_sequence = fields.Integer(
         string="Search sequence",
-        help="Sequence to write this field in search from Code Generator.",
         default=-1,
+        help="Sequence to write this field in search from Code Generator.",
     )
 
     code_generator_search_view_sequence = fields.Integer(
         string="search view sequence",
+        default=-1,
         help=(
             "Sequence to write this field in search view from Code Generator."
         ),
-        default=-1,
     )
 
     # This is used to choose order to show field in model
@@ -186,11 +191,15 @@ class IrModelFields(models.Model):
     # TODO or maybe it's useful in first iteration of code generator, remove this later when A USE C GENERATE B
     code_generator_tree_view_sequence = fields.Integer(
         string="Tree view sequence",
-        help="Sequence to write this field in tree view from Code Generator.",
         default=-1,
+        help="Sequence to write this field in tree view from Code Generator.",
     )
 
     default = fields.Char(string="Default value")
+
+    default_lambda = fields.Char(string="Default lambda value")
+
+    field_context = fields.Char()
 
     force_widget = fields.Selection(
         FORCE_WIDGET_TYPES,
@@ -348,46 +357,116 @@ class IrModelFields(models.Model):
         return self.is_show_whitelist_model_inherit
 
     @api.model
+    def get_default_lambda(self):
+        if self.code_generator_ir_model_fields_ids:
+            return self.code_generator_ir_model_fields_ids.default_lambda
+        return self.default_lambda
+
+    @api.model
+    def get_field_context(self):
+        if self.code_generator_ir_model_fields_ids:
+            return self.code_generator_ir_model_fields_ids.field_context
+        return self.field_context
+
+    @api.model
     def get_code_generator_compute(self):
         if self.code_generator_ir_model_fields_ids:
-            return (
-                self.code_generator_ir_model_fields_ids.code_generator_compute
-            )
+            if len(self.code_generator_ir_model_fields_ids) > 1:
+                # Check if multiple field before crash without message
+                lst_model = set(
+                    [
+                        a.m2o_fields.model
+                        for a in self.code_generator_ir_model_fields_ids
+                    ]
+                )
+                lst_field = [
+                    a.name for a in self.code_generator_ir_model_fields_ids
+                ]
+                raise Exception(
+                    f"Cannot compute multiple field. In model {lst_model},"
+                    f" List of field: {lst_field}"
+                )
+            else:
+                return (
+                    self.code_generator_ir_model_fields_ids.code_generator_compute
+                )
         return self.code_generator_compute
 
     @api.model
     def get_selection(self):
         return_value = []
 
-        if self.ttype == "reference" or self.ttype == "selection":
-            if self.selection and self.selection != "[]":
-                try:
-                    # Transform string in list
-                    lst_selection = ast.literal_eval(self.selection)
-                    # lst_selection = [f"'{a}'" for a in lst_selection]
-                    return_value = lst_selection
-                except Exception as e:
-                    _logger.error(
-                        f"The selection of field {self.name} is not a"
-                        f" list: '{self.selection}'."
+        if self.ttype not in ("reference", "selection"):
+            return
+
+        if self.selection and self.selection != "[]":
+            try:
+                # Transform string in list
+                lst_selection = ast.literal_eval(self.selection)
+                # lst_selection = [f"'{a}'" for a in lst_selection]
+                return_value = lst_selection
+            except Exception as e:
+                _logger.error(
+                    f"The selection of field {self.name} is not a"
+                    f" list: '{self.selection}'."
+                )
+        elif (
+            self.code_generator_ir_model_fields_ids
+            and self.code_generator_ir_model_fields_ids.selection
+            and self.code_generator_ir_model_fields_ids.selection != "[()]"
+        ):
+            try:
+                # Transform string in list
+                lst_selection = ast.literal_eval(
+                    self.code_generator_ir_model_fields_ids.selection
+                )
+                return_value = lst_selection
+            except Exception as e:
+                _logger.error(
+                    f"The selection of field {self.name} is not a"
+                    f" list: '{self.selection}'."
+                )
+        if not return_value:
+            return_value = self.env[self.model]._fields[self.name].selection
+            if isinstance(return_value, types.FunctionType):
+                source_code = (
+                    inspect.getsource(return_value).strip().strip(",")
+                )
+                selection_equal_str = "selection="
+                # Clean variable assignment if exist
+                pos = source_code.find(" = fields.Selection(")
+                if pos > 0:
+                    source_code = source_code[pos + 3 :].strip()
+                    return_value = self._extract_lambda_in_selection(
+                        source_code
                     )
-            elif (
-                self.code_generator_ir_model_fields_ids
-                and self.code_generator_ir_model_fields_ids.selection
-                and self.code_generator_ir_model_fields_ids.selection != "[()]"
-            ):
-                try:
-                    # Transform string in list
-                    lst_selection = ast.literal_eval(
-                        self.code_generator_ir_model_fields_ids.selection
-                    )
-                    return_value = lst_selection
-                except Exception as e:
-                    _logger.error(
-                        f"The selection of field {self.name} is not a"
-                        f" list: '{self.selection}'."
-                    )
+                elif selection_equal_str in source_code:
+                    return_value = source_code[
+                        source_code.find(selection_equal_str)
+                        + len(selection_equal_str) :
+                    ]
         return return_value
+
+    def _extract_lambda_in_selection(self, source_code):
+        # TODO move this function in code extractor
+        # Extract lambda name
+        tree = ast.parse(source_code)
+
+        class LambdaVisitor(ast.NodeVisitor):
+            def __init__(self):
+                _new_source = None
+
+            def visit_Lambda(self, node):
+                self._new_source = astor.to_source(node).strip()
+                if self._new_source[0] == "(" and self._new_source[-1] == ")":
+                    self._new_source = self._new_source[1:-1]
+
+            def get_result(self):
+                return self._new_source
+
+        visitor = LambdaVisitor()
+        visitor.visit(tree)
+        return visitor.get_result()
 
     @api.model
     def create(self, vals):

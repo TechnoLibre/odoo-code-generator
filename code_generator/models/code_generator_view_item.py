@@ -34,7 +34,6 @@ class CodeGeneratorViewItem(models.Model):
             ("bg-light", "Light"),
             ("bg-dark", "Dark"),
         ],
-        default="",
         help="Choose background color of HTML.",
     )
 
@@ -51,7 +50,6 @@ class CodeGeneratorViewItem(models.Model):
             ("oe_highlight", "Highlight"),  # Primary
             ("oe_stat_button", "Statistic"),  # Default
         ],
-        default="",
         help="Choose item type to generate.",
     )
 
@@ -64,7 +62,8 @@ class CodeGeneratorViewItem(models.Model):
     class_attr = fields.Char(help="Update class attribute")
 
     colspan = fields.Integer(
-        default=1, help="Use this to fill more column, check HTML table."
+        default=1,
+        help="Use this to fill more column, check HTML table.",
     )
 
     context = fields.Char(help="context attribute")
@@ -159,11 +158,7 @@ class CodeGeneratorViewItem(models.Model):
     title = fields.Char(help="title attribute")
 
     type = fields.Selection(
-        selection=[
-            ("row", "Row"),
-            ("col", "Col"),
-            ("measure", "Measure"),
-        ],
+        selection=[("row", "Row"), ("col", "Col"), ("measure", "Measure")],
         help="Statistique type.",
     )
 

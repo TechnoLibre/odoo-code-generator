@@ -6,15 +6,18 @@ class CodeGeneratorIrModelFields(models.Model):
     _description = "Code Generator Fields"
 
     name = fields.Char(
-        string="Name",
-        help="Name of selected field.",
         compute="_change_m2o_fields",
+        help="Name of selected field.",
     )
 
     code_generator_compute = fields.Char(
         string="Compute Code Generator",
         help="Compute method to code_generator_writer.",
     )
+
+    default_lambda = fields.Char(string="Default lambda value")
+
+    field_context = fields.Char()
 
     filter_field_attribute = fields.Char(
         help=(
@@ -49,7 +52,6 @@ class CodeGeneratorIrModelFields(models.Model):
 
     selection = fields.Char(
         string="Selection Options",
-        default="",
         help=(
             "List of options for a selection field, specified as a Python"
             " expression defining a list of (key, label) pairs. For example:"

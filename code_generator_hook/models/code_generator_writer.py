@@ -287,6 +287,11 @@ class CodeGeneratorWriter(models.Model):
                                 cw.emit('"module": MODULE_NAME,')
                                 cw.emit(f'"res_id": act_server_id.id,')
                                 cw.emit(f'"noupdate": True,')
+                if act_server.comment:
+                    cw.emit("else:")
+                    with cw.indent():
+                        comment = act_server.comment.replace('"', '\\"')
+                        cw.emit(f'act_server_id.comment = "{comment}"')
         else:
             cw.emit("pass")
         cw.emit()
@@ -1364,6 +1369,11 @@ class CodeGeneratorWriter(models.Model):
 
         dct_var_id_view = {}
         for field_id in f2exports:
+            extra_info = (
+                self.env[model_id.model]
+                .fields_get(field_id.name)
+                .get(field_id.name)
+            )
             dct_field_value = {}
             dct_field = {}
             var_id_view = f"field_{field_id.name}_id"
@@ -1386,6 +1396,10 @@ class CodeGeneratorWriter(models.Model):
             if field_id.required:
                 dct_field_value["required"] = field_id.required
 
+            field_domain = extra_info.get("domain")
+            if field_domain:
+                dct_field_value["domain"] = field_domain
+
             if field_id.help:
                 dct_field_value["help"] = field_id.help
 
@@ -1404,7 +1418,14 @@ class CodeGeneratorWriter(models.Model):
 
                 default_value = ast_attr.get("default")
                 if default_value:
-                    if field_id.ttype not in (
+                    if type(default_value) is str and (
+                        default_value.startswith("lambda ")
+                        or default_value.startswith("date.")
+                        or default_value.startswith("datetime.")
+                        or default_value.startswith("fields.Date")
+                    ):
+                        dct_field_value["default_lambda"] = default_value
+                    elif field_id.ttype not in (
                         "char",
                         "selection",
                         "text",
@@ -1426,6 +1447,11 @@ class CodeGeneratorWriter(models.Model):
                 if "force_widget" in ast_attr.keys():
                     dct_field_value["force_widget"] = ast_attr.get(
                         "force_widget"
+                    )
+
+                if "context" in ast_attr.keys():
+                    dct_field_value["field_context"] = str(
+                        ast_attr.get("context")
                     )
 
                 compute = ast_attr.get("compute") if ast_attr else None

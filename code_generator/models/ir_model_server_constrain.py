@@ -58,8 +58,8 @@ class IrModelServerConstrain(models.Model):
 
     m2o_ir_model = fields.Many2one(
         comodel_name="ir.model",
-        string="Code generator Model",
         domain=[("transient", "=", False)],
+        string="Code generator Model",
         required=True,
         help="Model that will hold this server constrain",
         ondelete="cascade",

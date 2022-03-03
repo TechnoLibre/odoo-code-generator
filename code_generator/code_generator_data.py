@@ -623,12 +623,23 @@ class CodeGeneratorData:
 
             elif path_file.endswith(".xml"):
                 if use_prettier and not enable_xml_formatter:
-                    cmd = (
-                        "prettier --xml-whitespace-sensitivity ignore"
-                        " --prose-wrap always --tab-width 4"
-                        " --no-bracket-spacing --print-width 120 --write"
-                        f" {path_file}"
-                    )
+                    if "/data/" in path_file:
+                        # Super size --print-width, because wrapping data break information for translation and
+                        # visual data
+                        cmd = (
+                            "prettier --xml-whitespace-sensitivity ignore"
+                            " --prose-wrap always --tab-width 4"
+                            " --no-bracket-spacing --print-width 999999999"
+                            f" --write {path_file}"
+                        )
+                    else:
+                        cmd = (
+                            "prettier --xml-whitespace-sensitivity ignore"
+                            " --prose-wrap always --tab-width 4"
+                            " --no-bracket-spacing --print-width 120 --write"
+                            f" {path_file}"
+                        )
+
                     result = self.subprocess_cmd(cmd)
                     if result:
                         _logger.info(f"prettier {result.decode()}")

@@ -7,7 +7,6 @@ class CodeGeneratorAddModelWizard(models.TransientModel):
 
     clear_fields_blacklist = fields.Boolean(
         string="Clear field blacklisted",
-        default=False,
         help="Erase all blacklisted fields when enable.",
     )
 
@@ -31,26 +30,22 @@ class CodeGeneratorAddModelWizard(models.TransientModel):
     )
 
     option_adding = fields.Selection(
-        [
+        selection=[
             ("inherit", "Inherit Model"),
             ("nomenclator", "Nomenclator"),
         ],
         required=True,
         default="nomenclator",
-        help="Inherit to inherit a new model.\nNomenclator to export data.",
+        help="""Inherit to inherit a new model.
+Nomenclator to export data.""",
     )
 
     option_blacklist = fields.Selection(
-        [
-            ("blacklist", "Blacklist"),
-            ("whitelist", "Whitelist"),
-        ],
+        selection=[("blacklist", "Blacklist"), ("whitelist", "Whitelist")],
         required=True,
         default="whitelist",
-        help=(
-            "When whitelist, all selected fields will be added.\n"
-            "When blacklist, all selected fields will be ignored."
-        ),
+        help="""When whitelist, all selected fields will be added.
+When blacklist, all selected fields will be ignored.""",
     )
 
     user_id = fields.Many2one(

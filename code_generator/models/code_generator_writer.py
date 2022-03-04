@@ -929,11 +929,12 @@ class CodeGeneratorWriter(models.Model):
         """
 
         expression_export_data = model.expression_export_data
-        search = (
-            []
-            if not expression_export_data
-            else [ast.literal_eval(expression_export_data)]
-        )
+        if not expression_export_data:
+            search = []
+        elif expression_export_data[0] == "[":
+            search = ast.literal_eval(expression_export_data)
+        else:
+            search = [ast.literal_eval(expression_export_data)]
         # Search with active_test to support when active is False
         nomenclador_data = (
             self.env[model.model]

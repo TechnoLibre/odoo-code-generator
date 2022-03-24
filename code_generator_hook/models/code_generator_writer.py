@@ -848,11 +848,15 @@ class CodeGeneratorWriter(models.Model):
 
                                 lst_model = [
                                     a.strip()
-                                    for a in f"{module.template_model_name};{module.template_inherit_model_name}".split(
+                                    for a in f"{module.template_model_name};{module.template_inherit_model_name}".strip(
+                                        ";"
+                                    ).split(
                                         ";"
                                     )
                                     if a.strip()
                                 ]
+
+                                lst_new_model = []
 
                                 # Filter model and get model_id
                                 for model_model in lst_model:
@@ -860,10 +864,11 @@ class CodeGeneratorWriter(models.Model):
                                         [("model", "=", model_model)]
                                     )
                                     if not model_id:
-                                        _logger.error(
-                                            f"Model '{model_model}' not"
-                                            " existing."
-                                        )
+                                        # _logger.error(
+                                        #     f"Model '{model_model}' not"
+                                        #     " existing."
+                                        # )
+                                        lst_new_model.append(model_model)
                                         continue
                                     lst_model_id.append(model_id)
 
@@ -1023,6 +1028,24 @@ class CodeGeneratorWriter(models.Model):
                                         self.write_constraint(
                                             cw, constraint_ids, model_id
                                         )
+                                if lst_new_model:
+                                    for model_name in lst_new_model:
+                                        title_model_model = (
+                                            model_name.replace("_", " ")
+                                            .replace(".", " ")
+                                            .title()
+                                        )
+                                        cw.emit()
+                                        cw.emit(
+                                            f"# Add/Update {title_model_model}"
+                                        )
+                                        cw.emit(
+                                            f'model_model = "{model_name}"'
+                                        )
+                                        cw.emit(
+                                            f"code_generator_id.add_update_model(model_model)"
+                                        )
+                                    cw.emit()
 
                             if module.enable_template_wizard_view:
                                 # Icon copy from sync

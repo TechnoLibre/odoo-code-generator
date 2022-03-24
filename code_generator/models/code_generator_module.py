@@ -403,12 +403,14 @@ class CodeGeneratorModule(models.Model):
         lst_depend_model=None,
     ):
         # When this is called, all field is in whitelist
-        for field_name, field_info in dct_field.items():
-            if (
-                field_info.get("is_show_whitelist_model_inherit") is None
-                and field_info.get("is_hide_blacklist_model_inherit") is None
-            ):
-                field_info["is_show_whitelist_model_inherit"] = True
+        if dct_field:
+            for field_name, field_info in dct_field.items():
+                if (
+                    field_info.get("is_show_whitelist_model_inherit") is None
+                    and field_info.get("is_hide_blacklist_model_inherit")
+                    is None
+                ):
+                    field_info["is_show_whitelist_model_inherit"] = True
         model_id = self.env["ir.model"].search([("model", "=", model_model)])
         if model_name is None:
             model_name = model_model.replace(".", "_")
@@ -480,6 +482,8 @@ class CodeGeneratorModule(models.Model):
                         dct_model,
                         value,
                     )
+            else:
+                dct_model = {}
             rec_name = dct_model.get("rec_name")
             has_already_rec_name = False
             if not rec_name:
@@ -524,6 +528,22 @@ class CodeGeneratorModule(models.Model):
             if not has_already_rec_name:
                 if has_field_name:
                     value["rec_name"] = "name"
+                elif not dct_field:
+                    # TODO this will create x_name field
+                    # value["rec_name"] = None
+                    value["rec_name"] = "name"
+                    # value["field_id"] = {"name": {"name": "name", "ttype": "char"}}
+                    value["field_id"] = [
+                        (
+                            0,
+                            0,
+                            {
+                                "name": "name",
+                                "field_description": "Name",
+                                "ttype": "char",
+                            },
+                        )
+                    ]
                 else:
                     _logger.error(
                         f"Cannot found rec_name for model {model_model}."

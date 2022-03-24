@@ -2937,7 +2937,9 @@ class CodeGeneratorWriter(models.Model):
 
         if module.template_model_name or module.template_inherit_model_name:
             i = -1
-            lst_model = f"{module.template_model_name};{module.template_inherit_model_name}".split(
+            lst_model = f"{module.template_model_name};{module.template_inherit_model_name}".strip(
+                ";"
+            ).split(
                 ";"
             )
             for model in lst_model:

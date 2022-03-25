@@ -70,6 +70,13 @@ class CodeGeneratorModule(models.Model):
         help="Will sync with code on drive when generate."
     )
 
+    exclude_dependencies_str = fields.Char(
+        help=(
+            "Exclude from list dependencies_id about"
+            " code.generator.module.dependency name separate by ;"
+        )
+    )
+
     external_dependencies_id = fields.One2many(
         comodel_name="code.generator.module.external.dependency",
         inverse_name="module_id",

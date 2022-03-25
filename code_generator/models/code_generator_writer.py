@@ -644,6 +644,15 @@ class CodeGeneratorWriter(models.Model):
                 lst_depend = module.dependencies_id.mapped(
                     lambda did: f"'{did.depend_id.name}'"
                 )
+                # Remove exclude_dependencies_str
+                if module.exclude_dependencies_str:
+                    lst_exclude_depend = [
+                        f"'{a}'"
+                        for a in module.exclude_dependencies_str.split(";")
+                    ]
+                    lst_depend = list(
+                        set(lst_depend) - set(lst_exclude_depend)
+                    )
                 cw.emit_list(
                     lst_depend, ("[", "]"), before="'depends': ", after=","
                 )

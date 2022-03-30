@@ -660,7 +660,7 @@ class CodeGeneratorData:
         if use_format_black:
             cmd = (
                 f"cd {workspace_path};./.venv/bin/black -l"
-                f" {max_col} --experimental-string-processing -t py37"
+                f" {max_col} --preview -t py37"
                 f" {self.module_path}"
             )
             result = self.subprocess_cmd(cmd)

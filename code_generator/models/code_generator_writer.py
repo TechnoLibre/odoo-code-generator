@@ -644,6 +644,15 @@ class CodeGeneratorWriter(models.Model):
                 lst_depend = module.dependencies_id.mapped(
                     lambda did: f"'{did.depend_id.name}'"
                 )
+                # Remove exclude_dependencies_str
+                if module.exclude_dependencies_str:
+                    lst_exclude_depend = [
+                        f"'{a}'"
+                        for a in module.exclude_dependencies_str.split(";")
+                    ]
+                    lst_depend = list(
+                        set(lst_depend) - set(lst_exclude_depend)
+                    )
                 cw.emit_list(
                     lst_depend, ("[", "]"), before="'depends': ", after=","
                 )
@@ -929,11 +938,12 @@ class CodeGeneratorWriter(models.Model):
         """
 
         expression_export_data = model.expression_export_data
-        search = (
-            []
-            if not expression_export_data
-            else [ast.literal_eval(expression_export_data)]
-        )
+        if not expression_export_data:
+            search = []
+        elif expression_export_data[0] == "[":
+            search = ast.literal_eval(expression_export_data)
+        else:
+            search = [ast.literal_eval(expression_export_data)]
         # Search with active_test to support when active is False
         nomenclador_data = (
             self.env[model.model]
@@ -2936,7 +2946,9 @@ class CodeGeneratorWriter(models.Model):
 
         if module.template_model_name or module.template_inherit_model_name:
             i = -1
-            lst_model = f"{module.template_model_name};{module.template_inherit_model_name}".split(
+            lst_model = f"{module.template_model_name};{module.template_inherit_model_name}".strip(
+                ";"
+            ).split(
                 ";"
             )
             for model in lst_model:

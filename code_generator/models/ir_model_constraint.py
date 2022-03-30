@@ -38,7 +38,7 @@ def sql_constraint(el_self, constraints):
             return True
 
     result = False
-    for (sql_key, sql_definition, _) in constraints:
+    for sql_key, sql_definition, _ in constraints:
         if foreign_key_re.match(sql_definition):
             el_self.pool.post_init(process, sql_key, sql_definition)
         else:

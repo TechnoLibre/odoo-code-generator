@@ -9,5 +9,7 @@
         "code_generator",
     ],
     "installable": True,
-    "data": [],
+    "data": [
+        "security/ir.model.access.csv",
+    ],
 }

@@ -238,6 +238,9 @@ class IrModel(models.Model):
                     % model.model
                 )
 
+    def get_rec_name(self):
+        return self.rec_name if self.rec_name else self._rec_name
+
     @api.multi
     def add_model_inherit(self, model_name):
         """

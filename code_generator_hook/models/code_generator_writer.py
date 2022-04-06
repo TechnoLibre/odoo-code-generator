@@ -679,27 +679,6 @@ class CodeGeneratorWriter(models.Model):
                                     'value["enable_template_website_snippet_view"] = '
                                     f"{module.enable_template_website_snippet_view}"
                                 )
-                            elif module.enable_template_website_snippet_view:
-                                cw.emit(
-                                    'value["enable_generate_website_snippet"]'
-                                    " = True"
-                                )
-                                cw.emit(
-                                    'value["enable_generate_website_snippet_javascript"]'
-                                    " = True"
-                                )
-                                if (
-                                    module.template_generate_website_snippet_generic_model
-                                ):
-                                    cw.emit(
-                                        'value["generate_website_snippet_generic_model"]'
-                                        f' = "{module.template_generate_website_snippet_generic_model}"'
-                                    )
-                                cw.emit(
-                                    'value["generate_website_snippet_type"] ='
-                                    f' "{module.template_generate_website_snippet_type}"'
-                                    "  # content,effect,feature,structure"
-                                )
                             cw.emit(
                                 'value["enable_sync_template"] ='
                                 f" {module.enable_sync_template}"
@@ -903,6 +882,44 @@ class CodeGeneratorWriter(models.Model):
                                     title_model_model = model_name.replace(
                                         "_", " "
                                     ).title()
+
+                                    if (
+                                        module.enable_template_website_snippet_view
+                                        and module.template_generate_website_snippet_generic_model
+                                        == model_id.model
+                                    ):
+                                        cw.emit()
+                                        cw.emit("# Generate snippet")
+                                        with cw.block(
+                                            before=f"value_snippet =",
+                                            delim=("{", "}"),
+                                        ):
+                                            cw.emit(
+                                                "'code_generator_id':"
+                                                " code_generator_id.id,"
+                                            )
+                                            cw.emit(
+                                                "'template_generate_website_snippet_controller_feature':"
+                                                f" '{module.template_generate_website_snippet_controller_feature}',"
+                                            )
+                                            if (
+                                                module.template_generate_website_enable_javascript
+                                            ):
+                                                cw.emit(
+                                                    "'enable_javascript':"
+                                                    " True,"
+                                                )
+                                            cw.emit(
+                                                "'model_name':"
+                                                f" '{model_id.model}',"
+                                            )
+                                            cw.emit(
+                                                "'snippet_type':"
+                                                f" '{module.template_generate_website_snippet_type}',"
+                                            )
+                                        cw.emit(
+                                            'env["code.generator.snippet"].create(value_snippet)'
+                                        )
 
                                     cw.emit()
                                     cw.emit(

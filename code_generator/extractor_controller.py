@@ -109,7 +109,10 @@ class ExtractorController:
                             is_in_list = bool(
                                 lst_field_founded_name and lst_field_name
                             )
+                            # This can detect controller_feature model_show_item_individual
                             for field_name in lst_field_founded_name:
+                                if field_name == module.template_module_name:
+                                    continue
                                 if field_name not in lst_field_name:
                                     is_in_list = False
                                     break
@@ -122,8 +125,14 @@ class ExtractorController:
                                 " controller about snippet."
                             )
                         else:
+                            module.template_generate_website_enable_javascript = (
+                                True
+                            )
                             module.template_generate_website_snippet_generic_model = (
                                 self.var_model
+                            )
+                            module.template_generate_website_snippet_controller_feature = (
+                                "model_show_item_individual"
                             )
             else:
                 _logger.warning("Not support extraction multiple snippet.")
@@ -168,9 +177,12 @@ class ExtractorController:
                     token.get("properties"), lst_field_name
                 )
             elif token.get("type") == "Literal":
-                if token.get("value").startswith(".") and token.get(
-                    "value"
-                ).endswith("_value"):
+                s_value = token.get("value")
+                if (
+                    type(s_value) is str
+                    and s_value.startswith(".")
+                    and s_value.endswith("_value")
+                ):
                     # Detect self.$(".demo_binary_image_value").text(data["demo_binary_image"]);
                     field_name = token.get("value")[1:-6]
                     lst_field_name.append(field_name)

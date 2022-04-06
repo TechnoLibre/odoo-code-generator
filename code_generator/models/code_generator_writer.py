@@ -2761,7 +2761,7 @@ class CodeGeneratorWriter(models.Model):
             #     )
 
         # Force field name first
-        field_rec_name = model.rec_name if model.rec_name else model._rec_name
+        field_rec_name = model.get_rec_name()
         if not field_rec_name:
             field_rec_name = "name"
         lst_field_rec_name = f2exports.filtered(

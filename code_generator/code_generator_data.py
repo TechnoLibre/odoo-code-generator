@@ -34,6 +34,7 @@ class CodeGeneratorData:
         self._css_path = os.path.join("static", "src", "scss")
         self._security_path = "security"
         self._views_path = "views"
+        self._templates_path = "templates"
         self._wizards_path = "wizards"
         self._controllers_path = "controllers"
         self._reports_path = "report"
@@ -136,6 +137,10 @@ class CodeGeneratorData:
     @property
     def views_path(self):
         return self._views_path
+
+    @property
+    def templates_path(self):
+        return self._templates_path
 
     @property
     def wizards_path(self):

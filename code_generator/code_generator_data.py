@@ -340,7 +340,7 @@ class CodeGeneratorData:
         :param file_path:
         :param content:
         :param mode:
-        :param data_file: Will be add in manifest
+        :param data_file: Will add filename in manifest
         :param insert_first:
         :return:
         """
@@ -363,6 +363,15 @@ class CodeGeneratorData:
 
         self.check_mkdir_and_create(absolute_path)
 
+        if os.path.exists(absolute_path):
+            actual_size = len(content)
+            old_size = os.path.getsize(absolute_path)
+            _logger.warning(
+                f"Overwrite file {file_path}, old size {old_size} bytes, new"
+                f" size {actual_size} bytes."
+            )
+        else:
+            _logger.info(f"Write file {file_path}")
         with open(absolute_path, mode) as file:
             file.write(content)
 

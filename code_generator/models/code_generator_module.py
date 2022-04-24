@@ -70,6 +70,14 @@ class CodeGeneratorModule(models.Model):
         help="Will sync with code on drive when generate."
     )
 
+    export_website_optimize_binary_image = fields.Boolean(
+        help=(
+            "Associate with nomenclator export data. Search url /web/image/ in"
+            " website page and remove ir.attachment who is not into view."
+            " Remove duplicate same attachment, image or scss."
+        )
+    )
+
     exclude_dependencies_str = fields.Char(
         help=(
             "Exclude from list dependencies_id about"
@@ -97,6 +105,14 @@ class CodeGeneratorModule(models.Model):
     license = fields.Selection(
         readonly=False,
         default="AGPL-3",
+    )
+
+    list_scss_process_hook = fields.Char(
+        help=(
+            "READONLY, use by computation. Value are separated by ;. List of"
+            " xml_id to compute scss in hook when export website data with"
+            " scss modification."
+        ),
     )
 
     maintainer = fields.Char(readonly=False)

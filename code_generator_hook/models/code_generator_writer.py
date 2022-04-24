@@ -421,6 +421,20 @@ class CodeGeneratorWriter(models.Model):
         #     cw.emit("pass")
         return code_generator_views_id
 
+    def write_extra_pre_init_hook(self, module, cw):
+        super(CodeGeneratorWriter, self).write_extra_pre_init_hook(module, cw)
+
+    def write_extra_post_init_hook(self, module, cw):
+        super(CodeGeneratorWriter, self).write_extra_post_init_hook(module, cw)
+
+    def write_extra_uninstall_hook(self, module, cw):
+        super(CodeGeneratorWriter, self).write_extra_uninstall_hook(module, cw)
+
+    def write_extra_extra_function_hook(self, module, cw):
+        super(CodeGeneratorWriter, self).write_extra_extra_function_hook(
+            module, cw
+        )
+
     def _set_hook_file(self, module):
         """
         Function to set the module hook file
@@ -456,6 +470,7 @@ class CodeGeneratorWriter(models.Model):
                 cw.emit(line)
 
         def _add_hook(
+            module,
             cw,
             hook_show,
             hook_code,
@@ -465,721 +480,687 @@ class CodeGeneratorWriter(models.Model):
             method_name,
             has_second_arg,
         ):
-            if hook_show:
-                cw.emit()
-                cw.emit()
-                if has_second_arg:
-                    cw.emit(f"def {method_name}(cr, e):")
-                else:
-                    cw.emit(f"def {method_name}(cr):")
+            if not hook_show:
+                return
+            cw.emit()
+            cw.emit()
+            if has_second_arg:
+                cw.emit(f"def {method_name}(cr, e):")
+            else:
+                cw.emit(f"def {method_name}(cr):")
+            with cw.indent():
+                for hook_line in hook_code.split("\n"):
+                    cw.emit(hook_line)
                 with cw.indent():
-                    for hook_line in hook_code.split("\n"):
-                        cw.emit(hook_line)
+                    if method_name == "pre_init_hook":
+                        self.write_extra_pre_init_hook(module, cw)
+                    elif method_name == "post_init_hook":
+                        self.write_extra_post_init_hook(module, cw)
+                    elif method_name == "uninstall_hook":
+                        self.write_extra_uninstall_hook(module, cw)
                     if hook_feature_gen_conf:
-                        with cw.indent():
-                            cw.emit("# General configuration")
-                            with cw.block(before="values =", delim=("{", "}")):
-                                pass
+                        cw.emit("# General configuration")
+                        with cw.block(before="values =", delim=("{", "}")):
+                            pass
 
-                            cw.emit(
-                                "event_config ="
-                                " env['res.config.settings'].sudo().create(values)"
-                            )
-                            cw.emit("event_config.execute()")
+                        cw.emit(
+                            "event_config ="
+                            " env['res.config.settings'].sudo().create(values)"
+                        )
+                        cw.emit("event_config.execute()")
                     if post_init_hook_feature_code_generator:
-                        with cw.indent():
-                            cw.emit()
-                            cw.emit("# The path of the actual file")
-                            path_cg_module = (
-                                module.template_module_path_generated_extension
-                            )
-                            if path_cg_module and path_cg_module != ".":
-                                if path_cg_module[0] == "/":
-                                    cw.emit(
-                                        "path_module_generate ="
-                                        f" '{path_cg_module}'"
-                                    )
-                                elif path_cg_module[0] in ("'", '"'):
-                                    cw.emit(
-                                        "path_module_generate ="
-                                        " os.path.normpath(os.path.join(os.path.dirname(__file__),"
-                                        f" '..', {path_cg_module}))"
-                                    )
-                                else:
-                                    cw.emit(
-                                        "path_module_generate ="
-                                        f" '{path_cg_module}'"
-                                    )
+                        cw.emit()
+                        cw.emit("# The path of the actual file")
+                        path_cg_module = (
+                            module.template_module_path_generated_extension
+                        )
+                        if path_cg_module and path_cg_module != ".":
+                            if path_cg_module[0] == "/":
+                                cw.emit(
+                                    "path_module_generate ="
+                                    f" '{path_cg_module}'"
+                                )
+                            elif path_cg_module[0] in ("'", '"'):
+                                cw.emit(
+                                    "path_module_generate ="
+                                    " os.path.normpath(os.path.join(os.path.dirname(__file__),"
+                                    f" '..', {path_cg_module}))"
+                                )
                             else:
                                 cw.emit(
-                                    "# path_module_generate ="
-                                    " os.path.normpath(os.path.join(os.path.dirname(__file__),"
-                                    " '..'))"
+                                    "path_module_generate ="
+                                    f" '{path_cg_module}'"
                                 )
-                            cw.emit()
+                        else:
                             cw.emit(
-                                'short_name = MODULE_NAME.replace("_", "'
-                                ' ").title()'
+                                "# path_module_generate ="
+                                " os.path.normpath(os.path.join(os.path.dirname(__file__),"
+                                " '..'))"
                             )
-                            cw.emit()
-                            cw.emit("# Add code generator")
+                        cw.emit()
+                        cw.emit(
+                            'short_name = MODULE_NAME.replace("_", "'
+                            ' ").title()'
+                        )
+                        cw.emit()
+                        cw.emit("# Add code generator")
+                        if (
+                            module.template_module_id
+                            and module.template_module_id.category_id
+                        ):
+                            cw.emit(
+                                "categ_id ="
+                                ' env["ir.module.category"].search([("name",'
+                                ' "=",'
+                                f' "{module.template_module_id.category_id.display_name}")],'
+                                " limit=1)"
+                            )
+                        cw.emit("value = {")
+                        with cw.indent():
+                            if module.template_module_id:
+                                mod_id = module.template_module_id
+                                title = mod_id.name.replace("_", " ").title()
+                                if title == mod_id.shortdesc:
+                                    cw.emit('"shortdesc": short_name,')
+                                else:
+                                    cw.emit(
+                                        f'"shortdesc": "{mod_id.shortdesc}",'
+                                    )
+                                # Force update name with MODULE_NAME from hook
+                                cw.emit(f'"name": MODULE_NAME,')
+                                if mod_id.header_manifest:
+                                    header_manifest = (
+                                        mod_id.header_manifest.strip()
+                                    )
+                                    lst_header_manifest = (
+                                        header_manifest.split("\n")
+                                    )
+                                    if len(lst_header_manifest) == 1:
+                                        cw.emit(
+                                            "'header_manifest':"
+                                            f" '{header_manifest}',"
+                                        )
+                                    else:
+                                        cw.emit("'header_manifest': '''")
+                                        for desc in lst_header_manifest:
+                                            if desc:
+                                                cw.emit_raw(desc + "\n")
+                                        cw.emit("''',")
+                                cw.emit(f'"license": "{mod_id.license}",')
+                                if mod_id.category_id:
+                                    cw.emit(f'"category_id": categ_id.id,')
+                                cw.emit(f'"summary": "{mod_id.summary}",')
+                                if mod_id.author:
+                                    author = mod_id.author.strip()
+                                    lst_author = author.split(",")
+                                    if len(lst_author) == 1:
+                                        cw.emit(f"'author': '{author}',")
+                                    else:
+                                        cw.emit(f"'author': (")
+                                        with cw.indent():
+                                            for hm in lst_author[:-1]:
+                                                s_hm = hm.strip()
+                                                cw.emit(f"'{s_hm}, '")
+                                        cw.emit(
+                                            f"'{lst_author[-1].strip()}'),"
+                                        )
+                                else:
+                                    cw.emit('"author": "",')
+                                cw.emit(f'"website": "{mod_id.website}",')
+                                cw.emit(
+                                    f'"application": {mod_id.application},'
+                                )
+                            else:
+                                # TODO need better support here, can we use existing object?
+                                # TODO need to support variable into class
+                                cw.emit('"shortdesc": short_name,')
+                                cw.emit('"name": MODULE_NAME,')
+                                cw.emit('"license": "AGPL-3",')
+                                cw.emit('"author": "TechnoLibre",')
+                                cw.emit('"website": "https://technolibre.ca",')
+                                cw.emit('"application": True,')
+                            # with cw.block(before='"depends" :', delim=('[', '],')):
+                            #     cw.emit('"code_generator",')
+                            #     cw.emit('"code_generator_hook",')
+                            cw.emit('"enable_sync_code": True,')
                             if (
-                                module.template_module_id
-                                and module.template_module_id.category_id
+                                module.template_module_path_generated_extension
+                                and module.template_module_path_generated_extension
+                                != "."
                             ):
                                 cw.emit(
-                                    "categ_id ="
-                                    ' env["ir.module.category"].search([("name",'
-                                    ' "=",'
-                                    f' "{module.template_module_id.category_id.display_name}")],'
-                                    " limit=1)"
+                                    '"path_sync_code": path_module_generate,'
                                 )
-                            cw.emit("value = {")
+                            else:
+                                cw.emit(
+                                    '# "path_sync_code": path_module_generate,'
+                                )
+                            if (
+                                module.template_module_id
+                                and module.template_module_id.icon_image
+                            ):
+                                cw.emit(
+                                    '"icon":'
+                                    " os.path.join(os.path.dirname(__file__),"
+                                    ' "static", "description",'
+                                    ' "code_generator_icon.png"),'
+                                )
+                        cw.emit("}")
+                        cw.emit()
+                        cw.emit(
+                            "# TODO HUMAN: enable your functionality to"
+                            " generate"
+                        )
+                        enable_template_code_generator_demo = (
+                            module.enable_template_code_generator_demo
+                            if module.name == "code_generator_demo"
+                            else False
+                        )
+                        if module.enable_template_code_generator_demo:
+                            cw.emit(
+                                'value["enable_template_code_generator_demo"]'
+                                f" = {enable_template_code_generator_demo}"
+                            )
+                            cw.emit('value["template_model_name"] = ""')
+                            cw.emit(
+                                'value["template_inherit_model_name"] = ""'
+                            )
+                            if (
+                                module.template_module_path_generated_extension
+                                != "."
+                            ):
+                                cw.emit(
+                                    'value["template_module_path_generated_extension"]'
+                                    f' = "{module.template_module_path_generated_extension}"'
+                                )
+                            else:
+                                cw.emit(
+                                    '# value["template_module_path_generated_extension"]'
+                                    ' = "."'
+                                )
+                            cw.emit(
+                                'value["enable_template_wizard_view"] = False'
+                            )
+                            cw.emit(
+                                'value["force_generic_template_wizard_view"]'
+                                " = False"
+                            )
+                            cw.emit('value["disable_generate_access"] = False')
+                            cw.emit(
+                                'value["enable_template_website_snippet_view"] = '
+                                f"{module.enable_template_website_snippet_view}"
+                            )
+                        cw.emit(
+                            'value["enable_sync_template"] ='
+                            f" {module.enable_sync_template}"
+                        )
+                        cw.emit(f'value["ignore_fields"] = ""')
+                        cw.emit(
+                            'value["post_init_hook_show"] ='
+                            f" {module.enable_template_code_generator_demo}"
+                        )
+                        cw.emit(
+                            'value["uninstall_hook_show"] ='
+                            f" {module.enable_template_code_generator_demo}"
+                        )
+                        cw.emit(
+                            'value["post_init_hook_feature_code_generator"] = '
+                            f"{module.enable_template_code_generator_demo}"
+                        )
+                        cw.emit(
+                            'value["uninstall_hook_feature_code_generator"] = '
+                            f"{module.enable_template_code_generator_demo}"
+                        )
+                        cw.emit()
+                        if module.enable_template_code_generator_demo:
+                            cw.emit("new_module_name = MODULE_NAME")
+                            cw.emit(
+                                'if MODULE_NAME != "code_generator_demo"'
+                                ' and "code_generator_" in MODULE_NAME:'
+                            )
                             with cw.indent():
-                                if module.template_module_id:
-                                    mod_id = module.template_module_id
-                                    title = mod_id.name.replace(
-                                        "_", " "
-                                    ).title()
-                                    if title == mod_id.shortdesc:
-                                        cw.emit('"shortdesc": short_name,')
-                                    else:
-                                        cw.emit(
-                                            '"shortdesc":'
-                                            f' "{mod_id.shortdesc}",'
-                                        )
-                                    # Force update name with MODULE_NAME from hook
-                                    cw.emit(f'"name": MODULE_NAME,')
-                                    if mod_id.header_manifest:
-                                        header_manifest = (
-                                            mod_id.header_manifest.strip()
-                                        )
-                                        lst_header_manifest = (
-                                            header_manifest.split("\n")
-                                        )
-                                        if len(lst_header_manifest) == 1:
-                                            cw.emit(
-                                                "'header_manifest':"
-                                                f" '{header_manifest}',"
-                                            )
-                                        else:
-                                            cw.emit("'header_manifest': '''")
-                                            for desc in lst_header_manifest:
-                                                if desc:
-                                                    cw.emit_raw(desc + "\n")
-                                            cw.emit("''',")
-                                    cw.emit(f'"license": "{mod_id.license}",')
-                                    if mod_id.category_id:
-                                        cw.emit(f'"category_id": categ_id.id,')
-                                    cw.emit(f'"summary": "{mod_id.summary}",')
-                                    if mod_id.author:
-                                        author = mod_id.author.strip()
-                                        lst_author = author.split(",")
-                                        if len(lst_author) == 1:
-                                            cw.emit(f"'author': '{author}',")
-                                        else:
-                                            cw.emit(f"'author': (")
-                                            with cw.indent():
-                                                for hm in lst_author[:-1]:
-                                                    s_hm = hm.strip()
-                                                    cw.emit(f"'{s_hm}, '")
-                                            cw.emit(
-                                                f"'{lst_author[-1].strip()}'),"
-                                            )
-                                    else:
-                                        cw.emit('"author": "",')
-                                    cw.emit(f'"website": "{mod_id.website}",')
-                                    cw.emit(
-                                        f'"application": {mod_id.application},'
-                                    )
-                                else:
-                                    # TODO need better support here, can we use existing object?
-                                    # TODO need to support variable into class
-                                    cw.emit('"shortdesc": short_name,')
-                                    cw.emit('"name": MODULE_NAME,')
-                                    cw.emit('"license": "AGPL-3",')
-                                    cw.emit('"author": "TechnoLibre",')
-                                    cw.emit(
-                                        '"website": "https://technolibre.ca",'
-                                    )
-                                    cw.emit('"application": True,')
-                                # with cw.block(before='"depends" :', delim=('[', '],')):
-                                #     cw.emit('"code_generator",')
-                                #     cw.emit('"code_generator_hook",')
-                                cw.emit('"enable_sync_code": True,')
-                                if (
-                                    module.template_module_path_generated_extension
-                                    and module.template_module_path_generated_extension
-                                    != "."
-                                ):
-                                    cw.emit(
-                                        '"path_sync_code":'
-                                        " path_module_generate,"
-                                    )
-                                else:
-                                    cw.emit(
-                                        '# "path_sync_code":'
-                                        " path_module_generate,"
-                                    )
-                                if (
-                                    module.template_module_id
-                                    and module.template_module_id.icon_image
-                                ):
-                                    cw.emit(
-                                        '"icon":'
-                                        " os.path.join(os.path.dirname(__file__),"
-                                        ' "static", "description",'
-                                        ' "code_generator_icon.png"),'
-                                    )
-                            cw.emit("}")
-                            cw.emit()
-                            cw.emit(
-                                "# TODO HUMAN: enable your functionality to"
-                                " generate"
-                            )
-                            enable_template_code_generator_demo = (
-                                module.enable_template_code_generator_demo
-                                if module.name == "code_generator_demo"
-                                else False
-                            )
-                            if module.enable_template_code_generator_demo:
                                 cw.emit(
-                                    'value["enable_template_code_generator_demo"]'
-                                    f" = {enable_template_code_generator_demo}"
-                                )
-                                cw.emit('value["template_model_name"] = ""')
-                                cw.emit(
-                                    'value["template_inherit_model_name"] = ""'
-                                )
-                                if (
-                                    module.template_module_path_generated_extension
-                                    != "."
-                                ):
-                                    cw.emit(
-                                        'value["template_module_path_generated_extension"]'
-                                        f' = "{module.template_module_path_generated_extension}"'
-                                    )
-                                else:
-                                    cw.emit(
-                                        '# value["template_module_path_generated_extension"]'
-                                        ' = "."'
-                                    )
-                                cw.emit(
-                                    'value["enable_template_wizard_view"] ='
-                                    " False"
-                                )
-                                cw.emit(
-                                    'value["force_generic_template_wizard_view"]'
-                                    " = False"
-                                )
-                                cw.emit(
-                                    'value["disable_generate_access"] = False'
-                                )
-                                cw.emit(
-                                    'value["enable_template_website_snippet_view"] = '
-                                    f"{module.enable_template_website_snippet_view}"
-                                )
-                            cw.emit(
-                                'value["enable_sync_template"] ='
-                                f" {module.enable_sync_template}"
-                            )
-                            cw.emit(f'value["ignore_fields"] = ""')
-                            cw.emit(
-                                'value["post_init_hook_show"] ='
-                                f" {module.enable_template_code_generator_demo}"
-                            )
-                            cw.emit(
-                                'value["uninstall_hook_show"] ='
-                                f" {module.enable_template_code_generator_demo}"
-                            )
-                            cw.emit(
-                                'value["post_init_hook_feature_code_generator"] = '
-                                f"{module.enable_template_code_generator_demo}"
-                            )
-                            cw.emit(
-                                'value["uninstall_hook_feature_code_generator"] = '
-                                f"{module.enable_template_code_generator_demo}"
-                            )
-                            cw.emit()
-                            if module.enable_template_code_generator_demo:
-                                cw.emit("new_module_name = MODULE_NAME")
-                                cw.emit(
-                                    'if MODULE_NAME != "code_generator_demo"'
-                                    ' and "code_generator_" in MODULE_NAME:'
+                                    'if "code_generator_template" in'
+                                    " MODULE_NAME:"
                                 )
                                 with cw.indent():
                                     cw.emit(
-                                        'if "code_generator_template" in'
-                                        " MODULE_NAME:"
+                                        'if value["enable_template_code_generator_demo"]:'
                                     )
                                     with cw.indent():
                                         cw.emit(
-                                            'if value["enable_template_code_generator_demo"]:'
+                                            "new_module_name ="
+                                            ' f"code_generator_{MODULE_NAME['
+                                            "len('code_generator_template_'):]}\""
                                         )
-                                        with cw.indent():
-                                            cw.emit(
-                                                "new_module_name ="
-                                                ' f"code_generator_{MODULE_NAME['
-                                                "len('code_generator_template_'):]}\""
-                                            )
-                                        cw.emit("else:")
-                                        with cw.indent():
-                                            cw.emit(
-                                                "new_module_name ="
-                                                ' MODULE_NAME[len("code_generator_template_"):]'
-                                            )
                                     cw.emit("else:")
                                     with cw.indent():
                                         cw.emit(
                                             "new_module_name ="
-                                            ' MODULE_NAME[len("code_generator_"):]'
+                                            ' MODULE_NAME[len("code_generator_template_"):]'
                                         )
+                                cw.emit("else:")
+                                with cw.indent():
                                     cw.emit(
-                                        'value["template_module_name"] ='
-                                        " new_module_name"
+                                        "new_module_name ="
+                                        ' MODULE_NAME[len("code_generator_"):]'
                                     )
                                 cw.emit(
-                                    'value["hook_constant_code"] ='
-                                    " f'MODULE_NAME = \"{new_module_name}\"'"
+                                    'value["template_module_name"] ='
+                                    " new_module_name"
                                 )
-                            else:
-                                cw.emit(
-                                    'value["hook_constant_code"] ='
-                                    " f'MODULE_NAME = \"{MODULE_NAME}\"'"
-                                )
-                            cw.emit()
                             cw.emit(
-                                "code_generator_id ="
-                                ' env["code.generator.module"].create(value)'
+                                'value["hook_constant_code"] ='
+                                " f'MODULE_NAME = \"{new_module_name}\"'"
                             )
-                            cw.emit()
-                            lst_module_depend = []
-                            if (
-                                module.template_module_id
-                                and module.template_module_id.dependencies_id
-                            ):
-                                lst_module_depend = [
-                                    a.name
-                                    for a in module.template_module_id.dependencies_id
-                                ]
-                            elif module.dependencies_id:
-                                lst_module_depend = [
-                                    a.depend_id.name
-                                    for a in module.dependencies_id
-                                ]
+                        else:
+                            cw.emit(
+                                'value["hook_constant_code"] ='
+                                " f'MODULE_NAME = \"{MODULE_NAME}\"'"
+                            )
+                        cw.emit()
+                        cw.emit(
+                            "code_generator_id ="
+                            ' env["code.generator.module"].create(value)'
+                        )
+                        cw.emit()
+                        lst_module_depend = []
+                        if (
+                            module.template_module_id
+                            and module.template_module_id.dependencies_id
+                        ):
+                            lst_module_depend = [
+                                a.name
+                                for a in module.template_module_id.dependencies_id
+                            ]
+                        elif module.dependencies_id:
+                            lst_module_depend = [
+                                a.depend_id.name
+                                for a in module.dependencies_id
+                            ]
 
-                            if lst_module_depend:
-                                cw.emit("# Add dependencies")
-                                lst_module_depend = sorted(lst_module_depend)
-                                if len(lst_module_depend) > 1:
+                        if lst_module_depend:
+                            cw.emit("# Add dependencies")
+                            lst_module_depend = sorted(lst_module_depend)
+                            if len(lst_module_depend) > 1:
+                                cw.emit(
+                                    f"lst_depend_module = {lst_module_depend}"
+                                )
+                                cw.emit(
+                                    f"code_generator_id.add_module_dependency(lst_depend_module)"
+                                )
+                                if is_generator_demo:
                                     cw.emit(
-                                        "lst_depend_module ="
-                                        f" {lst_module_depend}"
+                                        f"code_generator_id.add_module_dependency_template(lst_depend_module)"
+                                    )
+                            elif lst_module_depend:
+                                cw.emit(
+                                    f'code_generator_id.add_module_dependency("{lst_module_depend[0]}")'
+                                )
+                                if is_generator_demo:
+                                    cw.emit(
+                                        f'code_generator_id.add_module_dependency_template("{lst_module_depend[0]}")'
+                                    )
+
+                        if module.external_dependencies_id:
+                            cw.emit("# External dependencies")
+                            for ext_depend in module.external_dependencies_id:
+                                if not ext_depend.is_template:
+                                    continue
+                                cw.emit("value = {")
+                                with cw.indent():
+                                    cw.emit(
+                                        f'"module_id": code_generator_id.id,'
                                     )
                                     cw.emit(
-                                        f"code_generator_id.add_module_dependency(lst_depend_module)"
+                                        f'"depend": "{ext_depend.depend}",'
                                     )
-                                    if is_generator_demo:
-                                        cw.emit(
-                                            f"code_generator_id.add_module_dependency_template(lst_depend_module)"
-                                        )
-                                elif lst_module_depend:
                                     cw.emit(
-                                        f'code_generator_id.add_module_dependency("{lst_module_depend[0]}")'
+                                        '"application_type":'
+                                        f' "{ext_depend.application_type}",'
                                     )
-                                    if is_generator_demo:
-                                        cw.emit(
-                                            f'code_generator_id.add_module_dependency_template("{lst_module_depend[0]}")'
+                                cw.emit("}")
+                                cw.emit(
+                                    "env['code.generator.module.external.dependency'].create(value)"
+                                )
+                                cw.emit()
+
+                        lst_view_item_code_generator = []
+                        lst_model_id = []
+                        if (
+                            module.template_model_name
+                            or module.template_inherit_model_name
+                        ):
+
+                            lst_model = [
+                                a.strip()
+                                for a in f"{module.template_model_name};{module.template_inherit_model_name}".strip(
+                                    ";"
+                                ).split(
+                                    ";"
+                                )
+                                if a.strip()
+                            ]
+
+                            lst_new_model = []
+
+                            # Filter model and get model_id
+                            for model_model in lst_model:
+                                model_id = self.env["ir.model"].search(
+                                    [("model", "=", model_model)]
+                                )
+                                if not model_id:
+                                    # _logger.error(
+                                    #     f"Model '{model_model}' not"
+                                    #     " existing."
+                                    # )
+                                    lst_new_model.append(model_model)
+                                    continue
+                                lst_model_id.append(model_id)
+
+                            len_model = len(lst_model)
+                            i = -1
+                            dct_model_one2many = {}
+                            for model_id in lst_model_id:
+                                i += 1
+                                if module.enable_sync_template:
+                                    view_file_sync = module.view_file_sync.get(
+                                        model_id.model
+                                    )
+                                    if view_file_sync:
+                                        lst_view_item_code_generator.append(
+                                            view_file_sync
                                         )
 
-                            if module.external_dependencies_id:
-                                cw.emit("# External dependencies")
-                                for (
-                                    ext_depend
-                                ) in module.external_dependencies_id:
-                                    if not ext_depend.is_template:
-                                        continue
-                                    cw.emit("value = {")
-                                    with cw.indent():
-                                        cw.emit(
-                                            f'"module_id":'
-                                            f" code_generator_id.id,"
-                                        )
-                                        cw.emit(
-                                            f'"depend": "{ext_depend.depend}",'
-                                        )
-                                        cw.emit(
-                                            '"application_type":'
-                                            f' "{ext_depend.application_type}",'
-                                        )
-                                    cw.emit("}")
-                                    cw.emit(
-                                        "env['code.generator.module.external.dependency'].create(value)"
-                                    )
+                                if "." in model_id.model:
+                                    (
+                                        application_name,
+                                        _,
+                                    ) = model_id.model.split(".", maxsplit=1)
+                                else:
+                                    application_name = model_id.model
+                                model_name = model_id.model.replace(".", "_")
+                                title_model_model = model_name.replace(
+                                    "_", " "
+                                ).title()
+
+                                if (
+                                    module.enable_template_website_snippet_view
+                                    and module.template_generate_website_snippet_generic_model
+                                    == model_id.model
+                                ):
                                     cw.emit()
-
-                            lst_view_item_code_generator = []
-                            lst_model_id = []
-                            if (
-                                module.template_model_name
-                                or module.template_inherit_model_name
-                            ):
-
-                                lst_model = [
-                                    a.strip()
-                                    for a in f"{module.template_model_name};{module.template_inherit_model_name}".strip(
-                                        ";"
-                                    ).split(
-                                        ";"
-                                    )
-                                    if a.strip()
-                                ]
-
-                                lst_new_model = []
-
-                                # Filter model and get model_id
-                                for model_model in lst_model:
-                                    model_id = self.env["ir.model"].search(
-                                        [("model", "=", model_model)]
-                                    )
-                                    if not model_id:
-                                        # _logger.error(
-                                        #     f"Model '{model_model}' not"
-                                        #     " existing."
-                                        # )
-                                        lst_new_model.append(model_model)
-                                        continue
-                                    lst_model_id.append(model_id)
-
-                                len_model = len(lst_model)
-                                i = -1
-                                dct_model_one2many = {}
-                                for model_id in lst_model_id:
-                                    i += 1
-                                    if module.enable_sync_template:
-                                        view_file_sync = (
-                                            module.view_file_sync.get(
-                                                model_id.model
-                                            )
-                                        )
-                                        if view_file_sync:
-                                            lst_view_item_code_generator.append(
-                                                view_file_sync
-                                            )
-
-                                    if "." in model_id.model:
-                                        (
-                                            application_name,
-                                            _,
-                                        ) = model_id.model.split(
-                                            ".", maxsplit=1
-                                        )
-                                    else:
-                                        application_name = model_id.model
-                                    model_name = model_id.model.replace(
-                                        ".", "_"
-                                    )
-                                    title_model_model = model_name.replace(
-                                        "_", " "
-                                    ).title()
-
-                                    if (
-                                        module.enable_template_website_snippet_view
-                                        and module.template_generate_website_snippet_generic_model
-                                        == model_id.model
+                                    cw.emit("# Generate snippet")
+                                    with cw.block(
+                                        before=f"value_snippet =",
+                                        delim=("{", "}"),
                                     ):
-                                        cw.emit()
-                                        cw.emit("# Generate snippet")
-                                        with cw.block(
-                                            before=f"value_snippet =",
-                                            delim=("{", "}"),
+                                        cw.emit(
+                                            "'code_generator_id':"
+                                            " code_generator_id.id,"
+                                        )
+                                        cw.emit(
+                                            "'template_generate_website_snippet_controller_feature':"
+                                            f" '{module.template_generate_website_snippet_controller_feature}',"
+                                        )
+                                        if (
+                                            module.template_generate_website_enable_javascript
                                         ):
                                             cw.emit(
-                                                "'code_generator_id':"
-                                                " code_generator_id.id,"
-                                            )
-                                            cw.emit(
-                                                "'template_generate_website_snippet_controller_feature':"
-                                                f" '{module.template_generate_website_snippet_controller_feature}',"
-                                            )
-                                            if (
-                                                module.template_generate_website_enable_javascript
-                                            ):
-                                                cw.emit(
-                                                    "'enable_javascript':"
-                                                    " True,"
-                                                )
-                                            cw.emit(
-                                                "'model_name':"
-                                                f" '{model_id.model}',"
-                                            )
-                                            cw.emit(
-                                                "'snippet_type':"
-                                                f" '{module.template_generate_website_snippet_type}',"
+                                                "'enable_javascript': True,"
                                             )
                                         cw.emit(
-                                            'env["code.generator.snippet"].create(value_snippet)'
+                                            "'model_name':"
+                                            f" '{model_id.model}',"
                                         )
+                                        cw.emit(
+                                            "'snippet_type':"
+                                            f" '{module.template_generate_website_snippet_type}',"
+                                        )
+                                    cw.emit(
+                                        'env["code.generator.snippet"].create(value_snippet)'
+                                    )
 
+                                cw.emit()
+                                cw.emit(f"# Add/Update {title_model_model}")
+
+                                # Prepare field data
+                                (
+                                    dct_field_data,
+                                    dct_field_data_one2many,
+                                ) = self._get_field_data(module, model_id)
+
+                                if dct_field_data_one2many:
+                                    dct_model_one2many[
+                                        model_id.model
+                                    ] = dct_field_data_one2many
+
+                                self.write_model(
+                                    cw,
+                                    model_id,
+                                    application_name,
+                                    module,
+                                    dct_field_data,
+                                )
+                                if i >= len_model - 1 and dct_model_one2many:
+                                    cw.emit()
+                                    cw.emit(
+                                        "# Added one2many field,"
+                                        " many2one need to be create"
+                                        " before add one2many"
+                                    )
+                                    for (
+                                        model_name,
+                                        dct_field,
+                                    ) in dct_model_one2many.items():
+                                        cw.emit(
+                                            f'model_model = "{model_name}"'
+                                        )
+                                        with cw.block(
+                                            before=f"dct_field =",
+                                            delim=("{", "}"),
+                                        ):
+                                            for (
+                                                key,
+                                                dct_value,
+                                            ) in dct_field.items():
+                                                with cw.block(
+                                                    before=f'"{key}" :',
+                                                    delim=("{", "},"),
+                                                ):
+                                                    for (
+                                                        sub_key,
+                                                        value,
+                                                    ) in dct_value.items():
+                                                        self._write_dict_key(
+                                                            cw,
+                                                            sub_key,
+                                                            value,
+                                                        )
+                                        cw.emit(
+                                            "code_generator_id.add_update_model_one2many(model_model,"
+                                            " dct_field)"
+                                        )
+                                        cw.emit()
+
+                                self._write_generated_template(
+                                    module, model_id.model, cw
+                                )
+                                cw.emit()
+                                # TODO add data nomenclator, research data from model
+                                # TODO By default, no data will be nomenclator
+                                # cw.emit("# Add data nomenclator")
+                                # cw.emit("value = {")
+                                # with cw.indent():
+                                #     cw.emit("\"field_boolean\": True,")
+                                #     cw.emit("\"name\": \"demo\",")
+                                # cw.emit("}")
+                                # cw.emit(f"env[\"{model_id.model}\"].create(value)")
+                                # cw.emit()
+                                # Generate code
+                                self.write_code(cw, model_id, module)
+
+                                act_server_ids = self.env[
+                                    "ir.actions.server"
+                                ].search(
+                                    [
+                                        (
+                                            "model_name",
+                                            "=",
+                                            model_id.model,
+                                        ),
+                                        (
+                                            "usage",
+                                            "=",
+                                            "ir_actions_server",
+                                        ),
+                                        ("model_id", "=", model_id.id),
+                                    ]
+                                )
+                                if act_server_ids:
+                                    cw.emit("# Generate server action")
+                                    self._write_sync_template_action(
+                                        cw, module, act_server_ids
+                                    )
+
+                                # Support constraint
+                                constraint_ids = self.env[
+                                    "ir.model.constraint"
+                                ].search(
+                                    [
+                                        (
+                                            "module",
+                                            "=",
+                                            module.template_module_id.id,
+                                        ),
+                                        ("definition", "!=", False),
+                                    ]
+                                )
+                                if constraint_ids:
+                                    self.write_constraint(
+                                        cw, constraint_ids, model_id
+                                    )
+                            if lst_new_model:
+                                for model_name in lst_new_model:
+                                    title_model_model = (
+                                        model_name.replace("_", " ")
+                                        .replace(".", " ")
+                                        .title()
+                                    )
                                     cw.emit()
                                     cw.emit(
                                         f"# Add/Update {title_model_model}"
                                     )
-
-                                    # Prepare field data
-                                    (
-                                        dct_field_data,
-                                        dct_field_data_one2many,
-                                    ) = self._get_field_data(module, model_id)
-
-                                    if dct_field_data_one2many:
-                                        dct_model_one2many[
-                                            model_id.model
-                                        ] = dct_field_data_one2many
-
-                                    self.write_model(
-                                        cw,
-                                        model_id,
-                                        application_name,
-                                        module,
-                                        dct_field_data,
+                                    cw.emit(f'model_model = "{model_name}"')
+                                    cw.emit(
+                                        f"code_generator_id.add_update_model(model_model)"
                                     )
-                                    if (
-                                        i >= len_model - 1
-                                        and dct_model_one2many
-                                    ):
-                                        cw.emit()
-                                        cw.emit(
-                                            "# Added one2many field,"
-                                            " many2one need to be create"
-                                            " before add one2many"
-                                        )
-                                        for (
-                                            model_name,
-                                            dct_field,
-                                        ) in dct_model_one2many.items():
-                                            cw.emit(
-                                                f'model_model = "{model_name}"'
-                                            )
-                                            with cw.block(
-                                                before=f"dct_field =",
-                                                delim=("{", "}"),
-                                            ):
-                                                for (
-                                                    key,
-                                                    dct_value,
-                                                ) in dct_field.items():
-                                                    with cw.block(
-                                                        before=f'"{key}" :',
-                                                        delim=("{", "},"),
-                                                    ):
-                                                        for (
-                                                            sub_key,
-                                                            value,
-                                                        ) in dct_value.items():
-                                                            self._write_dict_key(
-                                                                cw,
-                                                                sub_key,
-                                                                value,
-                                                            )
-                                            cw.emit(
-                                                "code_generator_id.add_update_model_one2many(model_model,"
-                                                " dct_field)"
-                                            )
-                                            cw.emit()
+                                cw.emit()
 
-                                    self._write_generated_template(
-                                        module, model_id.model, cw
-                                    )
-                                    cw.emit()
-                                    # TODO add data nomenclator, research data from model
-                                    # TODO By default, no data will be nomenclator
-                                    # cw.emit("# Add data nomenclator")
-                                    # cw.emit("value = {")
-                                    # with cw.indent():
-                                    #     cw.emit("\"field_boolean\": True,")
-                                    #     cw.emit("\"name\": \"demo\",")
-                                    # cw.emit("}")
-                                    # cw.emit(f"env[\"{model_id.model}\"].create(value)")
-                                    # cw.emit()
-                                    # Generate code
-                                    self.write_code(cw, model_id, module)
-
-                                    act_server_ids = self.env[
-                                        "ir.actions.server"
-                                    ].search(
-                                        [
-                                            (
-                                                "model_name",
-                                                "=",
-                                                model_id.model,
-                                            ),
-                                            (
-                                                "usage",
-                                                "=",
-                                                "ir_actions_server",
-                                            ),
-                                            ("model_id", "=", model_id.id),
-                                        ]
-                                    )
-                                    if act_server_ids:
-                                        cw.emit("# Generate server action")
-                                        self._write_sync_template_action(
-                                            cw, module, act_server_ids
-                                        )
-
-                                    # Support constraint
-                                    constraint_ids = self.env[
-                                        "ir.model.constraint"
-                                    ].search(
-                                        [
-                                            (
-                                                "module",
-                                                "=",
-                                                module.template_module_id.id,
-                                            ),
-                                            ("definition", "!=", False),
-                                        ]
-                                    )
-                                    if constraint_ids:
-                                        self.write_constraint(
-                                            cw, constraint_ids, model_id
-                                        )
-                                if lst_new_model:
-                                    for model_name in lst_new_model:
-                                        title_model_model = (
-                                            model_name.replace("_", " ")
-                                            .replace(".", " ")
-                                            .title()
-                                        )
-                                        cw.emit()
-                                        cw.emit(
-                                            f"# Add/Update {title_model_model}"
-                                        )
-                                        cw.emit(
-                                            f'model_model = "{model_name}"'
-                                        )
-                                        cw.emit(
-                                            f"code_generator_id.add_update_model(model_model)"
-                                        )
-                                    cw.emit()
-
-                            if module.enable_template_wizard_view:
-                                # Icon copy from sync
-                                if module.enable_sync_template:
-                                    if (
-                                        module.template_module_id.icon_image
-                                        and not module.icon_child_image
-                                    ):
-                                        module.icon_child_image = (
-                                            module.template_module_id.icon_image
-                                        )
-
-                                cw.emit("# Generate view")
-                                custom_view = (
-                                    module.enable_sync_template
-                                    and not module.force_generic_template_wizard_view
-                                )
-                                has_custom_view = False
-                                has_menu = False
-                                has_access = False
-                                lst_menu_id_create = []
-                                is_first = True
-                                no_view = -1
-                                if custom_view:
-                                    for (
-                                        view_item
-                                    ) in lst_view_item_code_generator:
-                                        if (
-                                            not view_item
-                                            or not view_item.code_generator_id
-                                        ):
-                                            continue
-                                        no_view += 1
-                                        if (
-                                            view_item.code_generator_id.code_generator_menus_id
-                                        ):
-                                            has_menu = True
-                                        view_id = (
-                                            self._write_sync_template_views(
-                                                cw,
-                                                view_item,
-                                                lst_menu_id_create,
-                                                is_first,
-                                            )
-                                        )
-                                        is_first = False
-                                        if view_id:
-                                            has_custom_view = True
-                                        cw.emit()
-                                else:
-                                    # TODO This seems wrong, need to get this variable from extractor_view
-                                    has_menu = True
-                                    has_access = True
-
-                                self.write_action_generate_view(
-                                    cw,
-                                    module,
-                                    has_custom_view,
-                                    has_access,
-                                    has_menu,
-                                )
-
-                            for model_id in lst_model_id:
-                                # This section need to be generated after view was created
+                        if module.enable_template_wizard_view:
+                            # Icon copy from sync
+                            if module.enable_sync_template:
                                 if (
-                                    module.enable_template_wizard_view
-                                    and not module.force_generic_template_wizard_view
-                                    and not module.disable_generate_access
+                                    module.template_module_id.icon_image
+                                    and not module.icon_child_image
                                 ):
-                                    model_name = model_id.model.replace(
-                                        ".", "_"
-                                    )
-                                    variable_model_model = (
-                                        f"model_{model_name}"
-                                    )
-                                    # TODO why force_generic_template_wizard_view force no access?
-                                    access_ids = self.env[
-                                        "ir.model.access"
-                                    ].search(
-                                        [
-                                            (
-                                                "model_id",
-                                                "=",
-                                                model_id.id,
-                                            )
-                                        ]
-                                    )
-                                    self.write_access(
-                                        cw,
-                                        access_ids,
-                                        variable_model_model,
+                                    module.icon_child_image = (
+                                        module.template_module_id.icon_image
                                     )
 
-                            cw.emit("# Generate module")
-                            cw.emit("value = {")
-                            with cw.indent():
-                                cw.emit(
-                                    '"code_generator_ids":'
-                                    " code_generator_id.ids"
-                                )
-                            cw.emit("}")
-                            cw.emit(
-                                'env["code.generator.writer"].create(value)'
+                            cw.emit("# Generate view")
+                            custom_view = (
+                                module.enable_sync_template
+                                and not module.force_generic_template_wizard_view
+                            )
+                            has_custom_view = False
+                            has_menu = False
+                            has_access = False
+                            lst_menu_id_create = []
+                            is_first = True
+                            no_view = -1
+                            if custom_view:
+                                for view_item in lst_view_item_code_generator:
+                                    if (
+                                        not view_item
+                                        or not view_item.code_generator_id
+                                    ):
+                                        continue
+                                    no_view += 1
+                                    if (
+                                        view_item.code_generator_id.code_generator_menus_id
+                                    ):
+                                        has_menu = True
+                                    view_id = self._write_sync_template_views(
+                                        cw,
+                                        view_item,
+                                        lst_menu_id_create,
+                                        is_first,
+                                    )
+                                    is_first = False
+                                    if view_id:
+                                        has_custom_view = True
+                                    cw.emit()
+                            else:
+                                # TODO This seems wrong, need to get this variable from extractor_view
+                                has_menu = True
+                                has_access = True
+
+                            self.write_action_generate_view(
+                                cw,
+                                module,
+                                has_custom_view,
+                                has_access,
+                                has_menu,
                             )
 
-                    if uninstall_hook_feature_code_generator:
+                        for model_id in lst_model_id:
+                            # This section need to be generated after view was created
+                            if (
+                                module.enable_template_wizard_view
+                                and not module.force_generic_template_wizard_view
+                                and not module.disable_generate_access
+                            ):
+                                model_name = model_id.model.replace(".", "_")
+                                variable_model_model = f"model_{model_name}"
+                                # TODO why force_generic_template_wizard_view force no access?
+                                access_ids = self.env[
+                                    "ir.model.access"
+                                ].search(
+                                    [
+                                        (
+                                            "model_id",
+                                            "=",
+                                            model_id.id,
+                                        )
+                                    ]
+                                )
+                                self.write_access(
+                                    cw,
+                                    access_ids,
+                                    variable_model_model,
+                                )
+
+                        cw.emit("# Generate module")
+                        cw.emit("value = {")
                         with cw.indent():
                             cw.emit(
-                                "code_generator_id ="
-                                ' env["code.generator.module"].search([("name",'
-                                ' "=", MODULE_NAME)])'
+                                '"code_generator_ids": code_generator_id.ids'
                             )
-                            cw.emit("if code_generator_id:")
-                            with cw.indent():
-                                cw.emit("code_generator_id.unlink()")
+                        cw.emit("}")
+                        cw.emit('env["code.generator.writer"].create(value)')
+                    if uninstall_hook_feature_code_generator:
+                        cw.emit(
+                            "code_generator_id ="
+                            ' env["code.generator.module"].search([("name",'
+                            ' "=", MODULE_NAME)])'
+                        )
+                        cw.emit("if code_generator_id:")
+                        with cw.indent():
+                            cw.emit("code_generator_id.unlink()")
 
         _add_hook(
+            module,
             cw,
             module.pre_init_hook_show,
             module.pre_init_hook_code,
@@ -1190,6 +1171,7 @@ class CodeGeneratorWriter(models.Model):
             False,
         )
         _add_hook(
+            module,
             cw,
             module.post_init_hook_show,
             module.post_init_hook_code,
@@ -1200,15 +1182,17 @@ class CodeGeneratorWriter(models.Model):
             True,
         )
         _add_hook(
+            module,
             cw,
             module.uninstall_hook_show,
             module.uninstall_hook_code,
             module.uninstall_hook_feature_general_conf,
             False,
-            module.post_init_hook_feature_code_generator,
+            module.uninstall_hook_feature_code_generator,
             "uninstall_hook",
             True,
         )
+        self.write_extra_extra_function_hook(module, cw)
 
         hook_file_path = "hooks.py"
 

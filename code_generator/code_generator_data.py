@@ -414,6 +414,9 @@ class CodeGeneratorData:
             path_sync_code = os.path.join(directory, name)
             if os.path.isdir(path_sync_code):
                 shutil.rmtree(path_sync_code)
+            _logger.info(
+                f"Sync code from '{self._module_path}' to '{path_sync_code}'"
+            )
             shutil.copytree(self._module_path, path_sync_code)
         except Exception as e:
             _logger.error(e)

@@ -128,6 +128,8 @@ class CodeGeneratorModule(models.Model):
         default=".",
     )
 
+    template_generate_website_enable_javascript = fields.Boolean()
+
     template_generate_website_snippet_type = fields.Char(
         help="Choose content,effect,feature,structure",
         default="effect",
@@ -139,4 +141,8 @@ class CodeGeneratorModule(models.Model):
             "Separate model name by ';' to create a list. Will generate field"
             " of all this model."
         ),
+    )
+
+    template_generate_website_snippet_controller_feature = fields.Char(
+        string="website snippet controller feature",
     )

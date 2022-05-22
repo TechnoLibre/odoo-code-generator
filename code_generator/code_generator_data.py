@@ -34,6 +34,7 @@ class CodeGeneratorData:
         self._css_path = os.path.join("static", "src", "scss")
         self._security_path = "security"
         self._views_path = "views"
+        self._templates_path = "templates"
         self._wizards_path = "wizards"
         self._controllers_path = "controllers"
         self._reports_path = "report"
@@ -136,6 +137,10 @@ class CodeGeneratorData:
     @property
     def views_path(self):
         return self._views_path
+
+    @property
+    def templates_path(self):
+        return self._templates_path
 
     @property
     def wizards_path(self):
@@ -340,7 +345,7 @@ class CodeGeneratorData:
         :param file_path:
         :param content:
         :param mode:
-        :param data_file: Will be add in manifest
+        :param data_file: Will add filename in manifest
         :param insert_first:
         :return:
         """
@@ -363,6 +368,15 @@ class CodeGeneratorData:
 
         self.check_mkdir_and_create(absolute_path)
 
+        if os.path.exists(absolute_path):
+            actual_size = len(content)
+            old_size = os.path.getsize(absolute_path)
+            _logger.warning(
+                f"Overwrite file {file_path}, old size {old_size} bytes, new"
+                f" size {actual_size} bytes."
+            )
+        else:
+            _logger.info(f"Write file {file_path}")
         with open(absolute_path, mode) as file:
             file.write(content)
 
@@ -414,6 +428,9 @@ class CodeGeneratorData:
             path_sync_code = os.path.join(directory, name)
             if os.path.isdir(path_sync_code):
                 shutil.rmtree(path_sync_code)
+            _logger.info(
+                f"Sync code from '{self._module_path}' to '{path_sync_code}'"
+            )
             shutil.copytree(self._module_path, path_sync_code)
         except Exception as e:
             _logger.error(e)

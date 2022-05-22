@@ -1,6 +1,7 @@
 import ast
 import base64
 import glob
+import hashlib
 import io
 import logging
 import os
@@ -734,7 +735,13 @@ class CodeGeneratorWriter(models.Model):
             return ir_model_data[0].name
         return f"{ir_model_data[0].module}.{ir_model_data[0].name}"
 
-    def _get_ir_model_data(self, record, give_a_default=False, module_name=""):
+    def _get_ir_model_data(
+        self,
+        record,
+        give_a_default=False,
+        module_name="",
+        force_field_name=None,
+    ):
         """
         Function to obtain the model data from a record
         :param record:
@@ -758,7 +765,10 @@ class CodeGeneratorWriter(models.Model):
             else:
                 result = f"{ir_model_data[0].module}.{ir_model_data[0].name}"
         elif give_a_default:
-            if record._rec_name:
+            if force_field_name:
+                name_v = getattr(record, force_field_name)
+                second = self._lower_replace(name_v)
+            elif record._rec_name:
                 rec_name_v = getattr(record, record._rec_name)
                 if not rec_name_v:
                     rec_name_v = uuid.uuid1().int
@@ -954,6 +964,24 @@ class CodeGeneratorWriter(models.Model):
         if not nomenclador_data:
             return
 
+        ignore_name_export_data = model.ignore_name_export_data
+        if ignore_name_export_data:
+            lst_ignore_name_export_data = ignore_name_export_data.strip(
+                ";"
+            ).split(";")
+            if lst_ignore_name_export_data:
+                new_nomenclator_data_list = [
+                    a.id
+                    for b in lst_ignore_name_export_data
+                    for a in nomenclador_data
+                    if not a.name.split("/")[-1].endswith(b.strip())
+                    and not a.name == b.strip()
+                ]
+                if len(new_nomenclator_data_list) != len(nomenclador_data):
+                    nomenclador_data = self.env[model.model].browse(
+                        new_nomenclator_data_list
+                    )
+
         lst_data_xml = []
         lst_id = []
         lst_depend = []
@@ -965,12 +993,20 @@ class CodeGeneratorWriter(models.Model):
             a.m2o_fields.id
             for a in model.m2o_module.o2m_nomenclator_whitelist_fields
         ]
+        lst_record = []
+        lst_new_data_to_write = []
+        dct_search_and_replace_in_file = defaultdict(list)
+        lst_scss_process_hook = []
         for record in nomenclador_data:
-
+            add_scss_hook = False
+            new_data_to_write = None
+            force_field_name_xml_id = None
             f2exports = model.field_id.filtered(
                 lambda field: field.name not in MAGIC_FIELDS
             )
             lst_field = []
+            lst_end_field = []
+            lst_ignore_field_name = []
             for rfield in f2exports:
                 # whitelist check
                 if (
@@ -980,6 +1016,8 @@ class CodeGeneratorWriter(models.Model):
                     continue
                 # blacklist check
                 if rfield.id in lst_field_id_blacklist:
+                    continue
+                if rfield.name in lst_ignore_field_name:
                     continue
                 record_value = getattr(record, rfield.name)
                 child = None
@@ -1043,11 +1081,78 @@ class CodeGeneratorWriter(models.Model):
                         )
 
                     elif rfield.ttype == "binary":
-                        # Transform binary in string and remove b''
-                        child = E.field(
-                            {"name": rfield.name},
-                            str(record_value)[2:-1],
-                        )
+                        add_in_search_and_replace_file = False
+                        manage_scss = False
+                        sub_dir = "img"
+                        # Create file if image, else create binary
+                        if record.index_content == "image":
+                            manage_scss = True
+                        elif record.mimetype in ["text/css", "text/scss"]:
+                            force_field_name_xml_id = "datas_fname"
+                            manage_scss = True
+                            sub_dir = "scss"
+                        elif (
+                            record.mimetype in ["application/octet-stream"]
+                            and ".custom." in record.name
+                            and record.name.endswith(".scss")
+                        ):
+                            manage_scss = True
+                            add_scss_hook = True
+                            add_in_search_and_replace_file = True
+                            sub_dir = "scss"
+                        # Check record.index_content or record.mimetype
+                        if manage_scss:
+                            new_filename = (
+                                record.datas_fname
+                                if not add_scss_hook
+                                else record.name.rsplit("/", maxsplit=1)[1]
+                            )
+                            url_path_file_module = os.path.join(
+                                "static",
+                                "src",
+                                sub_dir,
+                                new_filename,
+                            )
+                            url_path_file = os.path.join(
+                                "/",
+                                module.name,
+                                "static",
+                                "src",
+                                sub_dir,
+                                new_filename,
+                            )
+                            child_end = E.field({"name": "type"}, "url")
+                            lst_end_field.append(child_end)
+                            lst_ignore_field_name.append("type")
+
+                            child_end = E.field({"name": "url"}, url_path_file)
+                            lst_end_field.append(child_end)
+                            lst_ignore_field_name.append("url")
+
+                            new_data_to_write = [
+                                record_value,
+                                url_path_file_module,
+                            ]
+                            # decode_record = base64.b64decode(record_value)
+                            # self.code_generator_data.write_file_binary(
+                            #     url_path_file_module,
+                            #     decode_record,
+                            # )
+                            if add_in_search_and_replace_file:
+                                pattern_str = (
+                                    '<attribute name="href">%s</attribute>'
+                                )
+                                str_to_search = pattern_str % record.name
+                                str_to_replace = pattern_str % url_path_file
+                                dct_search_and_replace_in_file[
+                                    "data/ir_ui_view.xml"
+                                ].append((str_to_search, str_to_replace))
+                        else:
+                            # Transform binary in string and remove b''
+                            child = E.field(
+                                {"name": rfield.name},
+                                str(record_value)[2:-1],
+                            )
                     elif rfield.ttype == "boolean":
                         # Don't show boolean if same value of default
                         if str(record_value) != rfield.default:
@@ -1081,35 +1186,380 @@ class CodeGeneratorWriter(models.Model):
             # else:
             #     rec_name_v = uuid.uuid1().int
             id_record = self._get_ir_model_data(
-                record, give_a_default=True, module_name=module.name
+                record,
+                give_a_default=True,
+                module_name=module.name,
+                force_field_name=force_field_name_xml_id,
             )
             lst_id.append(id_record)
+            lst_total_field = lst_field + lst_end_field
             record_xml = E.record(
-                {"id": id_record, "model": model.model}, *lst_field
+                {"id": id_record, "model": model.model}, *lst_total_field
             )
             lst_data_xml.append(record_xml)
+            lst_record.append(record)
+            lst_new_data_to_write.append(new_data_to_write)
 
-        # TODO find when is noupdate and not noupdate
-        # <data noupdate="1">
-        xml_no_update = E.data({"noupdate": "1"}, *lst_data_xml)
-        module_file = E.odoo({}, xml_no_update)
-        data_file_path = os.path.join(
-            self.code_generator_data.data_path, f"{model_model}.xml"
-        )
-        result = XML_VERSION_HEADER.encode("utf-8") + ET.tostring(
-            module_file, pretty_print=True
-        )
-        self.code_generator_data.write_file_binary(
-            data_file_path, result, data_file=True
-        )
+            if add_scss_hook:
+                lst_scss_process_hook.append(id_record)
 
-        abs_path_file = os.path.join("data", f"{model_model}.xml")
+        # Do xml update for attachment later
+        if model_model == "ir_attachment":
+            result = ""
+        else:
+            # TODO find when is noupdate and not noupdate
+            # <data noupdate="1">
+            # xml_no_update = E.data({"noupdate": "1"}, *lst_data_xml)
+            # module_file = E.odoo({}, xml_no_update)
+            #
+            # result = XML_VERSION_HEADER.encode("utf-8") + ET.tostring(
+            #     module_file, pretty_print=True
+            # )
+            # TODO bug some character is missing, check code_generator_demo_website_attachments_data, use this method instead
+            result = (
+                XML_VERSION_HEADER.encode("utf-8")
+                + b"<odoo>\n"
+                + ET.tostring(E.data({"noupdate": "1"}, *lst_data_xml))
+                + b"\n</odoo>\n"
+            )
 
-        self.code_generator_data.dct_data_metadata_file[abs_path_file] = lst_id
-        if lst_depend:
-            self.code_generator_data.dct_data_depend[
+        return {
+            model_model: [
+                result,
+                lst_data_xml,
+                lst_id,
+                lst_depend,
+                lst_record,
+                lst_new_data_to_write,
+                dct_search_and_replace_in_file,
+                lst_scss_process_hook,
+            ]
+        }
+
+    def _compute_xml_data_file(self, module, dct_result):
+        if "ir_attachment" in dct_result.keys():
+            dct_ir_attachment = dct_result.get("ir_attachment")
+            lst_scss_process_hook = dct_ir_attachment[7]
+            if lst_scss_process_hook:
+                str_scss_process_hook = ";".join(lst_scss_process_hook)
+                # self.write({"list_scss_process_hook":str_scss_process_hook})
+                module.post_init_hook_show = True
+                module.list_scss_process_hook = str_scss_process_hook
+                module.hook_constant_code = """import logging
+import base64
+_logger = logging.getLogger(__name__)"""
+
+        # filter ir_attachment with ir_ui_view from website export data
+        if (
+            "website_page" not in dct_result.keys()
+            or "ir_attachment" not in dct_result.keys()
+            or "ir_ui_view" not in dct_result.keys()
+        ):
+            return
+        # lst_attach_image_index_keep = []
+        dct_replace_view = {}
+        lst_attachment_id_to_keep = []
+        lst_attachment_id_check = []
+        result_view = dct_result.get("ir_ui_view")[0]
+        lst_view_id = dct_result.get("ir_ui_view")[4]
+        lst_ele_attach_xml = dct_ir_attachment[1]
+        lst_attach_xml_id = dct_ir_attachment[2]
+        lst_attach_id = dct_ir_attachment[4]
+        lst_new_data_to_write = dct_ir_attachment[5]
+        dct_associate_duplicate_attach_id = {}  # ref to master
+        dct_associate_duplicate_attach_id_index = {}  # ref to master
+        lst_attachment_id_index_has_rename = []
+
+        # TODO do algorithme to detect duplicate image reference. To test it, upload 2 same image and add it in html
+        # Detect duplicate and create association with master
+        if module.export_website_optimize_binary_image:
+            i = -1
+            for attach_id in lst_attach_id:
+                i += 1
+                for i_attach, attach_id_iter in enumerate(lst_attach_id):
+                    if i_attach == i:
+                        # same file...
+                        continue
+
+                    if (
+                        i not in dct_associate_duplicate_attach_id_index.keys()
+                        and attach_id.datas_fname == attach_id_iter.datas_fname
+                    ):
+                        if attach_id.datas == attach_id_iter.datas:
+                            dct_associate_duplicate_attach_id[
+                                attach_id_iter.id
+                            ] = attach_id.id
+                            dct_associate_duplicate_attach_id_index[
+                                i_attach
+                            ] = i
+                        else:
+                            # Support rename for picture, the name is the same, but it's a different picture
+                            new_data_to_write = lst_new_data_to_write[i_attach]
+                            if (
+                                new_data_to_write
+                                and attach_id_iter.index_content == "image"
+                                and i_attach
+                                not in lst_attachment_id_index_has_rename
+                            ):
+                                (
+                                    record_value,
+                                    url_path_file_module,
+                                ) = new_data_to_write
+                                unique_str = hashlib.md5(
+                                    str(i_attach).encode("utf-8")
+                                ).hexdigest()[:6]
+
+                                new_data_to_write[
+                                    1
+                                ] = self.rename_filename_with_uuid(
+                                    url_path_file_module, unique_str
+                                )
+
+                                element = ET.tostring(
+                                    lst_ele_attach_xml[i_attach]
+                                ).decode("utf-8")
+                                new_name = self.rename_filename_with_uuid(
+                                    attach_id.name, unique_str
+                                )
+                                new_datas_fname = (
+                                    self.rename_filename_with_uuid(
+                                        attach_id.datas_fname, unique_str
+                                    )
+                                )
+                                new_element = element.replace(
+                                    attach_id.name, new_name
+                                ).replace(
+                                    attach_id.datas_fname, new_datas_fname
+                                )
+                                lst_ele_attach_xml[i_attach] = ET.fromstring(
+                                    new_element
+                                )
+                                lst_attachment_id_index_has_rename.append(
+                                    i_attach
+                                )
+
+        # Detect /web/image/ in views, change attachment_id.id to his xml_id
+        for view_id in lst_view_id:
+            str_view = view_id.arch
+            iter_find = self.findall("/web/image/", str_view)
+            lst_find = list(iter_find)
+            for index in lst_find:
+                preview_char_find = str_view[index - 1]
+                if preview_char_find == '"':
+                    keyword_str = '"'
+                elif preview_char_find == ";":
+                    # extract &quot;
+                    if index > 6 and str_view[index - 6 : index] == "&quot;":
+                        keyword_str = "&quot;"
+                    else:
+                        _logger.warning(
+                            "Cannot extract /web/image/ in view name"
+                            f" {view_id.name},"
+                            f" ...'{str_view[index-30:index+30]}'..."
+                        )
+                        continue
+                else:
+                    _logger.warning(
+                        "Cannot extract /web/image/ in view name"
+                        f" {view_id.name},"
+                        f" ...'{str_view[index-30:index+30]}'..."
+                    )
+                    continue
+                # TODO this will not work if the filename include the keyword_str, need to detect it
+                last_index = view_id.arch.find(keyword_str, index + 1)
+                attach_link = view_id.arch[index:last_index]
+                if attach_link.count("/") != 4:
+                    _logger.warning(
+                        f"Not support attach_link web/image of '{attach_link}'"
+                    )
+                    continue
+                lst_attach = attach_link.split("/")
+                i_attach_id = lst_attach[3]
+                if i_attach_id.isdigit():
+                    i_attach_id = int(i_attach_id)
+                else:
+                    # Support only id
+                    _logger.warning(f"Ignore attach_link '{attach_link}'")
+                    continue
+                # Ignore processing if already got this information
+                if i_attach_id in lst_attachment_id_check:
+                    continue
+                lst_attachment_id_check.append(i_attach_id)
+                # Search this picture if exist
+                i = -1
+                for attach_id in lst_attach_id:
+                    i += 1
+                    if attach_id.id == i_attach_id:
+                        # lst_attach_image_index_keep.append(i)
+                        break
+                else:
+                    _logger.warning(
+                        f"Not found attachment for attach_link '{attach_link}'"
+                        f" into {view_id.name}"
+                    )
+                    continue
+                if (
+                    module.export_website_optimize_binary_image
+                    and i in dct_associate_duplicate_attach_id_index.keys()
+                ):
+                    # change link, to the master
+                    new_i = dct_associate_duplicate_attach_id_index[i]
+                    new_i_attach_id = dct_associate_duplicate_attach_id[
+                        i_attach_id
+                    ]
+                else:
+                    new_i = i
+                    new_i_attach_id = i_attach_id
+
+                # Rewrite link
+                xml_id_link = f"{module.name}.{lst_attach_xml_id[new_i]}"
+                new_lst_attach = lst_attach[:]
+                new_lst_attach[3] = xml_id_link
+                new_attach_link = "/".join(new_lst_attach)
+                dct_replace_view[attach_link] = new_attach_link
+                if new_i_attach_id not in lst_attachment_id_to_keep:
+                    lst_attachment_id_to_keep.append(new_i_attach_id)
+
+        # Replace all link
+        if dct_replace_view:
+            str_result_view = result_view.decode("utf-8")
+            for attach_link, new_attach_link in dct_replace_view.items():
+                str_result_view = str_result_view.replace(
+                    attach_link, new_attach_link
+                )
+            dct_result.get("ir_ui_view")[0] = str_result_view.encode("utf-8")
+
+        # Remove unused image, missing from /web/image/ link
+        if module.export_website_optimize_binary_image:
+            lst_index_to_delete = []
+            i = -1
+            for attach_id in lst_attach_id:
+                i += 1
+                if (
+                    attach_id.id in lst_attachment_id_to_keep
+                    or attach_id.index_content != "image"
+                ):
+                    continue
+                lst_index_to_delete.append(i)
+            # Add slave attachment in the list
+            for slave_index in dct_associate_duplicate_attach_id_index:
+                if slave_index not in lst_index_to_delete:
+                    lst_index_to_delete.append(slave_index)
+            lst_index_to_delete.sort(reverse=True)
+            for index_to_delete in lst_index_to_delete:
+                attach_id = lst_attach_id[index_to_delete]
+                attach_xml_id = lst_attach_xml_id[index_to_delete]
+                _logger.info(
+                    "Ignore export attachment id"
+                    f" {attach_id.id} '{attach_id.datas_fname}', xml_id"
+                    f" '{attach_xml_id}'."
+                )
+                dct_ir_attachment[1].pop(index_to_delete)
+                dct_ir_attachment[2].pop(index_to_delete)
+                dct_ir_attachment[4].pop(index_to_delete)
+                dct_ir_attachment[5].pop(index_to_delete)
+
+    @staticmethod
+    def findall(p, s):
+        """Yields all the positions of
+        the pattern p in the string s."""
+        i = s.find(p)
+        while i != -1:
+            yield i
+            i = s.find(p, i + 1)
+
+    @staticmethod
+    def rename_filename_with_uuid(name, s_uuid):
+        if "." in name:
+            lst_new_name = name.rsplit(".", maxsplit=1)
+            new_url_path = f"{lst_new_name[0]}_{s_uuid}.{lst_new_name[1]}"
+        else:
+            new_url_path = f"{name}_{s_uuid}"
+        return new_url_path
+
+    def _write_xml_data_file(self, dct_result):
+        dct_search_and_replace_in_file_global = defaultdict(list)
+        for model_model, tpl_result in dct_result.items():
+            (
+                result,
+                lst_data_xml,
+                lst_id,
+                lst_depend,
+                lst_record,
+                lst_new_data_to_write,
+                dct_search_and_replace_in_file,
+                lst_scss_process_hook,
+            ) = tpl_result
+            if dct_search_and_replace_in_file:
+                for (
+                    file_name,
+                    lst_value,
+                ) in dct_search_and_replace_in_file.items():
+                    dct_search_and_replace_in_file_global[file_name].extend(
+                        lst_value
+                    )
+        for model_model, tpl_result in dct_result.items():
+            (
+                result,
+                lst_data_xml,
+                lst_id,
+                lst_depend,
+                lst_record,
+                lst_new_data_to_write,
+                dct_search_and_replace_in_file,
+                lst_scss_process_hook,
+            ) = tpl_result
+            if not any(tpl_result):
+                # it's empty
+                continue
+            data_file_path = os.path.join(
+                self.code_generator_data.data_path, f"{model_model}.xml"
+            )
+
+            for new_data_to_write in lst_new_data_to_write:
+                if not new_data_to_write:
+                    continue
+                record_value, url_path_file_module = new_data_to_write
+                decode_record = base64.b64decode(record_value)
+                self.code_generator_data.write_file_binary(
+                    url_path_file_module,
+                    decode_record,
+                )
+
+            if not result:
+                # Need to recompute the result
+                # TODO find when is noupdate and not noupdate
+                # <data noupdate="1">
+                xml_no_update = E.data({"noupdate": "1"}, *lst_data_xml)
+                module_file = E.odoo({}, xml_no_update)
+
+                new_result = XML_VERSION_HEADER.encode("utf-8") + ET.tostring(
+                    module_file, pretty_print=True
+                )
+            else:
+                new_result = result
+            lst_to_replace = dct_search_and_replace_in_file_global.get(
+                data_file_path
+            )
+            if lst_to_replace:
+                for str_search, str_replace in lst_to_replace:
+                    new_result = new_result.replace(
+                        str_search.encode(), str_replace.encode()
+                    )
+
+            self.code_generator_data.write_file_binary(
+                data_file_path, new_result, data_file=True
+            )
+
+            abs_path_file = os.path.join("data", f"{model_model}.xml")
+
+            self.code_generator_data.dct_data_metadata_file[
                 abs_path_file
-            ] = lst_depend
+            ] = lst_id
+            if lst_depend:
+                self.code_generator_data.dct_data_depend[
+                    abs_path_file
+                ] = lst_depend
 
     def _set_module_menus(self, module):
         """
@@ -2761,7 +3211,7 @@ class CodeGeneratorWriter(models.Model):
             #     )
 
         # Force field name first
-        field_rec_name = model.rec_name if model.rec_name else model._rec_name
+        field_rec_name = model.get_rec_name()
         if not field_rec_name:
             field_rec_name = "name"
         lst_field_rec_name = f2exports.filtered(
@@ -2940,6 +3390,7 @@ class CodeGeneratorWriter(models.Model):
     def get_lst_file_generate(self, module, python_controller_writer):
         l_model_csv_access = []
         l_model_rules = []
+        dct_model_model_xmldata = {}
 
         module.view_file_sync = {}
         module.module_file_sync = {}
@@ -2985,7 +3436,11 @@ class CodeGeneratorWriter(models.Model):
             if s_data2export != "nomenclator" or (
                 s_data2export == "nomenclator" and model.nomenclator
             ):
-                self._set_model_xmldata_file(module, model, model_model)
+                dct_result_xmldata = self._set_model_xmldata_file(
+                    module, model, model_model
+                )
+                if dct_result_xmldata:
+                    dct_model_model_xmldata.update(dct_result_xmldata)
 
             if not module.nomenclator_only:
                 l_model_csv_access += self._get_model_access(module, model)
@@ -2996,6 +3451,8 @@ class CodeGeneratorWriter(models.Model):
             list(set(l_model_csv_access)),
             key=lambda x: x,
         )
+        self._compute_xml_data_file(module, dct_model_model_xmldata)
+        self._write_xml_data_file(dct_model_model_xmldata)
 
         if not module.nomenclator_only:
             application_icon = self._set_module_menus(module)
@@ -3048,6 +3505,62 @@ class CodeGeneratorWriter(models.Model):
 
     def set_extra_get_lst_file_generate(self, module):
         pass
+
+    def write_extra_pre_init_hook(self, module, cw):
+        # Depend on code_generator_hook
+        pass
+
+    def write_extra_post_init_hook(self, module, cw):
+        # Depend on code_generator_hook
+        if module.list_scss_process_hook:
+            lst_scss_process_hook = [
+                a.strip() for a in module.list_scss_process_hook.split(";")
+            ]
+            for scss_process_hook in lst_scss_process_hook:
+                cw.emit(f'xml_id = "{scss_process_hook}"')
+                cw.emit("update_datas_ir_attachment_from_xmlid(env, xml_id)")
+            cw.emit()
+
+    def write_extra_uninstall_hook(self, module, cw):
+        # Depend on code_generator_hook
+        pass
+
+    def write_extra_extra_function_hook(self, module, cw):
+        # Depend on code_generator_hook
+        if module.list_scss_process_hook:
+            cw.emit("def update_datas_ir_attachment_from_xmlid(env, xml_id):")
+            with cw.indent():
+                cw.emit(
+                    "dir_path ="
+                    " os.path.normpath(os.path.join(os.path.dirname(__file__),"
+                    ' ".."))'
+                )
+                cw.emit(
+                    'ir_attach_id_name = env["ir.model.data"].search([("name",'
+                    ' "=", xml_id)])'
+                )
+                cw.emit("if not ir_attach_id_name:")
+                with cw.indent():
+                    cw.emit(
+                        '_logger.warning(f"Cannot find ir.attachment id'
+                        " '{xml_id}'\")"
+                    )
+                    cw.emit("return")
+                cw.emit(
+                    "ir_attach_id ="
+                    ' env["ir.attachment"].browse(ir_attach_id_name.res_id)'
+                )
+                cw.emit("file_path = dir_path + ir_attach_id.url")
+                cw.emit("if not os.path.isfile(file_path):")
+                with cw.indent():
+                    cw.emit(
+                        "_logger.warning(f\"File not exist '{file_path}'\")"
+                    )
+                    cw.emit("return")
+                cw.emit(
+                    'datas = base64.b64encode(open(file_path, "rb").read())'
+                )
+                cw.emit('ir_attach_id.write({"datas": datas})')
 
     @api.multi
     def generate_writer(self, vals):

@@ -1841,7 +1841,7 @@ _logger = logging.getLogger(__name__)"""
 
                 if not view.active:
                     lst_field.append(
-                        E.field({"name": "active", "eval": False})
+                        E.field({"name": "active", "eval": "False"})
                     )
 
                 if view.arch_db:
@@ -2002,7 +2002,9 @@ _logger = logging.getLogger(__name__)"""
                     )
 
                 if act_window.usage:
-                    lst_field.append(E.field({"name": "usage", "eval": True}))
+                    lst_field.append(
+                        E.field({"name": "usage", "eval": "True"})
+                    )
 
                 if act_window.limit != 80 and act_window.limit != 0:
                     lst_field.append(
@@ -2022,15 +2024,19 @@ _logger = logging.getLogger(__name__)"""
                     )
 
                 if act_window.filter:
-                    lst_field.append(E.field({"name": "filter", "eval": True}))
+                    lst_field.append(
+                        E.field({"name": "filter", "eval": "True"})
+                    )
 
                 if not act_window.auto_search:
                     lst_field.append(
-                        E.field({"name": "auto_search", "eval": False})
+                        E.field({"name": "auto_search", "eval": "False"})
                     )
 
                 if act_window.multi:
-                    lst_field.append(E.field({"name": "multi", "eval": True}))
+                    lst_field.append(
+                        E.field({"name": "multi", "eval": "True"})
+                    )
 
                 if act_window.help:
                     lst_field.append(

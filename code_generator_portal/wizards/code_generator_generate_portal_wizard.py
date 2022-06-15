@@ -71,8 +71,6 @@ def _get_field_by_user(model_id, keep_name=False):
 class CodeGeneratorGeneratePortalWizard(models.TransientModel):
     _inherit = "code.generator.generate.views.wizard"
 
-    selected_model_portal_ids = fields.Many2many(comodel_name="ir.model")
-
     enable_generate_portal = fields.Boolean(
         string="Enable portal feature",
         default=False,
@@ -105,9 +103,9 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
         self.code_generator_id.enable_generate_portal = True
 
         o2m_models = (
-            self.code_generator_id.o2m_models
-            if self.all_model
-            else self.selected_model_ids
+            self.code_generator_id.selected_model_portal_ids
+            if self.code_generator_id.selected_model_portal_ids
+            else self.code_generator_id.o2m_models
         )
         self.generate_portal_menu_entry(
             o2m_models, self.code_generator_id.name

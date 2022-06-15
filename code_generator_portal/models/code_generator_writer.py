@@ -130,6 +130,11 @@ class CodeGeneratorWriter(models.Model):
         )
 
     def _cb_set_portal_controller_file(self, module, cw):
+        o2m_models = (
+            module.selected_model_portal_ids
+            if module.selected_model_portal_ids
+            else module.o2m_models
+        )
         cw.emit("def _prepare_portal_layout_values(self):")
         with cw.indent():
             cw.emit(
@@ -137,7 +142,7 @@ class CodeGeneratorWriter(models.Model):
                 f" super({module.name.replace('_', ' ').title().replace(' ', '')}Controller,"
                 " self)._prepare_portal_layout_values()"
             )
-            for model in module.o2m_models:
+            for model in o2m_models:
                 cw.emit(
                     f"values['{self._fmt_underscores(model.model)}_count']"
                     f" = request.env['{model.model}'].search_count([])"
@@ -145,7 +150,7 @@ class CodeGeneratorWriter(models.Model):
             cw.emit("return values")
         cw.emit()
 
-        for model in module.o2m_models:
+        for model in o2m_models:
             has_group_by = False
             cw.emit(
                 "# ------------------------------------------------------------"
@@ -499,7 +504,12 @@ class CodeGeneratorWriter(models.Model):
         )
 
     def _cb_set_portal_controller_main_file(self, module, cw):
-        for model_id in module.o2m_models:
+        o2m_models = (
+            module.selected_model_portal_ids
+            if module.selected_model_portal_ids
+            else module.o2m_models
+        )
+        for model_id in o2m_models:
             lst_field_id = _get_field_by_user(model_id, keep_name=True)
             cw.emit(
                 f'@http.route("/new/{_fmt_underscores(model_id.model)}",'

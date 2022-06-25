@@ -1,4 +1,7 @@
 import logging
+import os
+
+from code_writer import CodeWriter
 
 from odoo import api, fields, models, modules, tools
 from odoo.models import MAGIC_COLUMNS
@@ -96,6 +99,10 @@ class CodeGeneratorWriter(models.Model):
             if module.portal_enable_create:
                 # Controller main
                 self._set_portal_controller_main_file(python_controller_writer)
+                has_field_type_date = module.has_field_type_date()
+                self._set_website_portal_static_javascript_file(
+                    module, has_field_type_date
+                )
 
         super(CodeGeneratorWriter, self).get_lst_file_generate(
             module, python_controller_writer
@@ -128,6 +135,77 @@ class CodeGeneratorWriter(models.Model):
             self._cb_set_portal_controller_file,
             inherit_class="CustomerPortal",
         )
+
+    def _set_website_portal_static_javascript_file(
+        self, module, has_field_type_date
+    ):
+        if not has_field_type_date:
+            return
+
+        # TODO this feature need to be in framework, and not copied on each module who need it
+
+        module_name_javascript = f"{module.name}.{module.name}_portal"
+
+        content = (
+            f"odoo.define('{module_name_javascript}', function (require) "
+            + """{
+    'use strict';
+
+    require('web.dom_ready');
+    let time = require('web.time');
+    let ajax = require('web.ajax');
+    let base = require('web_editor.base');
+    let context = require('web_editor.context');
+
+    function load_locale() {
+        let url = "/web/webclient/locale/" + context.get().lang || 'en_US';
+        return ajax.loadJS(url);
+    }
+
+    let ready_with_locale = $.when(base.ready(), load_locale());
+    ready_with_locale.then(function () {
+        _.each($('.input-group.date'), function (date_field) {
+            let minDate = $(date_field).data('mindate') || moment({y: 1900});
+            let maxDate = $(date_field).data('maxdate') || moment().add(200, "y");
+            let options = {
+                minDate: minDate,
+                maxDate: maxDate,
+                calendarWeeks: true,
+                icons: {
+                    time: 'fa fa-clock-o',
+                    date: 'fa fa-calendar',
+                    next: 'fa fa-chevron-right',
+                    previous: 'fa fa-chevron-left',
+                    up: 'fa fa-chevron-up',
+                    down: 'fa fa-chevron-down',
+                },
+                locale: moment.locale(),
+                allowInputToggle: true,
+                keyBinds: null,
+            };
+            if ($(date_field).find(".o_website_form_date").length > 0) {
+                options.format = time.getLangDateFormat();
+            } else if ($(date_field).find(".o_website_form_clock").length > 0) {
+                // options.format = time.getLangTimeFormat();
+                options.format = "HH:mm";
+                options.defaultDate = moment("00:00", "HH:mm");
+            } else {
+                options.format = time.getLangDatetimeFormat();
+            }
+            $('#' + date_field.id).datetimepicker(options);
+        })
+    });
+})
+        """
+        )
+
+        file_path = os.path.join(
+            "static",
+            "src",
+            "js",
+            f"portal.{module.name}.js",
+        )
+        self.code_generator_data.write_file_str(file_path, content)
 
     def _cb_set_portal_controller_file(self, module, cw):
         o2m_models = (
@@ -771,6 +849,7 @@ class CodeGeneratorWriter(models.Model):
                         "html",
                         "date",
                         "datetime",
+                        "selection",
                     ):
                         cw.emit(f"if kw.get('{field_id.name}'):")
                         with cw.indent():

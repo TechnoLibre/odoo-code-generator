@@ -1,5 +1,6 @@
 import logging
 import uuid
+from collections import OrderedDict
 
 from lxml import etree as ET
 from lxml.builder import E
@@ -121,6 +122,9 @@ class CodeGeneratorGeneratePortalWizard(models.TransientModel):
         )
         if self.portal_enable_create:
             self.generate_portal_create_model(
+                o2m_models, self.code_generator_id.name
+            )
+            self.generate_portal_assets(
                 o2m_models, self.code_generator_id.name
             )
 
@@ -640,16 +644,19 @@ for {var_name} in self:
                             f" '{field.relation_field}' ."
                         )
                     else:
-                        field.relation_field_id = (
-                            self.env["ir.model.fields"]
-                            .search(
-                                [
-                                    ("model", "=", field.relation),
-                                    ("name", "=", field.relation_field),
-                                ]
+                        try:
+                            field.relation_field_id = (
+                                self.env["ir.model.fields"]
+                                .search(
+                                    [
+                                        ("model", "=", field.relation),
+                                        ("name", "=", field.relation_field),
+                                    ]
+                                )
+                                .id
                             )
-                            .id
-                        )
+                        except Exception as e:
+                            print(e)
 
                 str_field_data = (
                     f"{_fmt_underscores(model.model)}.{field.name}"
@@ -1058,6 +1065,21 @@ for {var_name} in self:
 
         return lst_views
 
+    def generate_portal_assets(self, o2m_models, module_name):
+        has_field_type_date = self.code_generator_id.has_field_type_date()
+        if has_field_type_date:
+            qweb_name = "Portal assets frontend"
+            model_created = o2m_models[0]
+            module_name = self.code_generator_id.name
+            content = f"""<xpath expr="//script[last()]" position="after">
+<script type="text/javascript" src="/{module_name}/static/src/js/portal.{module_name}.js" />
+</xpath>"""
+            key = f"assets_frontend_{self.code_generator_id.name}_portal"
+            inherit_id = self.env.ref("website.assets_frontend").id
+            view_value = self._create_ui_view(
+                content, key, qweb_name, None, inherit_id, model_created
+            )
+
     def generate_portal_create_model(self, o2m_models, module_name):
         model_created = o2m_models[0]
         dct_replace = {}
@@ -1152,7 +1174,7 @@ for {var_name} in self:
                 if field_id.ttype == "char":
                     dct_sub_item = {
                         "type": "text",
-                        "class": "form-control",
+                        "class": "form-control o_website_form_input",
                         "name": field_id.name,
                     }
 
@@ -1174,7 +1196,7 @@ for {var_name} in self:
                     sub_item = E.input(dct_sub_item)
                 elif field_id.ttype in ("text", "html"):
                     dct_sub_item = {
-                        "class": "form-control",
+                        "class": "form-control o_website_form_input",
                         "name": field_id.name,
                         "style": "min-height: 120px",
                     }
@@ -1218,7 +1240,7 @@ for {var_name} in self:
                     var_rec_name = self.env[field_id.relation]._rec_name
 
                     dct_select_attr = {
-                        "class": "form-control",
+                        "class": "form-control o_website_form_input",
                         "id": field_id.name,
                         "name": field_id.name,
                     }
@@ -1264,6 +1286,7 @@ for {var_name} in self:
 
                     dct_input_attr = {
                         "type": "checkbox",
+                        "class": "form-control o_website_form_input",
                         "name": field_id.name,
                         "t-att-id": (
                             f"'{field_id.name}_' +"
@@ -1299,8 +1322,9 @@ for {var_name} in self:
                 elif field_id.ttype == "boolean":
                     dct_input_attr = {
                         "type": "checkbox",
+                        "class": "form-control o_website_form_input",
                         "name": field_id.name,
-                        "t-att-id": field_id.name,
+                        "id": field_id.name,
                         "t-att-value": "True",
                         "t-att-checked": f"default_{field_id.name}",
                     }
@@ -1311,7 +1335,7 @@ for {var_name} in self:
                     sub_item = E.input(dct_input_attr)
                 elif field_id.ttype == "selection":
                     dct_select_attr = {
-                        "class": "form-control",
+                        "class": "form-control o_website_form_input",
                         "id": field_id.name,
                         "name": field_id.name,
                     }
@@ -1341,14 +1365,15 @@ for {var_name} in self:
                             ),
                         ),
                     )
-                elif field_id.ttype in ("float", "integer", "monetary"):
+                elif (
+                    field_id.ttype in ("float", "integer", "monetary")
+                    and not field_id.force_widget == "float_time"
+                ):
                     dct_sub_item = {
                         "type": "text",
-                        "class": "form-control",
+                        "class": "form-control o_website_form_input",
                         "name": field_id.name,
                     }
-                    if field_id.force_widget == "float_time":
-                        dct_sub_item["placeholder"] = "hh:mm"
 
                     if field_id.name in lst_data_field_name:
                         dct_sub_item["t-attf-value"] = (
@@ -1366,32 +1391,54 @@ for {var_name} in self:
                         dct_sub_item["readonly"] = "True"
 
                     sub_item = E.input(dct_sub_item)
-                elif field_id.ttype in ("datetime", "date"):
+                elif (
+                    field_id.ttype in ("datetime", "date")
+                    or field_id.force_widget == "float_time"
+                    and field_id.ttype in ("float",)
+                ):
+                    str_class = (
+                        "form-control datetimepicker-input"
+                        " o_website_form_input"
+                    )
+                    if field_id.ttype == "date":
+                        str_class += f" o_website_form_date"
+                    elif field_id.force_widget == "float_time":
+                        str_class += f" o_website_form_clock"
                     id_name = f"{field_id.name}_datepicker"
                     dct_sub_item = {
                         "type": "text",
-                        "class": "form-control datetimepicker-input",
-                        "t-att-data-target": id_name,
-                        "t-att-name": "prefix",
+                        "class": str_class,
+                        "t-attf-data-target": f"#{id_name}",
+                        "name": field_id.name,
                         "t-att-value": f"default_{field_id.name}",
                     }
+
+                    if field_id.force_widget == "float_time":
+                        dct_sub_item["placeholder"] = "hh:mm"
+                    class_str = (
+                        "fa fa-calendar"
+                        if not field_id.force_widget == "float_time"
+                        else "fa fa-clock-o"
+                    )
+
+                    dct_sub_item = OrderedDict(sorted(dct_sub_item.items()))
 
                     sub_item = E.div(
                         {
                             "class": "input-group date",
                             "data-target-input": "nearest",
-                            "t-att-id": id_name,
+                            "t-attf-id": id_name,
                         },
                         E.input(dct_sub_item),
                         E.div(
                             {
                                 "class": "input-group-append",
-                                "t-att-data-target": id_name,
+                                "t-attf-data-target": f"#{id_name}",
                                 "data-toggle": "datetimepicker",
                             },
                             E.div(
                                 {"class": "input-group-text"},
-                                E.i({"class": "fa fa-calendar"}),
+                                E.i({"class": class_str}),
                             ),
                         ),
                     )

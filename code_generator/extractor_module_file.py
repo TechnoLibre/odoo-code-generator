@@ -250,6 +250,7 @@ class ExtractorModuleFile:
             line_size += len(lst_line[i_lineno + i].strip())
             while line_size < str_size + extra_size:
                 i += 1
+                line_size += len(lst_line[i_lineno + i].strip())
             i_lineno += i + 1
         return i_lineno
 

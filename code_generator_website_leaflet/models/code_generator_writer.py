@@ -268,6 +268,15 @@ class CodeGeneratorWriter(models.Model):
         """
 
         content = (
+            """function force_refresh_map(map) {
+    map.invalidateSize(true);
+
+    setTimeout(function () {
+        force_refresh_map(map);
+    }, 1000);
+}
+
+"""
             f"odoo.define('{module.name}.animation', function (require)"
             """ {
     'use strict';
@@ -285,7 +294,7 @@ class CodeGeneratorWriter(models.Model):
         features = '',
         geojson = '';
 
-    sAnimation.registry.form_builder_send = sAnimation.Class.extend({
+    sAnimation.registry.website_leaflet = sAnimation.Class.extend({
         """
             f"selector: '.{module.name}',"
             """
@@ -340,9 +349,9 @@ class CodeGeneratorWriter(models.Model):
                     console.error("Cannot manage multiple map in one snippet.");
                     return;
                 }
-                div_map.width(size_width);
+                // div_map.width(size_width);
                 // $('#mapid').css('width', size_width);
-                div_map.height(size_height);
+                // div_map.height(size_height);
                 // $('#mapid').css('height', size_height)
                 // hide google icon
                 // $('.img-fluid').hide();
@@ -355,6 +364,7 @@ class CodeGeneratorWriter(models.Model):
 
                 var point = new L.LatLng(lat, lng);
                 var map = L.map(map_id).setView(point, zoom);
+                force_refresh_map(map);
                 L.tileLayer.provider(provider).addTo(map);
                 if (geojson) {
                     L.geoJSON(geojson, {

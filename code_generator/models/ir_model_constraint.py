@@ -119,7 +119,7 @@ class IrModelConstraint(models.Model):
     module = fields.Many2one(
         default=lambda self: self.env["ir.module.module"]
         .search([("name", "=", "base")])[0]
-        .id
+        .id,
     )
 
     @api.model_create_multi

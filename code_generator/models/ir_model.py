@@ -79,11 +79,11 @@ class IrModel(models.Model):
         help=(
             "Set an expression to apply filter when exporting data. example"
             ' ("website_id", "in", [1,2]). Keep it empty to export all data.'
-        ),
+        )
     )
 
     ignore_name_export_data = fields.Char(
-        help="List of ignore file_name separate by ;",
+        help="List of ignore file_name separate by ;"
     )
 
     inherit_model_ids = fields.Many2many(

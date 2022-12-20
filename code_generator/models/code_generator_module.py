@@ -70,18 +70,18 @@ class CodeGeneratorModule(models.Model):
         help="Will sync with code on drive when generate."
     )
 
+    exclude_dependencies_str = fields.Char(
+        help=(
+            "Exclude from list dependencies_id about"
+            " code.generator.module.dependency name separate by ;"
+        )
+    )
+
     export_website_optimize_binary_image = fields.Boolean(
         help=(
             "Associate with nomenclator export data. Search url /web/image/ in"
             " website page and remove ir.attachment who is not into view."
             " Remove duplicate same attachment, image or scss."
-        )
-    )
-
-    exclude_dependencies_str = fields.Char(
-        help=(
-            "Exclude from list dependencies_id about"
-            " code.generator.module.dependency name separate by ;"
         )
     )
 
@@ -112,7 +112,7 @@ class CodeGeneratorModule(models.Model):
             "READONLY, use by computation. Value are separated by ;. List of"
             " xml_id to compute scss in hook when export website data with"
             " scss modification."
-        ),
+        )
     )
 
     maintainer = fields.Char(readonly=False)
@@ -206,6 +206,15 @@ class CodeGeneratorModule(models.Model):
         domain=[("nomenclature_whitelist", "=", True)],
     )
 
+    path_sync_code = fields.Char(
+        string="Directory",
+        default="/home/mathben/git/ERPLibre2/addons/TechnoLibre_odoo-code-generator-template",
+        help=(
+            "Path directory where sync the code, will erase directory and"
+            " generate new code."
+        ),
+    )
+
     published_version = fields.Char(readonly=False)
 
     shortdesc = fields.Char(
@@ -267,15 +276,6 @@ class CodeGeneratorModule(models.Model):
         return os.path.normpath(
             os.path.join(os.path.dirname(__file__), "..", "..")
         )
-
-    path_sync_code = fields.Char(
-        string="Directory",
-        default=_default_path_sync_code,
-        help=(
-            "Path directory where sync the code, will erase directory and"
-            " generate new code."
-        ),
-    )
 
     @api.depends("template_module_name")
     @api.multi

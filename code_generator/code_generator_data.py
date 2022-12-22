@@ -5,7 +5,6 @@ import shutil
 import subprocess
 from collections import defaultdict
 
-import html5print
 import xmlformatter
 from code_writer import CodeWriter
 
@@ -527,7 +526,6 @@ class CodeGeneratorData:
         use_prettier = True
         use_format_black = True  # Else, oca-autopep8
         use_clean_import_isort = True
-        use_html5print = False
         enable_xml_formatter = False  # Else, prettier-xml
         # Manual format with def with programmer style
         for path_file in self.lst_path_file:
@@ -566,17 +564,6 @@ class CodeGeneratorData:
                     result = self.subprocess_cmd(cmd)
                     if result:
                         _logger.info(f"prettier {result.decode()}")
-                elif use_html5print:
-                    with open(path_file, "r") as source:
-                        lines = source.read()
-                        try:
-                            lines_out = html5print.JSBeautifier.beautify(
-                                lines, 4
-                            )
-                            self.write_file_str(relative_path, lines_out)
-                        except Exception as e:
-                            _logger.error(e)
-                            _logger.error(f"Check file {path_file}")
                 else:
                     cmd = (
                         f"cd {workspace_path};."
@@ -592,17 +579,6 @@ class CodeGeneratorData:
                     result = self.subprocess_cmd(cmd)
                     if result:
                         _logger.info(f"prettier {result.decode()}")
-                elif use_html5print:
-                    with open(path_file, "r") as source:
-                        lines = source.read()
-                        try:
-                            lines_out = html5print.CSSBeautifier.beautify(
-                                lines, 2
-                            )
-                            self.write_file_str(relative_path, lines_out)
-                        except Exception as e:
-                            _logger.error(e)
-                            _logger.error(f"Check file {path_file}")
                 else:
                     cmd = (
                         f"cd {workspace_path};."
@@ -618,17 +594,6 @@ class CodeGeneratorData:
                     result = self.subprocess_cmd(cmd)
                     if result:
                         _logger.info(f"prettier {result.decode()}")
-                elif use_html5print:
-                    with open(path_file, "r") as source:
-                        lines = source.read()
-                        try:
-                            lines_out = html5print.HTMLBeautifier.beautify(
-                                lines, 4
-                            )
-                            self.write_file_str(relative_path, lines_out)
-                        except Exception as e:
-                            _logger.error(e)
-                            _logger.error(f"Check file {path_file}")
                 else:
                     cmd = (
                         f"cd {workspace_path};."

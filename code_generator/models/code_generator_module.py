@@ -70,18 +70,18 @@ class CodeGeneratorModule(models.Model):
         help="Will sync with code on drive when generate."
     )
 
+    exclude_dependencies_str = fields.Char(
+        help=(
+            "Exclude from list dependencies_id about"
+            " code.generator.module.dependency name separate by ;"
+        )
+    )
+
     export_website_optimize_binary_image = fields.Boolean(
         help=(
             "Associate with nomenclator export data. Search url /web/image/ in"
             " website page and remove ir.attachment who is not into view."
             " Remove duplicate same attachment, image or scss."
-        )
-    )
-
-    exclude_dependencies_str = fields.Char(
-        help=(
-            "Exclude from list dependencies_id about"
-            " code.generator.module.dependency name separate by ;"
         )
     )
 
@@ -112,7 +112,7 @@ class CodeGeneratorModule(models.Model):
             "READONLY, use by computation. Value are separated by ;. List of"
             " xml_id to compute scss in hook when export website data with"
             " scss modification."
-        ),
+        )
     )
 
     maintainer = fields.Char(readonly=False)
@@ -206,6 +206,15 @@ class CodeGeneratorModule(models.Model):
         domain=[("nomenclature_whitelist", "=", True)],
     )
 
+    path_sync_code = fields.Char(
+        string="Directory",
+        default="/home/mathben/git/ERPLibre2/addons/TechnoLibre_odoo-code-generator-template",
+        help=(
+            "Path directory where sync the code, will erase directory and"
+            " generate new code."
+        ),
+    )
+
     published_version = fields.Char(readonly=False)
 
     shortdesc = fields.Char(
@@ -267,15 +276,6 @@ class CodeGeneratorModule(models.Model):
         return os.path.normpath(
             os.path.join(os.path.dirname(__file__), "..", "..")
         )
-
-    path_sync_code = fields.Char(
-        string="Directory",
-        default=_default_path_sync_code,
-        help=(
-            "Path directory where sync the code, will erase directory and"
-            " generate new code."
-        ),
-    )
 
     @api.depends("template_module_name")
     @api.multi
@@ -467,6 +467,7 @@ class CodeGeneratorModule(models.Model):
                             value_ir_model_fields
                         )
                     else:
+                        # Support model of code generator or model already existing (like inherit)
                         value_ir_model_fields = {
                             "m2o_fields": field_id.id,
                         }
@@ -478,6 +479,16 @@ class CodeGeneratorModule(models.Model):
                         )
                         self._update_dict(
                             "code_generator_compute",
+                            field_info,
+                            value_ir_model_fields,
+                        )
+                        self._update_dict(
+                            "comment_before",
+                            field_info,
+                            value_ir_model_fields,
+                        )
+                        self._update_dict(
+                            "comment_after",
                             field_info,
                             value_ir_model_fields,
                         )
@@ -636,16 +647,34 @@ class CodeGeneratorModule(models.Model):
 
                     self.env["ir.model.fields"].create(value_field_one2many)
                 else:
-                    if "field_context" in field_info.keys():
+                    # Support model of code generator or model already existing (like inherit)
+                    if (
+                        "field_context" in field_info.keys()
+                        or "comment_before" in field_info.keys()
+                        or "comment_after" in field_info.keys()
+                    ):
                         value_ir_model_fields = {
                             "m2o_fields": field_id.id,
                         }
-                        # TODO find missing attribute
-                        self._update_dict(
-                            "field_context",
-                            field_info,
-                            value_ir_model_fields,
-                        )
+                        if "field_context" in field_info.keys():
+                            # TODO find missing attribute
+                            self._update_dict(
+                                "field_context",
+                                field_info,
+                                value_ir_model_fields,
+                            )
+                        if "comment_before" in field_info.keys():
+                            self._update_dict(
+                                "comment_before",
+                                field_info,
+                                value_ir_model_fields,
+                            )
+                        if "comment_after" in field_info.keys():
+                            self._update_dict(
+                                "comment_after",
+                                field_info,
+                                value_ir_model_fields,
+                            )
                         self.env["code.generator.ir.model.fields"].create(
                             value_ir_model_fields
                         )

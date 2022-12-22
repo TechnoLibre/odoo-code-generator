@@ -152,6 +152,7 @@ class ExtractorModule:
                 continue
             with open(py_file, "r") as source:
                 f_lines = source.read()
+                # TODO use ast.parse(f_lines, type_comments=True), need python 3.8
                 f_ast = ast.parse(f_lines)
                 class_model_ast, next_model_ast = self.search_class_model(
                     f_ast
@@ -176,7 +177,7 @@ class ExtractorModule:
         find_children = None
         for children in f_ast.body:
             if find_children:
-                # children is next node
+                # children are next node
                 return find_children, children
             # TODO check bases of class if equal models.Model for better performance
             # TODO check multiple class

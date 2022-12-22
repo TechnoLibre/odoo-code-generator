@@ -195,6 +195,22 @@ class IrModelFields(models.Model):
         help="Sequence to write this field in tree view from Code Generator.",
     )
 
+    comment_after = fields.Char(
+        string="Comment after field",
+        help=(
+            "Will show comment after writing field in python. Support"
+            " multiline. The comment is after if at the end of file."
+        ),
+    )
+
+    comment_before = fields.Char(
+        string="Comment before field",
+        help=(
+            "Will show comment before writing field in python. Support"
+            " multiline."
+        ),
+    )
+
     default = fields.Char(string="Default value")
 
     default_lambda = fields.Char(string="Default lambda value")
@@ -350,6 +366,7 @@ class IrModelFields(models.Model):
 
     @api.model
     def is_show_whitelist_model_inherit_call(self):
+        # TODO bug when multiple id
         if self.code_generator_ir_model_fields_ids:
             return (
                 self.code_generator_ir_model_fields_ids.is_show_whitelist_model_inherit
@@ -361,6 +378,18 @@ class IrModelFields(models.Model):
         if self.code_generator_ir_model_fields_ids:
             return self.code_generator_ir_model_fields_ids.default_lambda
         return self.default_lambda
+
+    @api.model
+    def get_comment_before(self):
+        if self.code_generator_ir_model_fields_ids:
+            return self.code_generator_ir_model_fields_ids.comment_before
+        return self.comment_before
+
+    @api.model
+    def get_comment_after(self):
+        if self.code_generator_ir_model_fields_ids:
+            return self.code_generator_ir_model_fields_ids.comment_after
+        return self.comment_after
 
     @api.model
     def get_field_context(self):

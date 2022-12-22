@@ -15,6 +15,22 @@ class CodeGeneratorIrModelFields(models.Model):
         help="Compute method to code_generator_writer.",
     )
 
+    comment_after = fields.Char(
+        string="Comment after field",
+        help=(
+            "Will show comment after writing field in python. Support"
+            " multiline. The comment is after if at the end of file."
+        ),
+    )
+
+    comment_before = fields.Char(
+        string="Comment before field",
+        help=(
+            "Will show comment before writing field in python. Support"
+            " multiline."
+        ),
+    )
+
     default_lambda = fields.Char(string="Default lambda value")
 
     field_context = fields.Char()

@@ -3284,7 +3284,14 @@ _logger = logging.getLogger(__name__)"""
             has_endline,
             compute,
         ) in lst_field_to_write:
+            # Write comment
             cw.emit()
+            str_comment_before = f2export.get_comment_before()
+            if str_comment_before:
+                for str_comment in str_comment_before.split("\n"):
+                    cw.emit(f"# {str_comment}")
+
+            # Write field
             if not has_endline:
                 cw.emit_list(
                     lst_field_attribute,
@@ -3313,6 +3320,13 @@ _logger = logging.getLogger(__name__)"""
                         else:
                             cw.emit(f"{item},")
                 cw.emit(")")
+
+            # Write comment
+            str_comment_after = f2export.get_comment_after()
+            if str_comment_after:
+                for str_comment in str_comment_after.split("\n"):
+                    cw.emit(f"# {str_comment}")
+                cw.emit()
 
             if compute:
                 cw.emit()
@@ -3542,8 +3556,7 @@ _logger = logging.getLogger(__name__)"""
                 cw.emit("if not ir_attach_id_name:")
                 with cw.indent():
                     cw.emit(
-                        '_logger.warning(f"Cannot find ir.attachment id'
-                        " '{xml_id}'\")"
+                        """_logger.warning(f"Cannot find ir.attachment id '{xml_id}'")"""
                     )
                     cw.emit("return")
                 cw.emit(
@@ -3554,7 +3567,7 @@ _logger = logging.getLogger(__name__)"""
                 cw.emit("if not os.path.isfile(file_path):")
                 with cw.indent():
                     cw.emit(
-                        "_logger.warning(f\"File not exist '{file_path}'\")"
+                        """_logger.warning(f"File not exist '{file_path}'")"""
                     )
                     cw.emit("return")
                 cw.emit(

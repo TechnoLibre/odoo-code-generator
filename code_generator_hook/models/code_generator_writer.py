@@ -1417,6 +1417,20 @@ class CodeGeneratorWriter(models.Model):
             dct_field_value["field_description"] = field_id.field_description
             dct_field_value["ttype"] = field_id.ttype
 
+            if field_id.comment_before:
+                dct_field_value["comment_before"] = field_id.comment_before
+            elif ast_attr.get("comment_before"):
+                dct_field_value["comment_before"] = ast_attr.get(
+                    "comment_before"
+                )
+
+            if field_id.comment_after:
+                dct_field_value["comment_after"] = field_id.comment_after
+            elif ast_attr.get("comment_after"):
+                dct_field_value["comment_after"] = ast_attr.get(
+                    "comment_after"
+                )
+
             if field_id.required:
                 dct_field_value["required"] = field_id.required
 

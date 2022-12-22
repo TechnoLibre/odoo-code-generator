@@ -467,6 +467,7 @@ class CodeGeneratorModule(models.Model):
                             value_ir_model_fields
                         )
                     else:
+                        # Support model of code generator or model already existing (like inherit)
                         value_ir_model_fields = {
                             "m2o_fields": field_id.id,
                         }
@@ -478,6 +479,16 @@ class CodeGeneratorModule(models.Model):
                         )
                         self._update_dict(
                             "code_generator_compute",
+                            field_info,
+                            value_ir_model_fields,
+                        )
+                        self._update_dict(
+                            "comment_before",
+                            field_info,
+                            value_ir_model_fields,
+                        )
+                        self._update_dict(
+                            "comment_after",
                             field_info,
                             value_ir_model_fields,
                         )
@@ -636,16 +647,34 @@ class CodeGeneratorModule(models.Model):
 
                     self.env["ir.model.fields"].create(value_field_one2many)
                 else:
-                    if "field_context" in field_info.keys():
+                    # Support model of code generator or model already existing (like inherit)
+                    if (
+                        "field_context" in field_info.keys()
+                        or "comment_before" in field_info.keys()
+                        or "comment_after" in field_info.keys()
+                    ):
                         value_ir_model_fields = {
                             "m2o_fields": field_id.id,
                         }
-                        # TODO find missing attribute
-                        self._update_dict(
-                            "field_context",
-                            field_info,
-                            value_ir_model_fields,
-                        )
+                        if "field_context" in field_info.keys():
+                            # TODO find missing attribute
+                            self._update_dict(
+                                "field_context",
+                                field_info,
+                                value_ir_model_fields,
+                            )
+                        if "comment_before" in field_info.keys():
+                            self._update_dict(
+                                "comment_before",
+                                field_info,
+                                value_ir_model_fields,
+                            )
+                        if "comment_after" in field_info.keys():
+                            self._update_dict(
+                                "comment_after",
+                                field_info,
+                                value_ir_model_fields,
+                            )
                         self.env["code.generator.ir.model.fields"].create(
                             value_ir_model_fields
                         )

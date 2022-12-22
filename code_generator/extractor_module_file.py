@@ -28,6 +28,40 @@ class ExtractorModuleFile:
         self.view_file_sync_model = view_file_sync_model
         self.model_id = model_id
         self.next_model_ast = next_model_ast
+        self.lst_comment = []
+        self._extract_comment()
+
+    def _extract_comment(self):
+        # structure of comment
+        last_comment = ""
+        last_i = -1
+        obj = {}
+        for i, line in enumerate(self.lst_line):
+            strip_line = line.strip()
+            # TODO support when # is not a real comment, but a char in string
+            # Trick, check in AST if # in string and ignore it
+            # TODO missing support when comment is at the end of code, or inside statement
+            if strip_line and strip_line[0] == "#":
+                if last_i != -1:
+                    # Update last comment
+                    last_comment += "\n" + strip_line.lstrip("#").lstrip()
+                    obj["comment"] = last_comment
+                else:
+                    last_comment = strip_line.lstrip("#").lstrip()
+                    obj = {
+                        "use": False,
+                        "line": i + 1,
+                        "column": 0,
+                        "comment": last_comment,
+                    }
+                    self.lst_comment.append(obj)
+                last_i = i
+            else:
+                last_i = -1
+        _logger.info(
+            f"Detect {len(self.lst_comment)} comment in file"
+            f" {self.py_filename}"
+        )
 
     def extract(self):
         self.search_field()
@@ -86,6 +120,8 @@ class ExtractorModuleFile:
         return result
 
     def search_field(self):
+        # TODO detect manually comment and attach it to model
+        #  until ast support comment, wait after python 3.8 with ast.parse(f_lines, type_comments=True)
         if self.dct_model[self.model]:
             dct_field = self.dct_model[self.model]
         else:
@@ -93,9 +129,7 @@ class ExtractorModuleFile:
             self.dct_model[self.model] = dct_field
         lst_var_name_check = []
 
-        sequence = -1
-        for node in self.class_model_ast.body:
-            sequence += 1
+        for sequence, node in enumerate(self.class_model_ast.body):
             if (
                 type(node) is ast.Assign
                 and type(node.value) is ast.Call
@@ -127,6 +161,14 @@ class ExtractorModuleFile:
                             ) in dct_field_module_attr.items():
                                 d[attr_key] = attr_value
 
+                # Update comment
+                self._detect_comment_for_field(
+                    d,
+                    node,
+                    self.class_model_ast.lineno,
+                    sequence == len(self.class_model_ast.body) - 1,
+                )
+
                 if var_name in dct_field:
                     dct_field[var_name].update(d)
                 else:
@@ -138,6 +180,43 @@ class ExtractorModuleFile:
         )
         for var_name_to_delete in lst_var_name_to_delete:
             del dct_field[var_name_to_delete]
+
+    def _detect_comment_for_field(
+        self, d, node, class_line, is_last_item_of_class
+    ):
+        # d id dict of field
+        # node is ast of field
+        # class_line is int, ignore comment before, because comment is outside class
+        # Will update directly dict of field with comment information
+        lst_comment = list(
+            filter(
+                lambda x: x.get("use") is False
+                and class_line < x.get("line") < node.lineno,
+                self.lst_comment,
+            )
+        )
+        if lst_comment:
+            lst_str_comment = []
+            for cmt in lst_comment:
+                cmt["use"] = True
+                lst_str_comment.append(cmt.get("comment"))
+            comment = "\n".join(lst_str_comment)
+            d["comment_before"] = comment
+        if is_last_item_of_class:
+            lst_comment = list(
+                filter(
+                    lambda x: x.get("use") is False
+                    and x.get("line") > node.lineno,
+                    self.lst_comment,
+                )
+            )
+            if lst_comment:
+                lst_str_comment = []
+                for cmt in lst_comment:
+                    cmt["use"] = True
+                    lst_str_comment.append(cmt.get("comment"))
+                comment = "\n".join(lst_str_comment)
+                d["comment_after"] = comment
 
     def _extract_decorator(self, decorator_list):
         str_decorator = ""

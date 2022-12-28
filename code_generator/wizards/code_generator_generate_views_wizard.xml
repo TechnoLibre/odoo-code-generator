@@ -1,51 +1,51 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-  <record id="code_generator_generate_views_action" model="ir.actions.act_window">
-    <field name="name">Generate Views</field>
-    <field name="type">ir.actions.act_window</field>
-    <field name="res_model">code.generator.generate.views.wizard</field>
-    <field name="view_mode">form</field>
-    <field name="target">new</field>
-  </record>
+    <record id="code_generator_generate_views_action" model="ir.actions.act_window">
+        <field name="name">Generate Views</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">code.generator.generate.views.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
 
-  <record id="code_generator_generate_views_form" model="ir.ui.view">
-    <field name="name">Code Generator Generate views</field>
-    <field name="model">code.generator.generate.views.wizard</field>
-    <field name="arch" type="xml">
-      <form string="Views">
-        <sheet>
-          <group name="invisible" invisible="1">
-            <field name="code_generator_id" invisible="1"/>
-            <field name="user_id" options="{'no_open': False}" invisible="1"/>
-          </group>
-          <group>
-            <group name="generate" string="Generate">
-              <field name="enable_generate_all"/>
-              <field name="all_model"/>
-            </group>
-            <group name="clear" string="Clear">
-              <field name="clear_all_access"/>
-              <field name="clear_all_act_window"/>
-              <field name="clear_all_menu"/>
-              <field name="clear_all_view"/>
-            </group>
-          </group>
-          <notebook>
-            <page name="internal_view" string="Internal view">
-              <group string="Model View Tree" attrs="{'invisible': [('all_model', '=', True)]}">
-                <field name="selected_model_tree_view_ids" nolabel="1"/>
-              </group>
-              <group string="Model View Form" attrs="{'invisible': [('all_model', '=', True)]}">
-                <field name="selected_model_form_view_ids" nolabel="1"/>
-              </group>
-            </page>
-          </notebook>
-          <footer>
-            <button string="_Generate" name="button_generate_views" type="object" class="btn-primary"/>
-            <button string="Cancel" class="btn-default" special="cancel"/>
-          </footer>
-        </sheet>
-      </form>
-    </field>
-  </record>
+    <record id="code_generator_generate_views_form" model="ir.ui.view">
+        <field name="name">Code Generator Generate views</field>
+        <field name="model">code.generator.generate.views.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Views">
+                <sheet>
+                    <group name="invisible" invisible="1">
+                        <field name="code_generator_id" invisible="1" />
+                        <field name="user_id" options="{'no_open': False}" invisible="1" />
+                    </group>
+                    <group>
+                        <group name="generate" string="Generate">
+                            <field name="enable_generate_all" />
+                            <field name="all_model" />
+                        </group>
+                        <group name="clear" string="Clear">
+                            <field name="clear_all_access" />
+                            <field name="clear_all_act_window" />
+                            <field name="clear_all_menu" />
+                            <field name="clear_all_view" />
+                        </group>
+                    </group>
+                    <notebook>
+                        <page name="internal_view" string="Internal view">
+                            <group string="Model View Tree" attrs="{'invisible': [('all_model', '=', True)]}">
+                                <field name="selected_model_tree_view_ids" nolabel="1" />
+                            </group>
+                            <group string="Model View Form" attrs="{'invisible': [('all_model', '=', True)]}">
+                                <field name="selected_model_form_view_ids" nolabel="1" />
+                            </group>
+                        </page>
+                    </notebook>
+                    <footer>
+                        <button string="_Generate" name="button_generate_views" type="object" class="btn-primary" />
+                        <button string="Cancel" class="btn-default" special="cancel" />
+                    </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
 </odoo>

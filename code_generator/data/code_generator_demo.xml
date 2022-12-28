@@ -1,80 +1,86 @@
-<?xml version= "1.0" ?>
+<?xml version="1.0" ?>
 <odoo>
+    <data noupdate="1">
+        <record model="code.generator.module" id="code_generator_demo_module">
+            <field name="shortdesc">Code Generator Demo Module</field>
+            <field name="author">Code Generator Demo Module Author</field>
+            <field name="name">code_generator_demo_module</field>
+            <field name="summary">This is a Demo module to help you get started with the Code Generator module</field>
+            <field name="application" eval="True" />
+        </record>
 
-  <data noupdate="1">
+        <record model="res.groups" id="code_generator_demo_module_manager_group">
+            <field name="name">Code Generator Demo Module Manager Group</field>
+            <field name="m2o_module" ref="code_generator_demo_module" />
+        </record>
 
-    <record model="code.generator.module" id="code_generator_demo_module">
-      <field name="shortdesc">Code Generator Demo Module</field>
-      <field name="author">Code Generator Demo Module Author</field>
-      <field name="name">code_generator_demo_module</field>
-      <field name="summary">This is a Demo module to help you get started with the Code Generator module</field>
-      <field name="application" eval="True"/>
-    </record>
+        <record model="res.groups" id="code_generator_demo_module_reader_group">
+            <field name="name">Code Generator Demo Module Reader Group</field>
+            <field name="m2o_module" ref="code_generator_demo_module" />
+        </record>
 
-    <record model="res.groups" id="code_generator_demo_module_manager_group">
-      <field name="name">Code Generator Demo Module Manager Group</field>
-      <field name="m2o_module" ref="code_generator_demo_module"/>
-    </record>
+        <record model="ir.model" id="code_generator_demo_module_model">
+            <field name="name">Demo model</field>
+            <field name="model">code.generator.demo.module.model</field>
+            <field name="rec_name">description</field>
+            <field name="m2o_module" ref="code_generator_demo_module" />
+            <field
+                name="field_id"
+                eval="[(0, 0, {'name':'name','field_description':'Demo Model Name Field','ttype':'char','help':'Demo Model Name Field','required':True,'size':8}),(0, 0, {'name':'description','field_description':'Demo Model Description Field','ttype':'char','help':'Demo Model Description Field','required':True,'size':25}),(0, 0, {'name':'active','field_description':'Demo Model Active Field','ttype':'boolean','help':'Demo Model Active Field'}),(0, 0, {'name':'state','field_description':'Demo Model State Field','ttype':'selection','help':'Demo Model State Field','selection':'[(\'draft\',\'Draft\'),(\'approved\',\'Approved\')]'})]"
+            />
+        </record>
 
-    <record model="res.groups" id="code_generator_demo_module_reader_group">
-      <field name="name">Code Generator Demo Module Reader Group</field>
-      <field name="m2o_module" ref="code_generator_demo_module"/>
-    </record>
+        <record model="ir.default" id="code_generator_demo_module_model_field_active">
+            <field
+                name="field_id"
+                search="[('name', '=', 'active'), ('model_id', '=', ref('code_generator.code_generator_demo_module_model'))]"
+                model="ir.model.fields"
+            />
+            <field name="json_value">"True"</field>
+        </record>
 
-    <record model="ir.model" id="code_generator_demo_module_model">
-      <field name="name">Demo model</field>
-      <field name="model">code.generator.demo.module.model</field>
-      <field name="rec_name">description</field>
-      <field name="m2o_module" ref="code_generator_demo_module"/>
-      <field name="field_id"
-             eval="[(0, 0, {'name':'name','field_description':'Demo Model Name Field','ttype':'char','help':'Demo Model Name Field','required':True,'size':8}),(0, 0, {'name':'description','field_description':'Demo Model Description Field','ttype':'char','help':'Demo Model Description Field','required':True,'size':25}),(0, 0, {'name':'active','field_description':'Demo Model Active Field','ttype':'boolean','help':'Demo Model Active Field'}),(0, 0, {'name':'state','field_description':'Demo Model State Field','ttype':'selection','help':'Demo Model State Field','selection':'[(\'draft\',\'Draft\'),(\'approved\',\'Approved\')]'})]"/>
-    </record>
+        <record model="ir.default" id="code_generator_demo_module_model_field_state">
+            <field
+                name="field_id"
+                search="[('name', '=', 'state'), ('model_id', '=', ref('code_generator.code_generator_demo_module_model'))]"
+                model="ir.model.fields"
+            />
+            <field name="json_value">"draft"</field>
+        </record>
 
-    <record model="ir.default" id="code_generator_demo_module_model_field_active">
-      <field name="field_id"
-             search="[('name', '=', 'active'), ('model_id', '=', ref('code_generator.code_generator_demo_module_model'))]"
-             model="ir.model.fields"/>
-      <field name="json_value">"True"</field>
-    </record>
+        <record model="ir.model.access" id="code_generator_demo_module_manager_access">
+            <field name="name">Code Generator Demo Module Manager Access</field>
+            <field name="model_id" ref="code_generator_demo_module_model" />
+            <field name="group_id" ref="code_generator_demo_module_manager_group" />
+            <field name="perm_read" eval="True" />
+            <field name="perm_create" eval="True" />
+            <field name="perm_write" eval="True" />
+            <field name="perm_unlink" eval="True" />
+        </record>
 
-    <record model="ir.default" id="code_generator_demo_module_model_field_state">
-      <field name="field_id"
-             search="[('name', '=', 'state'), ('model_id', '=', ref('code_generator.code_generator_demo_module_model'))]"
-             model="ir.model.fields"/>
-      <field name="json_value">"draft"</field>
-    </record>
+        <record model="ir.model.access" id="code_generator_demo_module_reader_access">
+            <field name="name">Code Generator Demo Module Reader Access</field>
+            <field name="model_id" ref="code_generator_demo_module_model" />
+            <field name="group_id" ref="code_generator_demo_module_reader_group" />
+            <field name="perm_read" eval="True" />
+        </record>
 
-    <record model="ir.model.access" id="code_generator_demo_module_manager_access">
-      <field name="name">Code Generator Demo Module Manager Access</field>
-      <field name="model_id" ref="code_generator_demo_module_model"/>
-      <field name="group_id" ref="code_generator_demo_module_manager_group"/>
-      <field name="perm_read" eval="True"/>
-      <field name="perm_create" eval="True"/>
-      <field name="perm_write" eval="True"/>
-      <field name="perm_unlink" eval="True"/>
-    </record>
+        <record model="ir.model.constraint" id="code_generator_demo_module_sql_constraint">
+            <field name="type">u</field>
+            <field name="name">name_description_unique</field>
+            <field name="module" search="[('name', '=', 'base')]" model="ir.module.module" />
+            <field name="model" ref="code_generator_demo_module_model" />
+            <field name="definition">unique(name, description)</field>
+            <field name="message">The name and description must be unique</field>
+        </record>
 
-    <record model="ir.model.access" id="code_generator_demo_module_reader_access">
-      <field name="name">Code Generator Demo Module Reader Access</field>
-      <field name="model_id" ref="code_generator_demo_module_model"/>
-      <field name="group_id" ref="code_generator_demo_module_reader_group"/>
-      <field name="perm_read" eval="True"/>
-    </record>
-
-    <record model="ir.model.constraint" id="code_generator_demo_module_sql_constraint">
-      <field name="type">u</field>
-      <field name="name">name_description_unique</field>
-      <field name="module" search="[('name', '=', 'base')]" model="ir.module.module"/>
-      <field name="model" ref="code_generator_demo_module_model"/>
-      <field name="definition">unique(name, description)</field>
-      <field name="message">The name and description must be unique</field>
-    </record>
-
-    <record model="ir.ui.view" id="code_generator_demo_module_tree_view">
-      <field name="name">code_generator_demo_module_tree_view</field>
-      <field name="model">code.generator.demo.module.model</field>
-      <field name="m2o_model" ref="code_generator_demo_module_model"/>
-      <field name="arch_base"><![CDATA[
+        <record model="ir.ui.view" id="code_generator_demo_module_tree_view">
+            <field name="name">code_generator_demo_module_tree_view</field>
+            <field name="model">code.generator.demo.module.model</field>
+            <field name="m2o_model" ref="code_generator_demo_module_model" />
+            <field
+                name="arch_base"
+            ><![CDATA[
 <tree string="Code Generator Demo Module Tree">
     <field name="name" />
     <field name="description" />
@@ -82,13 +88,15 @@
     <field name="state" />
 </tree>
 ]]></field>
-    </record>
+        </record>
 
-    <record model="ir.ui.view" id="code_generator_demo_module_form_view">
-      <field name="name">code_generator_demo_module_form_view</field>
-      <field name="model">code.generator.demo.module.model</field>
-      <field name="m2o_model" ref="code_generator_demo_module_model"/>
-      <field name="arch_base"><![CDATA[
+        <record model="ir.ui.view" id="code_generator_demo_module_form_view">
+            <field name="name">code_generator_demo_module_form_view</field>
+            <field name="model">code.generator.demo.module.model</field>
+            <field name="m2o_model" ref="code_generator_demo_module_model" />
+            <field
+                name="arch_base"
+            ><![CDATA[
 <!--<?xml version="1.0"?>-->
 <form string="Code Generator Demo Module Form">
     <header>
@@ -104,13 +112,15 @@
     </sheet>
 </form>
 ]]></field>
-    </record>
+        </record>
 
-    <record model="ir.ui.view" id="code_generator_demo_module_search_view">
-      <field name="name">code_generator_demo_module_search_view</field>
-      <field name="model">code.generator.demo.module.model</field>
-      <field name="m2o_model" ref="code_generator_demo_module_model"/>
-      <field name="arch_base"><![CDATA[
+        <record model="ir.ui.view" id="code_generator_demo_module_search_view">
+            <field name="name">code_generator_demo_module_search_view</field>
+            <field name="model">code.generator.demo.module.model</field>
+            <field name="m2o_model" ref="code_generator_demo_module_model" />
+            <field
+                name="arch_base"
+            ><![CDATA[
 <!--<?xml version="1.0"?>-->
 <search string="Code Generator Demo Module Search">
     <field name="name" filter_domain="['|', ('name','ilike',self), ('description','ilike',self)]" string="Demo"/>
@@ -120,67 +130,65 @@
     </group>
 </search>
 ]]></field>
-    </record>
+        </record>
 
-    <record model="ir.actions.act_window" id="code_generator_demo_module_act_window">
-      <field name="name">code_generator_demo_module_act_window</field>
-      <field name="res_model">code.generator.demo.module.model</field>
-      <field name="m2o_res_model" ref="code_generator_demo_module_model"/>
-      <field name="context">{'search_default_all': True}</field>
-    </record>
+        <record model="ir.actions.act_window" id="code_generator_demo_module_act_window">
+            <field name="name">code_generator_demo_module_act_window</field>
+            <field name="res_model">code.generator.demo.module.model</field>
+            <field name="m2o_res_model" ref="code_generator_demo_module_model" />
+            <field name="context">{'search_default_all': True}</field>
+        </record>
 
-    <record model="ir.actions.server" id="code_generator_demo_module_act_server">
-      <field name="name">Code Generator Demo Module Server Action</field>
-      <field name="model_id" ref="code_generator_demo_module_model"/>
-      <field name="binding_model_id" ref="code_generator_demo_module_model"/>
-      <field name="state">code</field>
-      <field name="code">
-        records.write(dict(state='approved'))
-      </field>
-    </record>
+        <record model="ir.actions.server" id="code_generator_demo_module_act_server">
+            <field name="name">Code Generator Demo Module Server Action</field>
+            <field name="model_id" ref="code_generator_demo_module_model" />
+            <field name="binding_model_id" ref="code_generator_demo_module_model" />
+            <field name="state">code</field>
+            <field name="code">records.write(dict(state='approved'))</field>
+        </record>
 
-    <record model="ir.ui.menu" id="code_generator_demo_module_menu">
-      <field name="name">Code Generator Demo Module Menu</field>
-      <field name="action" eval="'ir.actions.act_window,'+str(ref('code_generator_demo_module_act_window'))"/>
-      <field name="m2o_module" ref="code_generator_demo_module"/>
-      <field name="groups_id"
-             eval="[(6,0, [ref('code_generator_demo_module_manager_group'), ref('code_generator_demo_module_reader_group')])]"/>
-    </record>
+        <record model="ir.ui.menu" id="code_generator_demo_module_menu">
+            <field name="name">Code Generator Demo Module Menu</field>
+            <field name="action" eval="'ir.actions.act_window,'+str(ref('code_generator_demo_module_act_window'))" />
+            <field name="m2o_module" ref="code_generator_demo_module" />
+            <field
+                name="groups_id"
+                eval="[(6,0, [ref('code_generator_demo_module_manager_group'), ref('code_generator_demo_module_reader_group')])]"
+            />
+        </record>
 
-    <template id="code_generator_demo_module_report_template">
+        <template id="code_generator_demo_module_report_template">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-call="web.internal_layout">
+                        <div class="page">
+                            <div class="row">
+                                <div class="col-3">
+                                    <strong>Name</strong>
+                                    :
+                                    <br />
+                                    <span t-field="o.name" />
+                                </div>
+                                <div class="col-3">
+                                    <strong>Description</strong>
+                                    :
+                                    <br />
+                                    <span t-field="o.description" />
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
 
-      <t t-call="web.html_container">
-        <t t-foreach="docs" t-as="o">
-          <t t-call="web.internal_layout">
-            <div class="page">
-              <div class="row">
-                <div class="col-3">
-                  <strong>Name</strong>:
-                  <br/>
-                  <span t-field="o.name"/>
-                </div>
-                <div class="col-3">
-                  <strong>Description</strong>:
-                  <br/>
-                  <span t-field="o.description"/>
-                </div>
-              </div>
-            </div>
-          </t>
-        </t>
-      </t>
-
-    </template>
-
-    <record model="ir.actions.report" id="code_generator_demo_module_report">
-      <field name="name">Code Generator Demo Module Report</field>
-      <field name="model">code.generator.demo.module.model</field>
-      <field name="report_type">qweb-pdf</field>
-      <field name="report_name">code_generator.code_generator_demo_module_report_template</field>
-      <field name="binding_model_id" ref="code_generator_demo_module_model"/>
-      <field name="groups_id" eval="[(6,0, [ref('code_generator_demo_module_reader_group')])]"/>
-    </record>
-
-  </data>
-
+        <record model="ir.actions.report" id="code_generator_demo_module_report">
+            <field name="name">Code Generator Demo Module Report</field>
+            <field name="model">code.generator.demo.module.model</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">code_generator.code_generator_demo_module_report_template</field>
+            <field name="binding_model_id" ref="code_generator_demo_module_model" />
+            <field name="groups_id" eval="[(6,0, [ref('code_generator_demo_module_reader_group')])]" />
+        </record>
+    </data>
 </odoo>

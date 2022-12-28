@@ -1,57 +1,55 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-
-  <record model="ir.ui.view" id="code_generator_settings_form">
-    <field name="name">res.config.settings.form.inherit.codegenerator</field>
-    <field name="model">res.config.settings</field>
-    <field name="inherit_id" ref="base.res_config_settings_view_form"/>
-    <field name="arch" type="xml">
-
-      <xpath expr="//div[hasclass('settings')]" position="inside">
-
-        <div class="app_settings_block" data-string="Code Generator" string="Code Generator" data-key="code_generator"
-             groups="code_generator.code_generator_manager">
-
-          <h2>Code generation</h2>
-          <div class="row mt16 o_settings_container">
-            <div class="col-12 col-lg-6 o_setting_box">
-              <div class="o_setting_right_pane">
-                <label for="s_data2export"/>
-                <div class="row">
-                  <div class="text-muted col-lg-8">
-                    Set how the data models must be treated in the exportation process
-                  </div>
+    <record model="ir.ui.view" id="code_generator_settings_form">
+        <field name="name">res.config.settings.form.inherit.codegenerator</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('settings')]" position="inside">
+                <div
+                    class="app_settings_block"
+                    data-string="Code Generator"
+                    string="Code Generator"
+                    data-key="code_generator"
+                    groups="code_generator.code_generator_manager"
+                >
+                    <h2>Code generation</h2>
+                    <div class="row mt16 o_settings_container">
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_right_pane">
+                                <label for="s_data2export" />
+                                <div class="row">
+                                    <div class="text-muted col-lg-8">
+                                        Set how the data models must be treated in the exportation process
+                                    </div>
+                                </div>
+                                <div class="content-group">
+                                    <div class="mt16">
+                                        <field name="s_data2export" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="content-group">
-                  <div class="mt16">
-                    <field name="s_data2export"/>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+            </xpath>
+        </field>
+    </record>
 
-        </div>
+    <record model="ir.actions.act_window" id="code_generator_settings_actionwindow">
+        <field name="name">Settings</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'module' : 'code_generator'}</field>
+    </record>
 
-      </xpath>
-
-    </field>
-  </record>
-
-  <record model="ir.actions.act_window" id="code_generator_settings_actionwindow">
-    <field name="name">Settings</field>
-    <field name="res_model">res.config.settings</field>
-    <field name="view_mode">form</field>
-    <field name="target">inline</field>
-    <field name="context">{'module' : 'code_generator'}</field>
-  </record>
-
-  <menuitem id="code_generator_settings_menu"
-            name="Settings"
-            parent="code_generator_main_menu"
-            action="code_generator_settings_actionwindow"
-            groups="code_generator_manager"
-            sequence="900"
-  />
-
+    <menuitem
+        id="code_generator_settings_menu"
+        name="Settings"
+        parent="code_generator_main_menu"
+        action="code_generator_settings_actionwindow"
+        groups="code_generator_manager"
+        sequence="900"
+    />
 </odoo>

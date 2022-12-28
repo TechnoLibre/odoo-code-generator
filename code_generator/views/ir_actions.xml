@@ -1,26 +1,30 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
+    <record model="ir.ui.view" id="ir_actions_act_window_form_inherited">
+        <field name="name">ir.actions.act_window.form</field>
+        <field name="model">ir.actions.act_window</field>
+        <field name="inherit_id" ref="base.view_window_action_form" />
+        <field name="arch" type="xml">
+            <field name="name" position="attributes">
+                <attribute name="class">name_input</attribute>
+            </field>
 
-  <record model="ir.ui.view" id="ir_actions_act_window_form_inherited">
-    <field name="name">ir.actions.act_window.form</field>
-    <field name="model">ir.actions.act_window</field>
-    <field name="inherit_id" ref="base.view_window_action_form"/>
-    <field name="arch" type="xml">
-
-      <field name="name" position="attributes">
-        <attribute name="class">name_input</attribute>
-      </field>
-
-      <notebook position="before">
-        <group name="code_generator_module" string="Code Generator Module">
-          <group>
-            <field name="m2o_res_model" options="{'no_create': True, 'no_edit': True}" class="m2o_res_model_input"/>
-            <field name="m2o_src_model" options="{'no_create': True, 'no_edit': True}" class="m2o_src_model_input"/>
-          </group>
-        </group>
-      </notebook>
-
-    </field>
-  </record>
-
+            <notebook position="before">
+                <group name="code_generator_module" string="Code Generator Module">
+                    <group>
+                        <field
+                            name="m2o_res_model"
+                            options="{'no_create': True, 'no_edit': True}"
+                            class="m2o_res_model_input"
+                        />
+                        <field
+                            name="m2o_src_model"
+                            options="{'no_create': True, 'no_edit': True}"
+                            class="m2o_src_model_input"
+                        />
+                    </group>
+                </group>
+            </notebook>
+        </field>
+    </record>
 </odoo>

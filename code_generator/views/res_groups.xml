@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-    <record model="ir.ui.view" id="res_groups_form_inherited">
+    <record id="res_groups_form_inherited" model="ir.ui.view">
         <field name="name">res.groups.form</field>
         <field name="model">res.groups</field>
         <field name="inherit_id" ref="base.view_groups_form" />

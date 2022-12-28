@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-    <record model="ir.ui.view" id="ir_model_form_inherited">
+    <record id="ir_model_form_inherited" model="ir.ui.view">
         <field name="name">ir.model.form</field>
         <field name="model">ir.model</field>
         <field name="inherit_id" ref="base.view_model_form" />

@@ -204,8 +204,14 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 view_id = self._generate_specific_form_views_models(
                     code_generator_view_id, dct_value_to_create
                 )
-                lst_view_generated.append(view_id.type)
-                lst_model_id.append(view_id.m2o_model)
+                if not view_id:
+                    _logger.error(
+                        "Cannot create view_id or find existing. Skip for"
+                        f" '{code_generator_view_id.id_name}'"
+                    )
+                else:
+                    lst_view_generated.append(view_id.type)
+                    lst_model_id.append(view_id.m2o_model)
             lst_model_id = list(set(lst_model_id))
             for model_id in lst_model_id:
                 self._generate_model_access(model_id)

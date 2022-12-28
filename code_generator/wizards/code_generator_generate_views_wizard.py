@@ -2316,7 +2316,7 @@ pass''',
 
                 form_xml = E.data(dct_attr_view, *lst_item_form)
             else:
-                form_xml = lst_item_form[0]
+                form_xml = lst_item_form[0] if len(lst_item_form) else None
         elif view_type == "form":
             form_xml = E.form(dct_attr_view, *lst_item_form)
         elif view_type == "search":
@@ -2335,8 +2335,15 @@ pass''',
             )
             return
 
-        str_arch = ET.tostring(form_xml, pretty_print=True)
-        str_content = str_arch.decode()
+        if form_xml is not None:
+            str_arch = ET.tostring(form_xml, pretty_print=True)
+            str_content = str_arch.decode()
+        else:
+            _logger.error(
+                f"Cannot find view type of id '{model_id}' and model"
+                f" '{model_name}'"
+            )
+            str_content = ""
 
         for key, value in dct_replace.items():
             str_content = str_content.replace(key, value)
@@ -2365,12 +2372,19 @@ pass''',
         ]
         view_value = self.env["ir.ui.view"].search(lst_search)
         if not view_value:
-            view_value = self.env["ir.ui.view"].create(dct_view_value)
+            if not dct_view_value:
+                view_value = None
+            elif not dct_view_value.get("arch"):
+                _logger.error(f"Cannot generate view name '{dct_view_value}'")
+            else:
+                view_value = self.env["ir.ui.view"].create(dct_view_value)
         else:
             view_value.m2o_model = code_generator_view_id.m2o_model.id
             # dct_value_to_create["ir.ui.view"].append(ir_ui_view_value)
 
-        if code_generator_view_id.id_name:
+        if not view_value:
+            _logger.error(f"Cannot create view '{view_name}'")
+        elif code_generator_view_id.id_name:
             ir_model_data_id = self.env["ir.model.data"].search(
                 [
                     ("name", "=", code_generator_view_id.id_name),

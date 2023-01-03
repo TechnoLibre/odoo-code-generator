@@ -431,6 +431,16 @@ class ExtractorModuleFile:
             lst_body.append(node.body[-1])
         else:
             lst_body.append(node.body[0])
+        # Special case, detect comment before body, we know it's inside the method here
+        # TODO wait after python 3.8 to detect comment in AST. Else search manually
+        i = node.body[0].lineno - 2
+        last_line = lst_line[i]
+        while i >= 0 and last_line.strip().startswith("#"):
+            i -= 1
+            last_line = lst_line[i]
+        i += 1
+        if i <= node.body[0].lineno - 2:
+            set_lineno.add(i + 1)
         for body in lst_body:
             self._get_recursive_lineno(body, set_lineno, lst_line)
         return min(set_lineno), max(set_lineno)

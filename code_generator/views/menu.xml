@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!--Root menu-->
+
+    <menuitem
+        id="code_generator_main_menu"
+        name="Code Generator"
+        web_icon="code_generator,static/description/icon.png"
+    />
+
+    <!--Sub menu-->
+
+    <menuitem
+        id="code_generator_generator_menu"
+        name="Modules"
+        parent="code_generator_main_menu"
+        action="code_generator_module_actionwindow"
+        groups="code_generator_manager"
+        sequence="2"
+    />
+
+    <menuitem
+        id="code_generator_settings_menu"
+        name="Settings"
+        parent="code_generator_main_menu"
+        action="code_generator_settings_actionwindow"
+        groups="code_generator_manager"
+        sequence="900"
+    />
+</odoo>

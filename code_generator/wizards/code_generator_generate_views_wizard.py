@@ -753,7 +753,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 ("type", "=", "tree"),
                 ("model", "=", model_name),
                 # ("arch", "=", str_arch),
-                ("m2o_model", "=", model_created.id),
+                # ("m2o_model", "=", model_created.id),
             ]
         )
         if not view_value:
@@ -765,6 +765,11 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                     "arch": str_arch,
                     "m2o_model": model_created.id,
                 }
+            )
+        else:
+            _logger.warning(
+                f"View '{model_name_str}_tree' of model '{model_name}' already"
+                " exist."
             )
 
         return view_value
@@ -933,10 +938,20 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 ("type", "=", "form"),
                 ("model", "=", model_name),
                 # ("arch", "=", str_arch),
-                ("m2o_model", "=", model_created.id),
+                # ("m2o_model", "=", model_created.id),
             ]
         )
-        if not view_value:
+
+        model_data_value = self.env["ir.model.data"].search(
+            [
+                ("name", "=", f"{model_name_str}_view_form"),
+                ("model", "=", "ir.ui.view"),
+                ("module", "=", module.name),
+                # ("res_id", "=", view_value.id)
+            ]
+        )
+
+        if not view_value and not model_data_value:
             view_value = self.env["ir.ui.view"].create(
                 {
                     "name": f"{model_name_str}_form",
@@ -955,6 +970,11 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                     "res_id": view_value.id,
                     "noupdate": True,  # If it's False, target record (res_id) will be removed while module update
                 }
+            )
+        else:
+            _logger.warning(
+                f"Cannot generate view '{model_name_str}_form' of model"
+                f" '{model_name}'"
             )
 
         return view_value
@@ -1121,7 +1141,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 ("type", "=", "kanban"),
                 ("model", "=", model_name),
                 # ("arch", "=", str_arch),
-                ("m2o_model", "=", model_created.id),
+                # ("m2o_model", "=", model_created.id),
             ]
         )
         if not view_value:
@@ -1133,6 +1153,11 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                     "arch": str_arch,
                     "m2o_model": model_created.id,
                 }
+            )
+        else:
+            _logger.warning(
+                f"View '{model_name_str}_kanban' of model '{model_name}'"
+                " already exist."
             )
 
         return view_value
@@ -1271,7 +1296,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 ("type", "=", "search"),
                 ("model", "=", model_name),
                 # ("arch", "=", str_arch),
-                ("m2o_model", "=", model_created.id),
+                # ("m2o_model", "=", model_created.id),
             ]
         )
         if not view_value:
@@ -1283,6 +1308,11 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                     "arch": str_arch,
                     "m2o_model": model_created.id,
                 }
+            )
+        else:
+            _logger.warning(
+                f"View '{model_name_str}_search' of model '{model_name}'"
+                " already exist."
             )
 
         return view_value
@@ -1409,7 +1439,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 ("type", "=", "pivot"),
                 ("model", "=", model_name),
                 # ("arch", "=", str_arch),
-                ("m2o_model", "=", model_created.id),
+                # ("m2o_model", "=", model_created.id),
             ]
         )
         if not view_value:
@@ -1421,6 +1451,11 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                     "arch": str_arch,
                     "m2o_model": model_created.id,
                 }
+            )
+        else:
+            _logger.warning(
+                f"View '{model_name_str}_pivot' of model '{model_name}'"
+                " already exist."
             )
 
         return view_value
@@ -1552,7 +1587,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 ("type", "=", "calendar"),
                 ("model", "=", model_name),
                 # ("arch", "=", str_arch),
-                ("m2o_model", "=", model_created.id),
+                # ("m2o_model", "=", model_created.id),
             ]
         )
         if not view_value:
@@ -1564,6 +1599,11 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                     "arch": str_arch,
                     "m2o_model": model_created.id,
                 }
+            )
+        else:
+            _logger.warning(
+                f"View '{model_name_str}_calendar' of model '{model_name}'"
+                " already exist."
             )
 
         return view_value
@@ -1690,7 +1730,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 ("type", "=", "graph"),
                 ("model", "=", model_name),
                 # ("arch", "=", str_arch),
-                ("m2o_model", "=", model_created.id),
+                # ("m2o_model", "=", model_created.id),
             ]
         )
         if not view_value:
@@ -1702,6 +1742,11 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                     "arch": str_arch,
                     "m2o_model": model_created.id,
                 }
+            )
+        else:
+            _logger.warning(
+                f"View '{model_name_str}_graph' of model '{model_name}'"
+                " already exist."
             )
 
         return view_value
@@ -1756,7 +1801,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 ("type", "=", "timeline"),
                 ("model", "=", model_name),
                 # ("arch", "=", str_arch),
-                ("m2o_model", "=", model_created.id),
+                # ("m2o_model", "=", model_created.id),
             ]
         )
         if not view_value:
@@ -1768,6 +1813,11 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                     "arch": str_arch,
                     "m2o_model": model_created.id,
                 }
+            )
+        else:
+            _logger.warning(
+                f"View '{model_name_str}_timeline' of model '{model_name}'"
+                " already exist."
             )
 
         return view_value
@@ -1886,7 +1936,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 ("type", "=", "diagram"),
                 ("model", "=", model_name),
                 # ("arch", "=", str_arch),
-                ("m2o_model", "=", model_created.id),
+                # ("m2o_model", "=", model_created.id),
             ]
         )
         if not view_value:
@@ -1898,6 +1948,11 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                     "arch": str_arch,
                     "m2o_model": model_created.id,
                 }
+            )
+        else:
+            _logger.warning(
+                f"View '{model_name_str}_diagram' of model '{model_name}'"
+                " already exist."
             )
 
         return view_value
@@ -2653,14 +2708,28 @@ pass''',
                 f"{model_name_str}_{fix_action_id_name}_action_window"
             )
 
-            v_ir_model_data = {
-                "name": action_id_name,
-                "model": "ir.actions.act_window",
-                "module": module.name,
-                "res_id": action_id.id,
-                "noupdate": True,
-            }
-            self.env["ir.model.data"].create(v_ir_model_data)
+            model_data_value = self.env["ir.model.data"].search(
+                [
+                    ("name", "=", action_id_name),
+                    ("model", "=", "ir.actions.act_window"),
+                    ("module", "=", module.name),
+                    # ("res_id", "=", view_value.id)
+                ]
+            )
+            if not model_data_value:
+                v_ir_model_data = {
+                    "name": action_id_name,
+                    "model": "ir.actions.act_window",
+                    "module": module.name,
+                    "res_id": action_id.id,
+                    "noupdate": True,
+                }
+                self.env["ir.model.data"].create(v_ir_model_data)
+            else:
+                _logger.warning(
+                    f"ir.model.data '{action_id_name}' of model"
+                    " 'ir.actions.act_window' already exist."
+                )
 
             self.nb_sub_menu += 1
 
@@ -2689,14 +2758,30 @@ pass''',
                 .lower()
             )
 
-            v_ir_model_data = {
-                "name": menu_id_name,
-                "model": "ir.ui.menu",
-                "module": module.name,
-                "res_id": new_menu_id.id,
-                "noupdate": True,
-            }
-            self.env["ir.model.data"].create(v_ir_model_data)
+            model_data_value = self.env["ir.model.data"].search(
+                [
+                    ("name", "=", menu_id_name),
+                    ("model", "=", "ir.ui.menu"),
+                    ("module", "=", module.name),
+                    # ("res_id", "=", view_value.id)
+                ]
+            )
+
+            if not model_data_value:
+                v_ir_model_data = {
+                    "name": menu_id_name,
+                    "model": "ir.ui.menu",
+                    "module": module.name,
+                    "res_id": new_menu_id.id,
+                    "noupdate": True,
+                }
+                self.env["ir.model.data"].create(v_ir_model_data)
+            else:
+                _logger.warning(
+                    f"ir.model.data '{action_id_name}' of model 'ir.ui.menu'"
+                    " already exist."
+                )
+
         elif not is_generic_menu:
             cg_menu_ids = model_created.m2o_module.code_generator_menus_id
             # TODO check different case, with act_window, without, multiple menu, single menu

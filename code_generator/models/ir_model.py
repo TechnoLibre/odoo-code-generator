@@ -194,12 +194,9 @@ class IrModel(models.Model):
     @api.onchange("m2o_module")
     def _onchange_m2o_module(self):
         if self.m2o_module:
-
             name4filter = "x_name"
             name4newfield = "name"
-
         else:
-
             name4filter = "xname"
             name4newfield = "x_name"
 

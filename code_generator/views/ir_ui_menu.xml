@@ -24,6 +24,7 @@
                     invisible="context.get('hide_m2o_module', False)"
                 >
                     <group>
+                        <field name="ignore_act_window" />
                         <field
                             name="m2o_module"
                             options="{'no_create': True, 'no_edit': True}"
@@ -34,4 +35,60 @@
             </notebook>
         </field>
     </record>
+
+    <record id="ir_ui_menu_view_kanban" model="ir.ui.view">
+        <field name="name">ir_ui_menu_kanban</field>
+        <field name="model">ir.ui.menu</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="name" />
+                <field name="ignore_act_window" />
+                <field name="m2o_module" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="name" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.ignore_act_window.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.ignore_act_window.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="m2o_module" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="edit_menu_access_search_inherit" model="ir.ui.view">
+        <field name="model">ir.ui.menu</field>
+        <field name="inherit_id" ref="base.edit_menu_access_search" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='parent_id']" position="after">
+                <filter string='Code Generator' name='code_generator' domain="[('m2o_module', '!=', False)]" />
+            </xpath>
+        </field>
+    </record>
+
+    <act_window
+        id="ir_ui_menu_ui_menu_action_window"
+        name="Ui menu"
+        res_model="ir.ui.menu"
+        context="{'search_default_code_generator': 1}"
+        view_mode="kanban,tree,form"
+    />
 </odoo>

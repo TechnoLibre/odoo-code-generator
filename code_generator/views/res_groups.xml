@@ -26,4 +26,22 @@
             </notebook>
         </field>
     </record>
+
+    <record id="view_groups_search_inherit" model="ir.ui.view">
+        <field name="model">res.groups</field>
+        <field name="inherit_id" ref="base.view_groups_search" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='share']" position="after">
+                <filter string='Code Generator' name='code_generator' domain="[('m2o_module', '!=', False)]" />
+            </xpath>
+        </field>
+    </record>
+
+    <act_window
+        id="res_groups_groups_action_window"
+        name="Groups"
+        res_model="res.groups"
+        context="{'search_default_code_generator': 1}"
+        view_mode="tree,form"
+    />
 </odoo>

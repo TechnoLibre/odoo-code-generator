@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="ir_actions_todo_view_kanban" model="ir.ui.view">
+        <field name="name">ir_actions_todo_kanban</field>
+        <field name="model">ir.actions.todo</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="action_id" />
+                <field name="name" />
+                <field name="sequence" />
+                <field name="state" />
+                <field name="m2o_code_generator" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="action_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="sequence" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="state" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="m2o_code_generator" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="config_wizard_step_view_form_inherit" model="ir.ui.view">
+        <field name="model">ir.actions.todo</field>
+        <field name="inherit_id" ref="base.config_wizard_step_view_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='sequence']" position="after">
+                <field name='m2o_code_generator' />
+            </xpath>
+        </field>
+    </record>
+
+    <record id="ir_actions_todo_tree_inherit" model="ir.ui.view">
+        <field name="model">ir.actions.todo</field>
+        <field name="inherit_id" ref="base.ir_actions_todo_tree" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='state']" position="before">
+                <field name='m2o_code_generator' />
+            </xpath>
+        </field>
+    </record>
+
+    <record id="config_wizard_step_view_search_inherit" model="ir.ui.view">
+        <field name="model">ir.actions.todo</field>
+        <field name="inherit_id" ref="base.config_wizard_step_view_search" />
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='todo']" position="after">
+                <filter string='Code Generator' name='code_generator' domain="[('m2o_code_generator', '!=', False)]" />
+            </xpath>
+        </field>
+    </record>
+
+    <act_window
+        id="ir_actions_todo_actions_todo_action_window"
+        name="Actions todo"
+        res_model="ir.actions.todo"
+        context="{'search_default_code_generator': 1}"
+        view_mode="kanban,tree,form"
+    />
+</odoo>

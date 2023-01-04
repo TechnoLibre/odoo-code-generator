@@ -20,11 +20,289 @@
     />
 
     <menuitem
+        id="code_generator_advance_menu"
+        name="Advance"
+        parent="code_generator_main_menu"
+        groups="code_generator_manager"
+        sequence="3"
+    />
+
+    <menuitem
         id="code_generator_settings_menu"
         name="Settings"
         parent="code_generator_main_menu"
         action="code_generator_settings_actionwindow"
         groups="code_generator_manager"
         sequence="900"
+    />
+
+    <!--Root menu-->
+
+    <menuitem
+        id="code_generator"
+        name="Code Generator"
+        sequence="20"
+        web_icon="code_generator,static/description/icon.png"
+    />
+
+    <!--Sub menu-->
+
+    <menuitem id="code_generator_advance_menu_basic" name="Basic" sequence="1" parent="code_generator_advance_menu" />
+
+    <menuitem
+        id="code_generator_advance_menu_cg"
+        name="Code Generator"
+        sequence="2"
+        parent="code_generator_advance_menu"
+    />
+
+    <!--Child menu-->
+
+    <menuitem
+        id="actions_act_url"
+        name="Actions act url"
+        action="ir_actions_act_url_actions_act_url_action_window"
+        sequence="2"
+        parent="code_generator_advance_menu_basic"
+    />
+
+    <menuitem
+        id="actions_act_window"
+        name="Actions act window"
+        action="ir_actions_act_window_actions_act_window_action_window"
+        sequence="3"
+        parent="code_generator_advance_menu_basic"
+    />
+
+    <menuitem
+        id="actions_report"
+        name="Actions report"
+        action="ir_actions_report_actions_report_action_window"
+        sequence="30"
+        parent="code_generator_advance_menu_basic"
+    />
+
+    <menuitem
+        id="actions_server"
+        name="Actions server"
+        action="ir_actions_server_actions_server_action_window"
+        sequence="31"
+        parent="code_generator_advance_menu_basic"
+    />
+
+    <menuitem
+        id="actions_todo"
+        name="Actions todo"
+        action="ir_actions_todo_actions_todo_action_window"
+        sequence="22"
+        parent="code_generator_advance_menu_basic"
+    />
+
+    <!--    <menuitem-->
+    <!--        id="config_settings"-->
+    <!--        name="Config settings"-->
+    <!--        action="res_config_settings_config_settings_action_window"-->
+    <!--        sequence="21"-->
+    <!--        parent="menu"-->
+    <!--    />-->
+
+    <menuitem
+        id="generator_act_window"
+        name="Generator act window"
+        action="code_generator_act_window_generator_act_window_action_window"
+        sequence="4"
+        parent="code_generator_advance_menu_cg"
+    />
+
+    <!--    <menuitem-->
+    <!--        id="generator_add_controller_wizard"-->
+    <!--        name="Generator add controller wizard"-->
+    <!--        action="code_generator_add_controller_wizard_generator_add_controller_wizard_action_window"-->
+    <!--        sequence="5"-->
+    <!--        parent="menu"-->
+    <!--    />-->
+
+    <!--    <menuitem-->
+    <!--        id="generator_add_model_wizard"-->
+    <!--        name="Generator add model wizard"-->
+    <!--        action="code_generator_add_model_wizard_generator_add_model_wizard_action_window"-->
+    <!--        sequence="10"-->
+    <!--        parent="menu"-->
+    <!--    />-->
+
+    <!--    <menuitem-->
+    <!--        id="generator_generate_views_wizard"-->
+    <!--        name="Generator generate views wizard"-->
+    <!--        action="code_generator_generate_views_wizard_generator_generate_views_wizard_action_window"-->
+    <!--        sequence="7"-->
+    <!--        parent="menu"-->
+    <!--    />-->
+
+    <menuitem
+        id="generator_ir_model_dependency"
+        name="Generator ir model dependency"
+        action="code_generator_ir_model_dependency_generator_ir_model_dependency_action_window"
+        sequence="19"
+        parent="code_generator_advance_menu_cg"
+    />
+
+    <menuitem
+        id="generator_ir_model_fields"
+        name="Generator ir model fields"
+        action="code_generator_ir_model_fields_generator_ir_model_fields_action_window"
+        sequence="6"
+        parent="code_generator_advance_menu_cg"
+    />
+
+    <menuitem
+        id="generator_menu"
+        name="Generator menu"
+        action="code_generator_menu_generator_menu_action_window"
+        sequence="8"
+        parent="code_generator_advance_menu_cg"
+    />
+
+    <menuitem
+        id="generator_model_code"
+        name="Generator model code"
+        action="code_generator_model_code_generator_model_code_action_window"
+        sequence="20"
+        parent="code_generator_advance_menu_cg"
+    />
+
+    <menuitem
+        id="generator_model_code_import"
+        name="Generator model code import"
+        action="code_generator_model_code_import_generator_model_code_import_action_window"
+        sequence="24"
+        parent="code_generator_advance_menu_cg"
+    />
+
+    <!--    <menuitem-->
+    <!--        id="generator_module"-->
+    <!--        name="Generator module"-->
+    <!--        action="code_generator_module_generator_module_action_window"-->
+    <!--        sequence="11"-->
+    <!--        parent="menu"-->
+    <!--    />-->
+
+    <menuitem
+        id="generator_module_dependency"
+        name="Generator module dependency"
+        action="code_generator_module_dependency_generator_module_dependency_action_window"
+        sequence="12"
+        parent="code_generator_advance_menu_cg"
+    />
+
+    <menuitem
+        id="generator_module_external_dependency"
+        name="Generator module external dependency"
+        action="code_generator_module_external_dependency_generator_module_external_dependency_action_window"
+        sequence="13"
+        parent="code_generator_advance_menu_cg"
+    />
+
+    <menuitem
+        id="generator_module_template_dependency"
+        name="Generator module template dependency"
+        action="code_generator_module_template_dependency_generator_module_template_dependency_action_window"
+        sequence="14"
+        parent="code_generator_advance_menu_cg"
+    />
+
+    <menuitem
+        id="generator_pyclass"
+        name="Generator pyclass"
+        action="code_generator_pyclass_generator_pyclass_action_window"
+        sequence="15"
+        parent="code_generator_advance_menu_cg"
+    />
+
+    <menuitem
+        id="generator_view"
+        name="Generator view"
+        action="code_generator_view_generator_view_action_window"
+        sequence="16"
+        parent="code_generator_advance_menu_cg"
+    />
+
+    <menuitem
+        id="generator_view_item"
+        name="Generator view item"
+        action="code_generator_view_item_generator_view_item_action_window"
+        sequence="17"
+        parent="code_generator_advance_menu_cg"
+    />
+
+    <menuitem
+        id="generator_writer"
+        name="Generator writer"
+        action="code_generator_writer_generator_writer_action_window"
+        sequence="18"
+        parent="code_generator_advance_menu_cg"
+    />
+
+    <menuitem
+        id="groups"
+        name="Groups"
+        action="res_groups_groups_action_window"
+        sequence="1"
+        parent="code_generator_advance_menu_basic"
+    />
+
+    <menuitem
+        id="model"
+        name="Model"
+        action="ir_model_model_action_window"
+        sequence="27"
+        parent="code_generator_advance_menu_basic"
+    />
+
+    <menuitem
+        id="model_constraint"
+        name="Model constraint"
+        action="ir_model_constraint_model_constraint_action_window"
+        sequence="26"
+        parent="code_generator_advance_menu_basic"
+    />
+
+    <menuitem
+        id="model_fields"
+        name="Model fields"
+        action="ir_model_fields_model_fields_action_window"
+        sequence="23"
+        parent="code_generator_advance_menu_basic"
+    />
+
+    <menuitem
+        id="model_server_constrain"
+        name="Model server constrain"
+        action="ir_model_server_constrain_model_server_constrain_action_window"
+        sequence="9"
+        parent="code_generator_advance_menu_cg"
+    />
+
+    <menuitem
+        id="module_module"
+        name="Module module"
+        action="ir_module_module_module_module_action_window"
+        sequence="28"
+        parent="code_generator_advance_menu_basic"
+    />
+
+    <menuitem
+        id="ui_menu"
+        name="Ui menu"
+        action="ir_ui_menu_ui_menu_action_window"
+        sequence="25"
+        parent="code_generator_advance_menu_basic"
+    />
+
+    <menuitem
+        id="ui_view"
+        name="Ui view"
+        action="ir_ui_view_ui_view_action_window"
+        sequence="32"
+        parent="code_generator_advance_menu_basic"
     />
 </odoo>

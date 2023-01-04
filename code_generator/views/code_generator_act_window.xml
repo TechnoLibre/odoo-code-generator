@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="code_generator_act_window_view_form" model="ir.ui.view">
+        <field name="name">code_generator_act_window_form</field>
+        <field name="model">code.generator.act_window</field>
+        <field name="arch" type="xml">
+            <form string="Titre">
+                <sheet>
+                    <group>
+                        <field name="code_generator_id" />
+                    </group>
+                    <group>
+                        <field name="id_name" />
+                    </group>
+                    <group>
+                        <field name="model_name" />
+                    </group>
+                    <group>
+                        <field name="name" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="code_generator_act_window_view_graph" model="ir.ui.view">
+        <field name="name">code_generator_act_window_graph</field>
+        <field name="model">code.generator.act_window</field>
+        <field name="arch" type="xml">
+            <graph string="Code generator act window">
+                <field name="code_generator_id" type="row" />
+                <field name="id_name" type="row" />
+                <field name="model_name" type="row" />
+                <field name="name" type="row" />
+            </graph>
+        </field>
+    </record>
+
+    <record id="code_generator_act_window_view_kanban" model="ir.ui.view">
+        <field name="name">code_generator_act_window_kanban</field>
+        <field name="model">code.generator.act_window</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="code_generator_id" />
+                <field name="id_name" />
+                <field name="model_name" />
+                <field name="name" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code_generator_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="id_name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="model_name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="name" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="code_generator_act_window_view_pivot" model="ir.ui.view">
+        <field name="name">code_generator_act_window_pivot</field>
+        <field name="model">code.generator.act_window</field>
+        <field name="arch" type="xml">
+            <pivot string="Code generator act window">
+                <field name="code_generator_id" type="row" />
+                <field name="id_name" type="row" />
+                <field name="model_name" type="row" />
+                <field name="name" type="row" />
+            </pivot>
+        </field>
+    </record>
+
+    <record id="code_generator_act_window_view_search" model="ir.ui.view">
+        <field name="name">code_generator_act_window_search</field>
+        <field name="model">code.generator.act_window</field>
+        <field name="arch" type="xml">
+            <search string="Code generator act window">
+                <filter domain="[('code_generator_id','!=',False)]" name="code_generator_id" string="Code Generator" />
+                <filter domain="[('id_name','!=',False)]" name="id_name" string="Action id" />
+                <filter domain="[('model_name','!=',False)]" name="model_name" string="Model Name" />
+                <filter domain="[('name','!=',False)]" name="name" string="name" />
+            </search>
+        </field>
+    </record>
+
+    <record id="code_generator_act_window_view_tree" model="ir.ui.view">
+        <field name="name">code_generator_act_window_tree</field>
+        <field name="model">code.generator.act_window</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="code_generator_id" />
+                <field name="id_name" />
+                <field name="model_name" />
+                <field name="name" />
+            </tree>
+        </field>
+    </record>
+
+    <act_window
+        id="code_generator_act_window_generator_act_window_action_window"
+        name="Generator act window"
+        res_model="code.generator.act_window"
+        view_mode="kanban,tree,pivot,graph,form"
+    />
+</odoo>

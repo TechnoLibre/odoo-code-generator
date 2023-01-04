@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_module_filter_inherit" model="ir.ui.view">
+        <field name="model">ir.module.module</field>
+        <field name="inherit_id" ref="base.view_module_filter" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <filter string='Code Generator' name='code_generator' domain="[('header_manifest', '!=', False)]" />
+            </xpath>
+        </field>
+    </record>
+
+    <act_window
+        id="ir_module_module_module_module_action_window"
+        name="Module module"
+        res_model="ir.module.module"
+        context="{'search_default_code_generator': 1}"
+        view_mode="kanban,tree,form"
+    />
+</odoo>

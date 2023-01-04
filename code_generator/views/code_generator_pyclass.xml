@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="code_generator_pyclass_view_form" model="ir.ui.view">
+        <field name="name">code_generator_pyclass_form</field>
+        <field name="model">code.generator.pyclass</field>
+        <field name="arch" type="xml">
+            <form string="Titre">
+                <sheet>
+                    <group>
+                        <field name="module" />
+                    </group>
+                    <group>
+                        <field name="name" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="code_generator_pyclass_view_graph" model="ir.ui.view">
+        <field name="name">code_generator_pyclass_graph</field>
+        <field name="model">code.generator.pyclass</field>
+        <field name="arch" type="xml">
+            <graph string="Code generator pyclass">
+                <field name="module" type="row" />
+                <field name="name" type="row" />
+            </graph>
+        </field>
+    </record>
+
+    <record id="code_generator_pyclass_view_kanban" model="ir.ui.view">
+        <field name="name">code_generator_pyclass_kanban</field>
+        <field name="model">code.generator.pyclass</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="module" />
+                <field name="name" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="module" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="name" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="code_generator_pyclass_view_pivot" model="ir.ui.view">
+        <field name="name">code_generator_pyclass_pivot</field>
+        <field name="model">code.generator.pyclass</field>
+        <field name="arch" type="xml">
+            <pivot string="Code generator pyclass">
+                <field name="module" type="row" />
+                <field name="name" type="row" />
+            </pivot>
+        </field>
+    </record>
+
+    <record id="code_generator_pyclass_view_search" model="ir.ui.view">
+        <field name="name">code_generator_pyclass_search</field>
+        <field name="model">code.generator.pyclass</field>
+        <field name="arch" type="xml">
+            <search string="Code generator pyclass">
+                <filter domain="[('module','!=',False)]" name="module" string="Class path" />
+                <filter domain="[('name','!=',False)]" name="name" string="Class name" />
+            </search>
+        </field>
+    </record>
+
+    <record id="code_generator_pyclass_view_tree" model="ir.ui.view">
+        <field name="name">code_generator_pyclass_tree</field>
+        <field name="model">code.generator.pyclass</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="module" />
+                <field name="name" />
+            </tree>
+        </field>
+    </record>
+
+    <act_window
+        id="code_generator_pyclass_generator_pyclass_action_window"
+        name="Generator pyclass"
+        res_model="code.generator.pyclass"
+        view_mode="kanban,tree,pivot,graph,form"
+    />
+</odoo>

@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="code_generator_model_code_view_form" model="ir.ui.view">
+        <field name="name">code_generator_model_code_form</field>
+        <field name="model">code.generator.model.code</field>
+        <field name="arch" type="xml">
+            <form string="Titre">
+                <sheet>
+                    <group>
+                        <field name="code" />
+                    </group>
+                    <group>
+                        <field name="decorator" />
+                    </group>
+                    <group>
+                        <field name="is_templated" />
+                    </group>
+                    <group>
+                        <field name="is_wip" />
+                    </group>
+                    <group>
+                        <field name="m2o_model" />
+                    </group>
+                    <group>
+                        <field name="m2o_module" />
+                    </group>
+                    <group>
+                        <field name="name" />
+                    </group>
+                    <group>
+                        <field name="param" />
+                    </group>
+                    <group>
+                        <field name="returns" />
+                    </group>
+                    <group>
+                        <field name="sequence" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="code_generator_model_code_view_graph" model="ir.ui.view">
+        <field name="name">code_generator_model_code_graph</field>
+        <field name="model">code.generator.model.code</field>
+        <field name="arch" type="xml">
+            <graph string="Code generator model code">
+                <field name="code" type="row" />
+                <field name="decorator" type="row" />
+                <field name="is_templated" type="row" />
+                <field name="is_wip" type="row" />
+                <field name="m2o_model" type="row" />
+                <field name="m2o_module" type="row" />
+                <field name="name" type="row" />
+                <field name="param" type="row" />
+                <field name="returns" type="row" />
+                <field name="sequence" type="measure" />
+            </graph>
+        </field>
+    </record>
+
+    <record id="code_generator_model_code_view_kanban" model="ir.ui.view">
+        <field name="name">code_generator_model_code_kanban</field>
+        <field name="model">code.generator.model.code</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="code" />
+                <field name="decorator" />
+                <field name="is_templated" />
+                <field name="is_wip" />
+                <field name="m2o_model" />
+                <field name="m2o_module" />
+                <field name="name" />
+                <field name="param" />
+                <field name="returns" />
+                <field name="sequence" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="decorator" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.is_templated.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.is_templated.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.is_wip.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.is_wip.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="m2o_model" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="m2o_module" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="param" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="returns" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="sequence" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="code_generator_model_code_view_pivot" model="ir.ui.view">
+        <field name="name">code_generator_model_code_pivot</field>
+        <field name="model">code.generator.model.code</field>
+        <field name="arch" type="xml">
+            <pivot string="Code generator model code">
+                <field name="code" type="row" />
+                <field name="decorator" type="row" />
+                <field name="is_templated" type="row" />
+                <field name="is_wip" type="row" />
+                <field name="m2o_model" type="row" />
+                <field name="m2o_module" type="row" />
+                <field name="name" type="row" />
+                <field name="param" type="row" />
+                <field name="returns" type="row" />
+                <field name="sequence" type="measure" />
+            </pivot>
+        </field>
+    </record>
+
+    <record id="code_generator_model_code_view_search" model="ir.ui.view">
+        <field name="name">code_generator_model_code_search</field>
+        <field name="model">code.generator.model.code</field>
+        <field name="arch" type="xml">
+            <search string="Code generator model code">
+                <filter domain="[('code','!=',False)]" name="code" string="Code of pre_init_hook" />
+                <filter domain="[('decorator','!=',False)]" name="decorator" string="Decorator" />
+                <filter domain="[('is_templated','=',True)]" name="is_templated" string="Templated" />
+                <filter domain="[('is_wip','=',True)]" name="is_wip" string="Work in progress" />
+                <filter domain="[('m2o_model','!=',False)]" name="m2o_model" string="Model" />
+                <filter domain="[('m2o_module','!=',False)]" name="m2o_module" string="Module" />
+                <filter domain="[('name','!=',False)]" name="name" string="Method name" />
+                <filter domain="[('param','!=',False)]" name="param" string="Param" />
+                <filter domain="[('returns','!=',False)]" name="returns" string="Return type" />
+                <filter domain="[('sequence','!=',False)]" name="sequence" string="Sequence" />
+            </search>
+        </field>
+    </record>
+
+    <record id="code_generator_model_code_view_tree" model="ir.ui.view">
+        <field name="name">code_generator_model_code_tree</field>
+        <field name="model">code.generator.model.code</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="code" />
+                <field name="decorator" />
+                <field name="is_templated" />
+                <field name="is_wip" />
+                <field name="m2o_model" />
+                <field name="m2o_module" />
+                <field name="name" />
+                <field name="param" />
+                <field name="returns" />
+                <field name="sequence" />
+            </tree>
+        </field>
+    </record>
+
+    <act_window
+        id="code_generator_model_code_generator_model_code_action_window"
+        name="Generator model code"
+        res_model="code.generator.model.code"
+        view_mode="kanban,tree,pivot,graph,form"
+    />
+</odoo>

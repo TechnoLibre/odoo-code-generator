@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="code_generator_view_view_form" model="ir.ui.view">
+        <field name="name">code_generator_view_form</field>
+        <field name="model">code.generator.view</field>
+        <field name="arch" type="xml">
+            <form string="Titre">
+                <sheet>
+                    <group>
+                        <field name="code_generator_id" />
+                    </group>
+                    <group>
+                        <field name="has_body_sheet" />
+                    </group>
+                    <group>
+                        <field name="id_name" />
+                    </group>
+                    <group>
+                        <field name="inherit_view_name" />
+                    </group>
+                    <group>
+                        <field name="m2o_model" />
+                    </group>
+                    <group>
+                        <field name="view_attr_class" />
+                    </group>
+                    <group>
+                        <field name="view_attr_string" />
+                    </group>
+                    <group>
+                        <field name="view_item_ids" />
+                    </group>
+                    <group>
+                        <field name="view_name" />
+                    </group>
+                    <group>
+                        <field name="view_type" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="code_generator_view_view_graph" model="ir.ui.view">
+        <field name="name">code_generator_view_graph</field>
+        <field name="model">code.generator.view</field>
+        <field name="arch" type="xml">
+            <graph string="Code generator view">
+                <field name="code_generator_id" type="row" />
+                <field name="has_body_sheet" type="row" />
+                <field name="id_name" type="row" />
+                <field name="inherit_view_name" type="row" />
+                <field name="m2o_model" type="row" />
+                <field name="view_attr_class" type="row" />
+                <field name="view_attr_string" type="row" />
+                <field name="view_name" type="row" />
+                <field name="view_type" type="row" />
+            </graph>
+        </field>
+    </record>
+
+    <record id="code_generator_view_view_kanban" model="ir.ui.view">
+        <field name="name">code_generator_view_kanban</field>
+        <field name="model">code.generator.view</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="code_generator_id" />
+                <field name="has_body_sheet" />
+                <field name="id_name" />
+                <field name="inherit_view_name" />
+                <field name="m2o_model" />
+                <field name="view_attr_class" />
+                <field name="view_attr_string" />
+                <field name="view_item_ids" />
+                <field name="view_name" />
+                <field name="view_type" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code_generator_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.has_body_sheet.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.has_body_sheet.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="id_name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="inherit_view_name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="m2o_model" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="view_attr_class" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="view_attr_string" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="view_item_ids" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="view_name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="view_type" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="code_generator_view_view_pivot" model="ir.ui.view">
+        <field name="name">code_generator_view_pivot</field>
+        <field name="model">code.generator.view</field>
+        <field name="arch" type="xml">
+            <pivot string="Code generator view">
+                <field name="code_generator_id" type="row" />
+                <field name="has_body_sheet" type="row" />
+                <field name="id_name" type="row" />
+                <field name="inherit_view_name" type="row" />
+                <field name="m2o_model" type="row" />
+                <field name="view_attr_class" type="row" />
+                <field name="view_attr_string" type="row" />
+                <field name="view_name" type="row" />
+                <field name="view_type" type="row" />
+            </pivot>
+        </field>
+    </record>
+
+    <record id="code_generator_view_view_search" model="ir.ui.view">
+        <field name="name">code_generator_view_search</field>
+        <field name="model">code.generator.view</field>
+        <field name="arch" type="xml">
+            <search string="Code generator view">
+                <filter domain="[('code_generator_id','!=',False)]" name="code_generator_id" string="Code Generator" />
+                <filter domain="[('has_body_sheet','=',True)]" name="has_body_sheet" string="Sheet format" />
+                <filter domain="[('id_name','!=',False)]" name="id_name" string="View id" />
+                <filter
+                    domain="[('inherit_view_name','!=',False)]"
+                    name="inherit_view_name"
+                    string="Inherit View Name"
+                />
+                <filter domain="[('m2o_model','!=',False)]" name="m2o_model" string="Code generator Model" />
+                <filter domain="[('view_attr_class','!=',False)]" name="view_attr_class" string="Class attribute" />
+                <filter domain="[('view_attr_string','!=',False)]" name="view_attr_string" string="String attribute" />
+                <filter domain="[('view_item_ids','!=',False)]" name="view_item_ids" string="View item" />
+                <filter domain="[('view_name','!=',False)]" name="view_name" string="View name" />
+                <filter domain="[('view_type','!=',False)]" name="view_type" string="View Type" />
+            </search>
+        </field>
+    </record>
+
+    <record id="code_generator_view_view_tree" model="ir.ui.view">
+        <field name="name">code_generator_view_tree</field>
+        <field name="model">code.generator.view</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="code_generator_id" />
+                <field name="has_body_sheet" />
+                <field name="id_name" />
+                <field name="inherit_view_name" />
+                <field name="m2o_model" />
+                <field name="view_attr_class" />
+                <field name="view_attr_string" />
+                <field name="view_item_ids" />
+                <field name="view_name" />
+                <field name="view_type" />
+            </tree>
+        </field>
+    </record>
+
+    <act_window
+        id="code_generator_view_generator_view_action_window"
+        name="Generator view"
+        res_model="code.generator.view"
+        view_mode="kanban,tree,pivot,graph,form"
+    />
+</odoo>

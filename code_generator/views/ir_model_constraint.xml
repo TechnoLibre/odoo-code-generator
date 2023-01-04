@@ -8,8 +8,10 @@
             <group position="after">
                 <group name="code_generator_module" string="Code Generator Module">
                     <group>
+                        <field name="code_generator_id" />
                         <field name="definition" />
-                        <field name="model_state" invisible="1" />
+                        <field name="model_state" />
+                        <field name="module" />
                         <field
                             name="message"
                             attrs="{'required': [('type', '==', 'u'), ('model_state', '==', 'manual')]}"
@@ -27,7 +29,108 @@
         <field name="arch" type="xml">
             <field name="name" position="after">
                 <field name="definition" />
+                <field name="message" />
+                <field name="model_state" />
+                <field name="module" />
+                <field name="code_generator_id" />
             </field>
         </field>
     </record>
+
+    <record id="ir_model_constraint_view_kanban" model="ir.ui.view">
+        <field name="name">ir_model_constraint_kanban</field>
+        <field name="model">ir.model.constraint</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="date_init" />
+                <field name="date_update" />
+                <field name="definition" />
+                <field name="model" />
+                <field name="module" />
+                <field name="name" />
+                <field name="type" />
+                <field name="code_generator_id" />
+                <field name="message" />
+                <field name="model_state" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="date_init" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="date_update" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="definition" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="model" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="module" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="type" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code_generator_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="message" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="model_state" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="ir_model_constraint_view_search" model="ir.ui.view">
+        <field name="name">ir_model_constraint_search</field>
+        <field name="model">ir.model.constraint</field>
+        <field name="arch" type="xml">
+            <search string="Ir model constraint">
+                <filter string="Code Generator" name="code_generator" domain="[('code_generator_id', '!=', False)]" />
+            </search>
+        </field>
+    </record>
+
+    <act_window
+        id="ir_model_constraint_model_constraint_action_window"
+        name="Model constraint"
+        res_model="ir.model.constraint"
+        context="{'search_default_code_generator': 1}"
+        view_mode="kanban,tree,form"
+    />
 </odoo>

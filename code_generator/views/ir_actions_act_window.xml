@@ -27,4 +27,221 @@
             </notebook>
         </field>
     </record>
+
+    <record id="view_window_action_search_inherit" model="ir.ui.view">
+        <field name="model">ir.actions.act_window</field>
+        <field name="inherit_id" ref="base.view_window_action_search" />
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='view_type']" position="after">
+                <filter
+                    string='Code Generator'
+                    name='code_generator'
+                    domain="['|', ('m2o_res_model', '!=', False), ('m2o_src_model', '!=', False)]"
+                />
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_window_action_tree_inherit" model="ir.ui.view">
+        <field name="model">ir.actions.act_window</field>
+        <field name="inherit_id" ref="base.view_window_action_tree" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='context']" position="before">
+                <field name='m2o_res_model' />
+                <field name='m2o_src_model' />
+            </xpath>
+        </field>
+    </record>
+
+    <record id="ir_actions_act_window_view_kanban" model="ir.ui.view">
+        <field name="name">ir_actions_act_window_kanban</field>
+        <field name="model">ir.actions.act_window</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="auto_search" />
+                <field name="binding_model_id" />
+                <field name="binding_type" />
+                <field name="context" />
+                <field name="domain" />
+                <field name="filter" />
+                <field name="groups_id" />
+                <field name="help" />
+                <field name="limit" />
+                <field name="multi" />
+                <field name="name" />
+                <field name="res_id" />
+                <field name="res_model" />
+                <field name="search_view" />
+                <field name="search_view_id" />
+                <field name="src_model" />
+                <field name="target" />
+                <field name="type" />
+                <field name="usage" />
+                <field name="view_id" />
+                <field name="view_ids" />
+                <field name="view_mode" />
+                <field name="view_type" />
+                <field name="views" />
+                <field name="xml_id" />
+                <field name="m2o_res_model" />
+                <field name="m2o_src_model" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="text-success float-right mb4" t-if="record.auto_search.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.auto_search.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="binding_model_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="binding_type" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="context" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="domain" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.filter.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.filter.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="groups_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="help" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="limit" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.multi.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.multi.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="res_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="res_model" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="search_view" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="search_view_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="src_model" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="target" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="type" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="usage" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="view_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="view_ids" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="view_mode" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="view_type" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="views" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="xml_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="m2o_res_model" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="m2o_src_model" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <act_window
+        id="ir_actions_act_window_actions_act_window_action_window"
+        name="Actions act window"
+        res_model="ir.actions.act_window"
+        context="{'search_default_code_generator': 1}"
+        view_mode="kanban,tree,form"
+    />
 </odoo>

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="code_generator_module_template_dependency_view_form" model="ir.ui.view">
+        <field name="name">code_generator_module_template_dependency_form</field>
+        <field name="model">code.generator.module.template.dependency</field>
+        <field name="arch" type="xml">
+            <form string="Titre">
+                <sheet>
+                    <group>
+                        <field name="depend_id" />
+                    </group>
+                    <group>
+                        <field name="module_id" />
+                    </group>
+                    <group>
+                        <field name="name" />
+                    </group>
+                    <group>
+                        <field name="state" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="code_generator_module_template_dependency_view_graph" model="ir.ui.view">
+        <field name="name">code_generator_module_template_dependency_graph</field>
+        <field name="model">code.generator.module.template.dependency</field>
+        <field name="arch" type="xml">
+            <graph string="Code generator module template dependency">
+                <field name="depend_id" type="row" />
+                <field name="module_id" type="row" />
+                <field name="name" type="row" />
+                <field name="state" type="row" />
+            </graph>
+        </field>
+    </record>
+
+    <record id="code_generator_module_template_dependency_view_kanban" model="ir.ui.view">
+        <field name="name">code_generator_module_template_dependency_kanban</field>
+        <field name="model">code.generator.module.template.dependency</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="depend_id" />
+                <field name="module_id" />
+                <field name="name" />
+                <field name="state" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="depend_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="module_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="state" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="code_generator_module_template_dependency_view_pivot" model="ir.ui.view">
+        <field name="name">code_generator_module_template_dependency_pivot</field>
+        <field name="model">code.generator.module.template.dependency</field>
+        <field name="arch" type="xml">
+            <pivot string="Code generator module template dependency">
+                <field name="depend_id" type="row" />
+                <field name="module_id" type="row" />
+                <field name="name" type="row" />
+                <field name="state" type="row" />
+            </pivot>
+        </field>
+    </record>
+
+    <record id="code_generator_module_template_dependency_view_search" model="ir.ui.view">
+        <field name="name">code_generator_module_template_dependency_search</field>
+        <field name="model">code.generator.module.template.dependency</field>
+        <field name="arch" type="xml">
+            <search string="Code generator module template dependency">
+                <filter domain="[('depend_id','!=',False)]" name="depend_id" string="Dependency" />
+                <filter domain="[('module_id','!=',False)]" name="module_id" string="Module" />
+                <filter domain="[('name','!=',False)]" name="name" string="Name" />
+                <filter domain="[('state','!=',False)]" name="state" string="Status" />
+            </search>
+        </field>
+    </record>
+
+    <record id="code_generator_module_template_dependency_view_tree" model="ir.ui.view">
+        <field name="name">code_generator_module_template_dependency_tree</field>
+        <field name="model">code.generator.module.template.dependency</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="depend_id" />
+                <field name="module_id" />
+                <field name="name" />
+                <field name="state" />
+            </tree>
+        </field>
+    </record>
+
+    <act_window
+        id="code_generator_module_template_dependency_generator_module_template_dependency_action_window"
+        name="Generator module template dependency"
+        res_model="code.generator.module.template.dependency"
+        view_mode="kanban,tree,pivot,graph,form"
+    />
+</odoo>

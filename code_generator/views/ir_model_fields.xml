@@ -1,0 +1,635 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_model_fields_form_inherit" model="ir.ui.view">
+        <field name="model">ir.model.fields</field>
+        <field name="inherit_id" ref="base.view_model_fields_form" />
+        <field name="arch" type="xml">
+            <notebook position="before">
+                <group name="code_generator_module" string="Code Generator Module">
+                    <group>
+                        <field name="is_code_generator" />
+                        <field name="code_generator_calendar_view_sequence" />
+                        <field name="code_generator_compute" />
+                        <field name="code_generator_form_simple_view_sequence" />
+                        <field name="code_generator_graph_view_sequence" />
+                        <field name="code_generator_ir_model_fields_ids" />
+                        <field name="code_generator_kanban_view_sequence" />
+                        <field name="code_generator_pivot_view_sequence" />
+                        <field name="code_generator_search_sequence" />
+                        <field name="code_generator_search_view_sequence" />
+                        <field name="code_generator_sequence" />
+                        <field name="code_generator_tree_view_sequence" />
+                        <field name="comment_after" />
+                        <field name="comment_before" />
+                        <field name="default" />
+                        <field name="default_lambda" />
+                        <field name="field_context" />
+                        <field name="force_widget" />
+                        <field name="ignore_on_code_generator_writer" />
+                        <field name="is_date_end_view" />
+                        <field name="is_date_start_view" />
+                        <field name="is_hide_blacklist_calendar_view" />
+                        <field name="is_hide_blacklist_form_view" />
+                        <field name="is_hide_blacklist_graph_view" />
+                        <field name="is_hide_blacklist_kanban_view" />
+                        <field name="is_hide_blacklist_list_view" />
+                        <field name="is_hide_blacklist_model_inherit" />
+                        <field name="is_hide_blacklist_pivot_view" />
+                        <field name="is_hide_blacklist_search_view" />
+                        <field name="is_show_whitelist_calendar_view" />
+                        <field name="is_show_whitelist_form_view" />
+                        <field name="is_show_whitelist_graph_view" />
+                        <field name="is_show_whitelist_kanban_view" />
+                        <field name="is_show_whitelist_list_view" />
+                        <field name="is_show_whitelist_model_inherit" />
+                        <field name="is_show_whitelist_pivot_view" />
+                        <field name="is_show_whitelist_search_view" />
+                    </group>
+                </group>
+            </notebook>
+        </field>
+    </record>
+
+    <record id="ir_model_fields_view_kanban" model="ir.ui.view">
+        <field name="name">ir_model_fields_kanban</field>
+        <field name="model">ir.model.fields</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="column1" />
+                <field name="column2" />
+                <field name="complete_name" />
+                <field name="compute" />
+                <field name="copied" />
+                <field name="depends" />
+                <field name="domain" />
+                <field name="field_description" />
+                <field name="groups" />
+                <field name="help" />
+                <field name="index" />
+                <field name="model" />
+                <field name="model_id" />
+                <field name="modules" />
+                <field name="name" />
+                <field name="on_delete" />
+                <field name="readonly" />
+                <field name="related" />
+                <field name="related_field_id" />
+                <field name="relation" />
+                <field name="relation_field" />
+                <field name="relation_field_id" />
+                <field name="relation_table" />
+                <field name="required" />
+                <field name="selectable" />
+                <field name="selection" />
+                <field name="size" />
+                <field name="state" />
+                <field name="store" />
+                <field name="track_visibility" />
+                <field name="translate" />
+                <field name="ttype" />
+                <field name="code_generator_calendar_view_sequence" />
+                <field name="code_generator_compute" />
+                <field name="code_generator_form_simple_view_sequence" />
+                <field name="code_generator_graph_view_sequence" />
+                <field name="code_generator_ir_model_fields_ids" />
+                <field name="code_generator_kanban_view_sequence" />
+                <field name="code_generator_pivot_view_sequence" />
+                <field name="code_generator_search_sequence" />
+                <field name="code_generator_search_view_sequence" />
+                <field name="code_generator_sequence" />
+                <field name="code_generator_tree_view_sequence" />
+                <field name="comment_after" />
+                <field name="comment_before" />
+                <field name="default" />
+                <field name="default_lambda" />
+                <field name="field_context" />
+                <field name="force_widget" />
+                <field name="ignore_on_code_generator_writer" />
+                <field name="is_date_end_view" />
+                <field name="is_date_start_view" />
+                <field name="is_hide_blacklist_calendar_view" />
+                <field name="is_hide_blacklist_form_view" />
+                <field name="is_hide_blacklist_graph_view" />
+                <field name="is_hide_blacklist_kanban_view" />
+                <field name="is_hide_blacklist_list_view" />
+                <field name="is_hide_blacklist_model_inherit" />
+                <field name="is_hide_blacklist_pivot_view" />
+                <field name="is_hide_blacklist_search_view" />
+                <field name="is_show_whitelist_calendar_view" />
+                <field name="is_show_whitelist_form_view" />
+                <field name="is_show_whitelist_graph_view" />
+                <field name="is_show_whitelist_kanban_view" />
+                <field name="is_show_whitelist_list_view" />
+                <field name="is_show_whitelist_model_inherit" />
+                <field name="is_show_whitelist_pivot_view" />
+                <field name="is_show_whitelist_search_view" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="column1" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="column2" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="complete_name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="compute" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.copied.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.copied.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="depends" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="domain" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="field_description" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="groups" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="help" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.index.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.index.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="model" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="model_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="modules" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="on_delete" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.readonly.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.readonly.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="related" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="related_field_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="relation" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="relation_field" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="relation_field_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="relation_table" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.required.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.required.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.selectable.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.selectable.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="selection" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="size" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="state" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.store.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.store.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="track_visibility" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.translate.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.translate.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="ttype" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code_generator_calendar_view_sequence" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code_generator_compute" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code_generator_form_simple_view_sequence" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code_generator_graph_view_sequence" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code_generator_ir_model_fields_ids" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code_generator_kanban_view_sequence" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code_generator_pivot_view_sequence" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code_generator_search_sequence" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code_generator_search_view_sequence" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code_generator_sequence" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code_generator_tree_view_sequence" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="comment_after" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="comment_before" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="default" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="default_lambda" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="field_context" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="force_widget" />
+                                        </strong>
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.ignore_on_code_generator_writer.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.ignore_on_code_generator_writer.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.is_date_end_view.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.is_date_end_view.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.is_date_start_view.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.is_date_start_view.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_hide_blacklist_calendar_view.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_hide_blacklist_calendar_view.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_hide_blacklist_form_view.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_hide_blacklist_form_view.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_hide_blacklist_graph_view.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_hide_blacklist_graph_view.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_hide_blacklist_kanban_view.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_hide_blacklist_kanban_view.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_hide_blacklist_list_view.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_hide_blacklist_list_view.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_hide_blacklist_model_inherit.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_hide_blacklist_model_inherit.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_hide_blacklist_pivot_view.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_hide_blacklist_pivot_view.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_hide_blacklist_search_view.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_hide_blacklist_search_view.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_show_whitelist_calendar_view.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_show_whitelist_calendar_view.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_show_whitelist_form_view.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_show_whitelist_form_view.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_show_whitelist_graph_view.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_show_whitelist_graph_view.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_show_whitelist_kanban_view.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_show_whitelist_kanban_view.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_show_whitelist_list_view.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_show_whitelist_list_view.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_show_whitelist_model_inherit.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_show_whitelist_model_inherit.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_show_whitelist_pivot_view.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_show_whitelist_pivot_view.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_show_whitelist_search_view.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_show_whitelist_search_view.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_model_fields_tree_inherit" model="ir.ui.view">
+        <field name="model">ir.model.fields</field>
+        <field name="inherit_id" ref="base.view_model_fields_tree" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='relation']" position="after">
+                <field name="is_code_generator" />
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_model_fields_search_inherit" model="ir.ui.view">
+        <field name="model">ir.model.fields</field>
+        <field name="inherit_id" ref="base.view_model_fields_search" />
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='required']" position="after">
+                <filter string='Code Generator' name='code_generator' domain="[('is_code_generator', '!=', False)]" />
+            </xpath>
+        </field>
+    </record>
+
+    <act_window
+        id="ir_model_fields_model_fields_action_window"
+        name="Model fields"
+        res_model="ir.model.fields"
+        context="{'search_default_code_generator': 1}"
+        view_mode="kanban,tree,form"
+    />
+</odoo>

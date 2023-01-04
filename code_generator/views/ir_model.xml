@@ -109,41 +109,21 @@
         </field>
     </record>
 
-    <record model="ir.ui.view" id="ir_access_view_tree_inherited">
-        <field name="model">ir.model.access</field>
-        <field name="inherit_id" ref="base.ir_access_view_tree" />
+    <record id="view_model_search_inherit" model="ir.ui.view">
+        <field name="model">ir.model</field>
+        <field name="inherit_id" ref="base.view_model_search" />
         <field name="arch" type="xml">
-            <tree position="attributes">
-                <attribute name="editable" />
-            </tree>
+            <xpath expr="//filter[@name='base']" position="after">
+                <filter string='Code Generator' name='code_generator' domain="[('m2o_module', '!=', False)]" />
+            </xpath>
         </field>
     </record>
 
-    <record model="ir.ui.view" id="ir_access_view_form_inherited">
-        <field name="model">ir.model.access</field>
-        <field name="inherit_id" ref="base.ir_access_view_form" />
-        <field name="arch" type="xml">
-            <field name="name" position="attributes">
-                <attribute name="class">name_input</attribute>
-            </field>
-            <field name="model_id" position="attributes">
-                <attribute name="class">m2o_model_input</attribute>
-            </field>
-            <field name="group_id" position="attributes">
-                <attribute name="class">group_input</attribute>
-            </field>
-            <field name="perm_read" position="attributes">
-                <attribute name="class">perm_read_input</attribute>
-            </field>
-            <field name="perm_write" position="attributes">
-                <attribute name="class">perm_write_input</attribute>
-            </field>
-            <field name="perm_create" position="attributes">
-                <attribute name="class">perm_create_input</attribute>
-            </field>
-            <field name="perm_unlink" position="attributes">
-                <attribute name="class">perm_unlink_input</attribute>
-            </field>
-        </field>
-    </record>
+    <act_window
+        id="ir_model_model_action_window"
+        name="Model"
+        res_model="ir.model"
+        context="{'search_default_code_generator': 1}"
+        view_mode="kanban,tree,form"
+    />
 </odoo>

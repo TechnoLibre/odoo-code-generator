@@ -16,6 +16,8 @@
             <notebook position="before">
                 <group name="code_generator_module" string="Code Generator Module">
                     <group>
+                        <field name="is_hide_blacklist_write_view" />
+                        <field name="is_show_whitelist_write_view" />
                         <field
                             name="m2o_model"
                             options="{'no_create': True, 'no_edit': True}"
@@ -30,4 +32,86 @@
             </field>
         </field>
     </record>
+
+    <record id="ir_ui_view_view_kanban" model="ir.ui.view">
+        <field name="name">ir_ui_view_kanban</field>
+        <field name="model">ir.ui.view</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="name" />
+                <field name="is_code_generator" />
+                <field name="is_hide_blacklist_write_view" />
+                <field name="is_show_whitelist_write_view" />
+                <field name="m2o_model" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="name" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.is_code_generator.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.is_code_generator.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_hide_blacklist_write_view.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_hide_blacklist_write_view.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_show_whitelist_write_view.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_show_whitelist_write_view.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="m2o_model" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_view_search_inherit" model="ir.ui.view">
+        <field name="model">ir.ui.view</field>
+        <field name="inherit_id" ref="base.view_view_search" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='key']" position="after">
+                <filter string='Code Generator' name='code_generator' domain="[('is_code_generator', '!=', False)]" />
+            </xpath>
+        </field>
+    </record>
+
+    <act_window
+        id="ir_ui_view_ui_view_action_window"
+        name="Ui view"
+        res_model="ir.ui.view"
+        context="{'search_default_code_generator': 1}"
+        view_mode="kanban,tree,form"
+    />
 </odoo>

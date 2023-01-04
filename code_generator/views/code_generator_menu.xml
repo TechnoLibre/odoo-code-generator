@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="code_generator_menu_view_form" model="ir.ui.view">
+        <field name="name">code_generator_menu_form</field>
+        <field name="model">code.generator.menu</field>
+        <field name="arch" type="xml">
+            <form string="Titre">
+                <sheet>
+                    <group>
+                        <field name="code_generator_id" />
+                    </group>
+                    <group>
+                        <field name="id_name" />
+                    </group>
+                    <group>
+                        <field name="ignore_act_window" />
+                    </group>
+                    <group>
+                        <field name="m2o_act_window" />
+                    </group>
+                    <group>
+                        <field name="name" />
+                    </group>
+                    <group>
+                        <field name="parent_id_name" />
+                    </group>
+                    <group>
+                        <field name="sequence" />
+                    </group>
+                    <group>
+                        <field name="web_icon" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="code_generator_menu_view_graph" model="ir.ui.view">
+        <field name="name">code_generator_menu_graph</field>
+        <field name="model">code.generator.menu</field>
+        <field name="arch" type="xml">
+            <graph string="Code generator menu">
+                <field name="code_generator_id" type="row" />
+                <field name="id_name" type="row" />
+                <field name="ignore_act_window" type="row" />
+                <field name="m2o_act_window" type="row" />
+                <field name="name" type="row" />
+                <field name="parent_id_name" type="row" />
+                <field name="sequence" type="measure" />
+                <field name="web_icon" type="row" />
+            </graph>
+        </field>
+    </record>
+
+    <record id="code_generator_menu_view_kanban" model="ir.ui.view">
+        <field name="name">code_generator_menu_kanban</field>
+        <field name="model">code.generator.menu</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="code_generator_id" />
+                <field name="id_name" />
+                <field name="ignore_act_window" />
+                <field name="m2o_act_window" />
+                <field name="name" />
+                <field name="parent_id_name" />
+                <field name="sequence" />
+                <field name="web_icon" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code_generator_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="id_name" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.ignore_act_window.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.ignore_act_window.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="m2o_act_window" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="parent_id_name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="sequence" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="web_icon" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="code_generator_menu_view_pivot" model="ir.ui.view">
+        <field name="name">code_generator_menu_pivot</field>
+        <field name="model">code.generator.menu</field>
+        <field name="arch" type="xml">
+            <pivot string="Code generator menu">
+                <field name="code_generator_id" type="row" />
+                <field name="id_name" type="row" />
+                <field name="ignore_act_window" type="row" />
+                <field name="m2o_act_window" type="row" />
+                <field name="name" type="row" />
+                <field name="parent_id_name" type="row" />
+                <field name="sequence" type="measure" />
+                <field name="web_icon" type="row" />
+            </pivot>
+        </field>
+    </record>
+
+    <record id="code_generator_menu_view_search" model="ir.ui.view">
+        <field name="name">code_generator_menu_search</field>
+        <field name="model">code.generator.menu</field>
+        <field name="arch" type="xml">
+            <search string="Code generator menu">
+                <filter domain="[('code_generator_id','!=',False)]" name="code_generator_id" string="Code Generator" />
+                <filter domain="[('id_name','!=',False)]" name="id_name" string="Menu id" />
+                <filter domain="[('ignore_act_window','=',True)]" name="ignore_act_window" string="Ignore Act Window" />
+                <filter domain="[('m2o_act_window','!=',False)]" name="m2o_act_window" string="Action Windows" />
+                <filter domain="[('name','!=',False)]" name="name" string="Name" />
+                <filter domain="[('parent_id_name','!=',False)]" name="parent_id_name" string="Menu parent id" />
+                <filter domain="[('sequence','!=',False)]" name="sequence" string="Sequence" />
+                <filter domain="[('web_icon','!=',False)]" name="web_icon" string="Web Icon" />
+            </search>
+        </field>
+    </record>
+
+    <record id="code_generator_menu_view_tree" model="ir.ui.view">
+        <field name="name">code_generator_menu_tree</field>
+        <field name="model">code.generator.menu</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="code_generator_id" />
+                <field name="id_name" />
+                <field name="ignore_act_window" />
+                <field name="m2o_act_window" />
+                <field name="name" />
+                <field name="parent_id_name" />
+                <field name="sequence" />
+                <field name="web_icon" />
+            </tree>
+        </field>
+    </record>
+
+    <act_window
+        id="code_generator_menu_generator_menu_action_window"
+        name="Generator menu"
+        res_model="code.generator.menu"
+        view_mode="kanban,tree,pivot,graph,form"
+    />
+</odoo>

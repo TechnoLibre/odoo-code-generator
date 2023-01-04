@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="code_generator_writer_view_form" model="ir.ui.view">
+        <field name="name">code_generator_writer_form</field>
+        <field name="model">code.generator.writer</field>
+        <field name="arch" type="xml">
+            <form string="Titre">
+                <sheet>
+                    <group>
+                        <field name="basename" />
+                    </group>
+                    <group>
+                        <field name="code_generator_ids" />
+                    </group>
+                    <group>
+                        <field name="list_path_file" />
+                    </group>
+                    <group>
+                        <field name="rootdir" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="code_generator_writer_view_graph" model="ir.ui.view">
+        <field name="name">code_generator_writer_graph</field>
+        <field name="model">code.generator.writer</field>
+        <field name="arch" type="xml">
+            <graph string="Code generator writer">
+                <field name="basename" type="row" />
+                <field name="list_path_file" type="row" />
+                <field name="rootdir" type="row" />
+            </graph>
+        </field>
+    </record>
+
+    <record id="code_generator_writer_view_kanban" model="ir.ui.view">
+        <field name="name">code_generator_writer_kanban</field>
+        <field name="model">code.generator.writer</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="basename" />
+                <field name="code_generator_ids" />
+                <field name="list_path_file" />
+                <field name="rootdir" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="basename" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code_generator_ids" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="list_path_file" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="rootdir" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="code_generator_writer_view_pivot" model="ir.ui.view">
+        <field name="name">code_generator_writer_pivot</field>
+        <field name="model">code.generator.writer</field>
+        <field name="arch" type="xml">
+            <pivot string="Code generator writer">
+                <field name="basename" type="row" />
+                <field name="list_path_file" type="row" />
+                <field name="rootdir" type="row" />
+            </pivot>
+        </field>
+    </record>
+
+    <record id="code_generator_writer_view_search" model="ir.ui.view">
+        <field name="name">code_generator_writer_search</field>
+        <field name="model">code.generator.writer</field>
+        <field name="arch" type="xml">
+            <search string="Code generator writer">
+                <filter domain="[('basename','!=',False)]" name="basename" string="Base name" />
+                <filter
+                    domain="[('code_generator_ids','!=',False)]"
+                    name="code_generator_ids"
+                    string="Code Generator"
+                />
+                <filter domain="[('list_path_file','!=',False)]" name="list_path_file" string="List path file" />
+                <filter domain="[('rootdir','!=',False)]" name="rootdir" string="Root dir" />
+            </search>
+        </field>
+    </record>
+
+    <record id="code_generator_writer_view_tree" model="ir.ui.view">
+        <field name="name">code_generator_writer_tree</field>
+        <field name="model">code.generator.writer</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="basename" />
+                <field name="code_generator_ids" />
+                <field name="list_path_file" />
+                <field name="rootdir" />
+            </tree>
+        </field>
+    </record>
+
+    <act_window
+        id="code_generator_writer_generator_writer_action_window"
+        name="Generator writer"
+        res_model="code.generator.writer"
+        view_mode="kanban,tree,pivot,graph,form"
+    />
+</odoo>

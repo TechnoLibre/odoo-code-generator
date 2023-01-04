@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="ir_model_server_constrain_view_form" model="ir.ui.view">
+        <field name="name">ir_model_server_constrain_form</field>
+        <field name="model">ir.model.server_constrain</field>
+        <field name="arch" type="xml">
+            <form string="Titre">
+                <sheet>
+                    <group>
+                        <field name="constrained" />
+                    </group>
+                    <group>
+                        <field name="m2o_ir_model" />
+                    </group>
+                    <group>
+                        <field name="txt_code" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="ir_model_server_constrain_view_kanban" model="ir.ui.view">
+        <field name="name">ir_model_server_constrain_kanban</field>
+        <field name="model">ir.model.server_constrain</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="constrained" />
+                <field name="m2o_ir_model" />
+                <field name="txt_code" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="constrained" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="m2o_ir_model" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="txt_code" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="ir_model_server_constrain_view_search" model="ir.ui.view">
+        <field name="name">ir_model_server_constrain_search</field>
+        <field name="model">ir.model.server_constrain</field>
+        <field name="arch" type="xml">
+            <search string="Ir model server constrain">
+                <filter domain="[('constrained','!=',False)]" name="constrained" string="Constrained" />
+                <filter domain="[('m2o_ir_model','!=',False)]" name="m2o_ir_model" string="Code generator Model" />
+                <filter domain="[('txt_code','!=',False)]" name="txt_code" string="Code" />
+            </search>
+        </field>
+    </record>
+
+    <record id="ir_model_server_constrain_view_tree" model="ir.ui.view">
+        <field name="name">ir_model_server_constrain_tree</field>
+        <field name="model">ir.model.server_constrain</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="constrained" />
+                <field name="m2o_ir_model" />
+                <field name="txt_code" />
+            </tree>
+        </field>
+    </record>
+
+    <act_window
+        id="ir_model_server_constrain_model_server_constrain_action_window"
+        name="Model server constrain"
+        res_model="ir.model.server_constrain"
+        view_mode="kanban,tree,form"
+    />
+</odoo>

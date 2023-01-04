@@ -211,7 +211,7 @@
         <field name="view_type">form</field>
         <field name="view_mode">tree,form</field>
         <field name="domain">[('state', '!=', 'uninstallable')]</field>
-        <field name="context">{'search_default_app':1}</field>
+        <field name="context">{'search_default_app':0}</field>
         <field name="search_view_id" ref="code_generator_module_search" />
         <field name="help" type="html">
             <p class="o_view_nocontent_empty_folder">Add a new module</p>

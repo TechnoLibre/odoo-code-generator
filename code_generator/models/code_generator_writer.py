@@ -1003,7 +1003,7 @@ class CodeGeneratorWriter(models.Model):
             force_field_name_xml_id = None
             f2exports = model.field_id.filtered(
                 lambda field: field.name not in MAGIC_FIELDS
-            )
+            ).with_context(lang=None)
             lst_field = []
             lst_end_field = []
             lst_ignore_field_name = []
@@ -1754,10 +1754,12 @@ _logger = logging.getLogger(__name__)"""
         # view_ids = model.view_ids
         # TODO model.view_ids not working when add inherit view from wizard... what is different? Force values
         view_ids = self.env["ir.ui.view"].search([("model", "=", model.model)])
-        act_window_ids = self.env["ir.actions.act_window"].search(
-            [("res_model", "=", model.model)]
+        act_window_ids = (
+            self.env["ir.actions.act_window"]
+            .search([("res_model", "=", model.model)])
+            .with_context(lang=None)
         )
-        server_action_ids = model.o2m_server_action
+        server_action_ids = model.o2m_server_action.with_context(lang=None)
 
         # Remove all field when in inherit if not in whitelist
         is_whitelist = any([a.is_show_whitelist_write_view for a in view_ids])
@@ -1844,24 +1846,27 @@ _logger = logging.getLogger(__name__)"""
                         E.field({"name": "active", "eval": "False"})
                     )
 
-                if view.arch_db:
+                if view.arch_base:
                     uid = str(uuid.uuid1())
-                    str_arch_db = (
-                        view.arch_db
-                        if not view.arch_db.startswith(XML_VERSION_STR)
-                        else view.arch_db[len(XML_VERSION_STR) :]
+                    str_arch_base = (
+                        view.arch_base
+                        if not view.arch_base.startswith(XML_VERSION_STR)
+                        else view.arch_base[len(XML_VERSION_STR) :]
                     )
+                    if str_arch_base.startswith(XML_VERSION_STR):
+                        str_arch_base = str_arch_base[len(XML_VERSION_STR) :]
                     # TODO retransform xml to format correctly
+                    # TODO check where put data
                     str_data_begin = "<data>\n"
                     str_data_end = "</data>\n"
-                    if str_arch_db.startswith(
+                    if str_arch_base.startswith(
                         str_data_begin
-                    ) and str_arch_db.endswith(str_data_end):
-                        str_arch_db = str_arch_db[
+                    ) and str_arch_base.endswith(str_data_end):
+                        str_arch_base = str_arch_base[
                             len(str_data_begin) : -len(str_data_end)
                         ]
                     dct_replace[uid] = self._setup_xml_indent(
-                        str_arch_db, indent=3
+                        str_arch_base, indent=3
                     )
                     lst_field.append(
                         E.field({"name": "arch", "type": "xml"}, uid)
@@ -2262,19 +2267,21 @@ _logger = logging.getLogger(__name__)"""
 
         l_model_report_file = XML_HEAD + BLANK_LINE
 
-        for report in model.o2m_reports:
+        for report in model.o2m_reports.with_context(lang=None):
 
             l_model_report_file.append(
                 '<template id="%s">' % report.report_name
             )
 
-            str_arch_db = (
-                report.m2o_template.arch_db
-                if not report.m2o_template.arch_db.startswith(XML_VERSION_STR)
-                else report.m2o_template.arch_db[len(XML_VERSION_STR) :]
+            str_arch_base = (
+                report.m2o_template.arch_base
+                if not report.m2o_template.arch_base.startswith(
+                    XML_VERSION_STR
+                )
+                else report.m2o_template.arch_base[len(XML_VERSION_STR) :]
             )
             l_model_report_file.append(
-                f'<field name="arch" type="xml">{str_arch_db}</field>'
+                f'<field name="arch" type="xml">{str_arch_base}</field>'
             )
 
             l_model_report_file.append("</template>\n")
@@ -3176,13 +3183,18 @@ _logger = logging.getLogger(__name__)"""
         # TODO detect if contain code_generator_sequence, else order by name
         # TODO some field.modules containts space, this is why it strip each element
         # the field.modules is full when the module is installed, check file odoo/odoo/addons/base/models/ir_model.py fct _in_modules
-        f2exports = model.field_id.filtered(
-            lambda field: field.name not in MAGIC_FIELDS
-            and (
-                module.name in [a.strip() for a in field.modules.split(",")]
-                or not field.modules
+        f2exports = (
+            model.field_id.filtered(
+                lambda field: field.name not in MAGIC_FIELDS
+                and (
+                    module.name
+                    in [a.strip() for a in field.modules.split(",")]
+                    or not field.modules
+                )
             )
-        ).sorted(key=lambda r: r.code_generator_sequence)
+            .sorted(key=lambda r: r.code_generator_sequence)
+            .with_context(lang=None)
+        )
 
         lst_inherit_model = self._get_lst_inherit_model(model)
 
@@ -3201,7 +3213,7 @@ _logger = logging.getLogger(__name__)"""
                             and field.is_show_whitelist_model_inherit_call()
                         )
                     )
-                )
+                ).with_context(lang=None)
             # else:
             #     father_ids = self.env["ir.model"].browse(
             #         [a.depend_id.id for a in model.inherit_model_ids]
@@ -3214,7 +3226,7 @@ _logger = logging.getLogger(__name__)"""
             #         set_unique_field.update(fatherfieldnames)
             #     f2exports = f2exports.filtered(
             #         lambda field: field.name not in list(set_unique_field)
-            #     )
+            #     ).with_context(lang=None)
 
         # Force field name first
         field_rec_name = model.get_rec_name()
@@ -3228,7 +3240,11 @@ _logger = logging.getLogger(__name__)"""
                 lambda field: field.name != field_rec_name
             )
             lst_id = lst_field_rec_name.ids + lst_field_not_name.ids
-            f2exports = self.env["ir.model.fields"].browse(lst_id)
+            f2exports = (
+                self.env["ir.model.fields"]
+                .browse(lst_id)
+                .with_context(lang=None)
+            )
 
         lst_field_to_write = []
         for f2export in f2exports:
@@ -3239,11 +3255,13 @@ _logger = logging.getLogger(__name__)"""
                 if b.name == f2export.name
             ]
             # TODO update this list
+            # Don't use field_description, but name instead, because field_description is transformed
             # Documentation to understand how attributes work, check file odoo/odoo/addons/base/models/ir_model.py function _instanciate_attrs
             lst_attribute_check_diff = [
                 "readonly",
                 "required",
-                "field_description",  # String
+                # "field_description",  # String
+                "name",  # String
                 "relation_field",  # inverse_name
                 "relation",  # comodel_name
                 "relation_table",  # relation

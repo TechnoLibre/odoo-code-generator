@@ -1075,7 +1075,7 @@ for {var_name} in self:
 <script type="text/javascript" src="/{module_name}/static/src/js/portal.{module_name}.js" />
 </xpath>"""
             key = f"assets_frontend_{self.code_generator_id.name}_portal"
-            inherit_id = self.env.ref("website.assets_frontend").id
+            inherit_id = self.env.ref("web.assets_frontend").id
             view_value = self._create_ui_view(
                 content, key, qweb_name, None, inherit_id, model_created
             )

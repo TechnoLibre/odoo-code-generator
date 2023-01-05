@@ -19,6 +19,10 @@ MAGIC_FIELDS = MAGIC_COLUMNS + [
 class IrModel(models.Model):
     _inherit = "ir.model"
 
+    blacklist_all_ir_ui_view = fields.Boolean(
+        help="Enable to exclude this model from automatic ir.ui.view generate."
+    )
+
     description = fields.Char()
 
     diagram_arrow_dst_field = fields.Char(

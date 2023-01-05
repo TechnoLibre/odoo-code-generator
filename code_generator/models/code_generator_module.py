@@ -501,6 +501,9 @@ class CodeGeneratorModule(models.Model):
                         self.env["code.generator.ir.model.fields"].create(
                             value_ir_model_fields
                         )
+
+            if dct_model:
+                model_id.write(dct_model)
         else:
             has_field_name = False
             # Update model values

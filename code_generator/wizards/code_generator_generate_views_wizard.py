@@ -241,42 +241,42 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             self.code_generator_id.o2m_models
             if self.all_model
             else self.selected_model_tree_view_ids
-        )
+        ).filtered(lambda x: not x.blacklist_all_ir_ui_view)
         o2m_models_view_form = (
             self.code_generator_id.o2m_models
             if self.all_model
             else self.selected_model_form_view_ids
-        )
+        ).filtered(lambda x: not x.blacklist_all_ir_ui_view)
         o2m_models_view_kanban = (
             self.code_generator_id.o2m_models
             if self.all_model
             else self.selected_model_kanban_view_ids
-        )
+        ).filtered(lambda x: not x.blacklist_all_ir_ui_view)
         o2m_models_view_search = (
             self.code_generator_id.o2m_models
             if self.all_model
             else self.selected_model_search_view_ids
-        )
+        ).filtered(lambda x: not x.blacklist_all_ir_ui_view)
         o2m_models_view_pivot = (
             self.code_generator_id.o2m_models
             if self.all_model
             else self.selected_model_pivot_view_ids
-        )
+        ).filtered(lambda x: not x.blacklist_all_ir_ui_view)
         o2m_models_view_calendar = (
             self.code_generator_id.o2m_models
             if self.all_model
             else self.selected_model_calendar_view_ids
-        )
+        ).filtered(lambda x: not x.blacklist_all_ir_ui_view)
         o2m_models_view_graph = (
             self.code_generator_id.o2m_models
             if self.all_model
             else self.selected_model_graph_view_ids
-        )
+        ).filtered(lambda x: not x.blacklist_all_ir_ui_view)
         o2m_models_view_timeline = (
             self.code_generator_id.o2m_models
             if self.all_model
             else self.selected_model_timeline_view_ids
-        )
+        ).filtered(lambda x: not x.blacklist_all_ir_ui_view)
         o2m_models_view_diagram = (
             self.code_generator_id.o2m_models.filtered(
                 lambda model: model.diagram_node_object
@@ -288,7 +288,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             )
             if self.all_model
             else self.selected_model_diagram_view_ids
-        )
+        ).filtered(lambda x: not x.blacklist_all_ir_ui_view)
         # Get unique list order by name of all model to generate
         lst_model = sorted(
             set(

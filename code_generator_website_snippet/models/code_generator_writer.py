@@ -129,7 +129,7 @@ class CodeGeneratorWriter(models.Model):
                     cw.emit("def get_last_item(self):")
                     with cw.indent():
                         lst_model_search = (
-                            code_generator_snippet_id.model_name.split(";")
+                            code_generator_snippet_id.get_model_list()
                         )
                         lst_model_id_search = []
                         for s_model in lst_model_search:
@@ -176,95 +176,81 @@ class CodeGeneratorWriter(models.Model):
                 == "model_show_item_list"
             ):
                 if code_generator_snippet_id.model_name:
-                    lst_model_name = (
-                        code_generator_snippet_id.model_name.split(";")
+                    lst_model_name = code_generator_snippet_id.get_model_list()
+                    lst_url_get_page = (
+                        code_generator_snippet_id.get_url_get_page()
                     )
-                    if len(lst_model_name) > 1:
-                        _logger.warning(
-                            "Cannot support multiple model_name"
-                            f" '{lst_model_name}'"
-                        )
-                    model_name = lst_model_name[0]
-
-                    if code_generator_snippet_id.model_short_name:
-                        lst_model_short_name = (
-                            code_generator_snippet_id.model_short_name.split(
-                                ";"
-                            )
-                        )
-                        if len(lst_model_short_name) > 1:
-                            _logger.warning(
-                                "Cannot support multiple model_short_name"
-                                f" '{lst_model_short_name}'"
-                            )
-                        model_short_name = lst_model_short_name[0]
-                    else:
-                        model_short_name = model_name
-
-                    model_name_under = model_name.replace(".", "_")
-                    model_short_name_under = model_short_name.replace(".", "_")
-                    model_name_xml_name = f"{model_name_under}_unit"
-                    model_name_list_xml_name = f"{model_name_under}_list"
-                    if code_generator_snippet_id.name:
-                        model_name_xml_name += (
-                            f"_{code_generator_snippet_id.name.replace(' ', '_')}"
-                        )
-                        model_name_list_xml_name += (
-                            f"_{code_generator_snippet_id.name.replace(' ', '_')}"
-                        )
-                    model_short_name_id = f"{model_short_name_under}_id"
-                    model_short_name_ids = f"{model_short_name_under}_ids"
-                    model_short_name_s = f"{model_short_name_under}s"
-                    model_short_name_list = f"{model_short_name_under}_list"
-                    model_short_name_title = (
-                        model_short_name.replace(".", " ")
-                        .title()
-                        .replace(" ", "")
+                    lst_var_ids = code_generator_snippet_id.get_model_var_ids()
+                    lst_var_id = code_generator_snippet_id.get_model_var_id()
+                    lst_var_s = code_generator_snippet_id.get_model_var_s()
+                    lst_var_prefix_associate_var = (
+                        code_generator_snippet_id.get_model_var_prefix_associate_var()
+                    )
+                    lst_model_short_name_id = (
+                        code_generator_snippet_id.get_model_var_id()
+                    )
+                    lst_model_short_name = (
+                        code_generator_snippet_id.get_model_var()
+                    )
+                    lst_var_class_name = (
+                        code_generator_snippet_id.get_model_var_class_name()
+                    )
+                    url_list = code_generator_snippet_id.get_url_get_list()
+                    model_short_name_list = (
+                        code_generator_snippet_id.get_snippet_list_name()
+                    )
+                    lst_var_xml_id_unit_name = (
+                        code_generator_snippet_id.get_snippet_xml_id_unit_name()
                     )
 
-                    cw.emit(
-                        f"@http.route(['/{code_generator_snippet_id.code_generator_id.name}/{model_short_name_under}/<int:{model_short_name_id}>'],"
-                        " type='http', auth=\"public\", website=True)"
-                    )
-                    cw.emit(
-                        f"def get_page_{model_short_name_under}(self,"
-                        f" {model_short_name_id}=None):"
-                    )
-                    with cw.indent():
+                    for i, s_model_name in enumerate(lst_model_name):
+                        # TODO valide if exist before create it
                         cw.emit(
-                            "env ="
-                            " request.env(context=dict(request.env.context))"
+                            f"@http.route(['{lst_url_get_page[i]}<int:{lst_model_short_name[i]}>'],"
+                            " type='http', auth=\"public\", website=True)"
                         )
-                        cw.emit()
                         cw.emit(
-                            f'{model_short_name_title} = env["{model_name}"]'
+                            f"def get_page_{lst_model_short_name[i]}(self,"
+                            f" {lst_model_short_name[i]}=None):"
                         )
-                        cw.emit(f"if {model_short_name_id}:")
                         with cw.indent():
                             cw.emit(
-                                f"{model_short_name_ids} ="
-                                f" {model_short_name_title}.sudo().browse({model_short_name_id}).exists()"
+                                "env ="
+                                " request.env(context=dict(request.env.context))"
                             )
-                        cw.emit("else:")
-                        with cw.indent():
-                            cw.emit(f"{model_short_name_ids} = None")
-                        cw.emit(
-                            f'dct_value = {{"{model_short_name_under}":'
-                            f" {model_short_name_ids}}}"
-                        )
-                        cw.emit()
-                        cw.emit("# Render page")
-                        with cw.block(
-                            before="return request.render",
-                            delim=("(", ")"),
-                        ):
+                            cw.emit()
                             cw.emit(
-                                f'"{code_generator_snippet_id.code_generator_id.name}.{model_name_xml_name}",'
+                                f"{lst_var_class_name[i]} ="
+                                f' env["{s_model_name}"]'
                             )
-                            cw.emit("dct_value")
-                    cw.emit()
+                            cw.emit(f"if {lst_model_short_name[i]}:")
+                            with cw.indent():
+                                cw.emit(
+                                    f"{lst_model_short_name_id[i]} ="
+                                    f" {lst_var_class_name[i]}.sudo().browse({lst_model_short_name[i]}).exists()"
+                                )
+                            cw.emit("else:")
+                            with cw.indent():
+                                cw.emit(f"{lst_model_short_name_id[i]} = None")
+                            cw.emit(
+                                "dct_value ="
+                                f' {{"{lst_model_short_name_id[i]}":'
+                                f" {lst_model_short_name_id[i]}}}"
+                            )
+                            cw.emit()
+                            cw.emit("# Render page")
+                            with cw.block(
+                                before="return request.render",
+                                delim=("(", ")"),
+                            ):
+                                cw.emit(
+                                    f'"{code_generator_snippet_id.code_generator_id.name}.{lst_var_xml_id_unit_name[i]}",'
+                                )
+                                cw.emit("dct_value")
+                        cw.emit()
+
                     cw.emit(
-                        f"@http.route(['/{code_generator_snippet_id.code_generator_id.name}/{model_short_name_list}'],"
+                        f"@http.route(['{url_list}'],"
                         " type='json', auth=\"public\", website=True)"
                     )
                     cw.emit(f"def get_{model_short_name_list}(self):")
@@ -274,31 +260,36 @@ class CodeGeneratorWriter(models.Model):
                             " request.env(context=dict(request.env.context))"
                         )
                         cw.emit()
-                        cw.emit(
-                            f'{model_short_name_title} = env["{model_name}"]'
-                        )
-                        with cw.block(
-                            before=(
-                                f"{model_short_name_ids} ="
-                                f" {model_short_name_title}.search"
-                            ),
-                            after=".ids",
-                            delim=("(", ")"),
-                        ):
-                            cw.emit("[]")
-                            if code_generator_snippet_id.show_recent_item:
-                                cw.emit(f",order='create_date desc'")
-                            if code_generator_snippet_id.limitation_item:
-                                cw.emit(
-                                    f",limit={code_generator_snippet_id.limitation_item}"
-                                )
-                        cw.emit(
-                            f"{model_short_name_s} ="
-                            f" {model_short_name_title}.sudo().browse({model_short_name_ids})"
-                        )
-                        if code_generator_snippet_id.show_diff_time:
+                        for i, s_model_name in enumerate(lst_model_name):
+                            cw.emit(
+                                f"{lst_var_class_name[i]} ="
+                                f' env["{s_model_name}"]'
+                            )
+                            with cw.block(
+                                before=(
+                                    f"{lst_var_ids[i]} ="
+                                    f" {lst_var_class_name[i]}.sudo().search"
+                                ),
+                                after=".ids",
+                                delim=("(", ")"),
+                            ):
+                                cw.emit("[]")
+                                if code_generator_snippet_id.show_recent_item:
+                                    cw.emit(f",order='create_date desc'")
+                                if code_generator_snippet_id.limitation_item:
+                                    cw.emit(
+                                        f",limit={code_generator_snippet_id.limitation_item}"
+                                    )
+                            cw.emit(
+                                f"{lst_var_s[i]} ="
+                                f" {lst_var_class_name[i]}.sudo().browse({lst_var_ids[i]})"
+                            )
                             cw.emit()
-                            cw.emit("lst_time_diff = []")
+                        if code_generator_snippet_id.show_diff_time:
+                            for i, s_model_name in enumerate(lst_model_name):
+                                cw.emit(
+                                    f"lst_time_diff{lst_var_prefix_associate_var[i]} = []"
+                                )
                             cw.emit("timedate_now = datetime.now()")
                             # TODO support language from user language
                             cw.emit("# fr_CA not exist")
@@ -307,32 +298,39 @@ class CodeGeneratorWriter(models.Model):
                                 " .venv/lib/python3.7/site-packages/humanize/locale/"
                             )
                             cw.emit("_t = humanize.i18n.activate('fr_FR')")
-                            cw.emit(
-                                f"for {model_short_name_under} in"
-                                f" {model_short_name_s}:"
-                            )
-                            with cw.indent():
+                            for i, s_model_name in enumerate(lst_model_name):
                                 cw.emit(
-                                    "diff_time = timedate_now -"
-                                    f" {model_short_name_under}.create_date"
+                                    f"for {lst_var_id[i]} in {lst_var_s[i]}:"
                                 )
-                                cw.emit(
-                                    "str_diff_time ="
-                                    " humanize.naturaltime(diff_time).capitalize()"
-                                    ' + "."'
-                                )
-                                cw.emit("lst_time_diff.append(str_diff_time)")
+                                with cw.indent():
+                                    cw.emit(
+                                        "diff_time = timedate_now -"
+                                        f" {lst_var_id[i]}.create_date"
+                                    )
+                                    cw.emit(
+                                        "str_diff_time ="
+                                        " humanize.naturaltime(diff_time).capitalize()"
+                                        ' + "."'
+                                    )
+                                    cw.emit(
+                                        f"lst_time_diff{lst_var_prefix_associate_var[i]}.append(str_diff_time)"
+                                    )
                             cw.emit("humanize.i18n.deactivate()")
-                        cw.emit()
+                            cw.emit()
                         with cw.block(
                             before="dct_value = ",
                             delim=("{", "}"),
                         ):
-                            cw.emit(
-                                f"'{model_short_name_s}': {model_short_name_s}"
-                            )
-                            if code_generator_snippet_id.show_diff_time:
-                                cw.emit(f",'lst_time': lst_time_diff")
+                            for i, s_model_name in enumerate(lst_model_name):
+                                cw.emit(
+                                    f"{',' if i else ''}'{lst_var_s[i]}':"
+                                    f" {lst_var_s[i]}"
+                                )
+                                if code_generator_snippet_id.show_diff_time:
+                                    cw.emit(
+                                        f",'lst_time{lst_var_prefix_associate_var[i]}':"
+                                        f" lst_time_diff{lst_var_prefix_associate_var[i]}"
+                                    )
 
                         cw.emit()
                         cw.emit("# Render page")
@@ -344,7 +342,8 @@ class CodeGeneratorWriter(models.Model):
                             delim=("(", ")"),
                         ):
                             cw.emit(
-                                f'"{code_generator_snippet_id.code_generator_id.name}.{model_name_list_xml_name}",'
+                                f'"{code_generator_snippet_id.code_generator_id.name}.'
+                                f'{code_generator_snippet_id.get_snippet_xml_id_list_name()}",'
                             )
                             cw.emit("dct_value")
                 else:
@@ -433,35 +432,9 @@ class CodeGeneratorWriter(models.Model):
             == "model_show_item_list"
         ):
             if code_generator_snippet_id.model_name:
-                lst_model_name = code_generator_snippet_id.model_name.split(
-                    ";"
-                )
-                if len(lst_model_name) > 1:
-                    _logger.warning(
-                        "Cannot support multiple model_name"
-                        f" '{lst_model_name}'"
-                    )
-                model_name = lst_model_name[0]
-
-                if code_generator_snippet_id.model_short_name:
-                    lst_model_short_name = (
-                        code_generator_snippet_id.model_short_name.split(";")
-                    )
-                    if len(lst_model_short_name) > 1:
-                        _logger.warning(
-                            "Cannot support multiple model_short_name"
-                            f" '{lst_model_short_name}'"
-                        )
-                    model_short_name = lst_model_short_name[0]
-                else:
-                    model_short_name = model_name
-
-                model_short_name_under = model_short_name.replace(".", "_")
-                model_short_name_list = f"{model_short_name_under}_list"
-
                 cw.emit("self._$loadedContent = $(data);")
                 cw.emit("self._eventList.replaceWith(self._$loadedContent);")
-                url = f"/{code_generator_snippet_id.code_generator_id.name}/{model_short_name_list}"
+                url = code_generator_snippet_id.get_url_get_list()
                 header_event_list = f"""this._eventList = this.$('.container');
                 this._originalContent = this._eventList[0].outerHTML;"""
                 cw_destroy.emit(
@@ -501,7 +474,8 @@ class CodeGeneratorWriter(models.Model):
             f"{code_generator_snippet_id.module_snippet_name}"
             """ = sAnimation.Class.extend({
         """
-            f"selector: '.o_{code_generator_snippet_id.module_snippet_name}',"
+            "selector:"
+            f" '.{code_generator_snippet_id.get_snippet_template_class()}',"
             """
 
         start: function () {
@@ -577,10 +551,10 @@ class CodeGeneratorWriter(models.Model):
         if not code_generator_snippet_ids:
             return
         self._set_xml_views_file_snippet(
-            [snippet_id for snippet_id in code_generator_snippet_ids]
+            [a for a in code_generator_snippet_ids]
         )
         self._set_xml_views_file_website(
-            [snippet_id for snippet_id in code_generator_snippet_ids]
+            [a for a in code_generator_snippet_ids]
         )
 
     def _create_generic_html_field_model(
@@ -654,7 +628,7 @@ class CodeGeneratorWriter(models.Model):
                     )
                 elif field_id.force_widget == "link_button":
                     xml_item = E.div(
-                        {},
+                        {"t-if": f"{model_short_name_under}.{field_id.name}"},
                         E.a(
                             {
                                 "target": "_blank",
@@ -864,9 +838,8 @@ class CodeGeneratorWriter(models.Model):
         lst_template_xml.append(comment)
 
         for snippet_id in lst_snippet_id:
-            xml_id = f"s_{snippet_id.module_snippet_name}"
-            xml_id_class = f"o_{snippet_id.module_snippet_name}"
-            xml_id_value = f"{snippet_id.module_snippet_name}"
+            xml_id = snippet_id.get_snippet_template_xml_id()
+            xml_id_class = snippet_id.get_snippet_template_class()
 
             lst_row_value = []
 
@@ -895,7 +868,7 @@ class CodeGeneratorWriter(models.Model):
                         )
                         lst_row_value.append(s_value)
 
-                        lst_model_search = snippet_id.model_name.split(";")
+                        lst_model_search = snippet_id.get_model_list()
                         for s_model in lst_model_search:
                             self._create_generic_html_field_model(
                                 s_model,
@@ -905,7 +878,9 @@ class CodeGeneratorWriter(models.Model):
                             )
                 elif snippet_id.controller_feature == "helloworld":
                     s_value = E.div(
-                        {"class": f"{s_class_extra}{xml_id_value}_value"},
+                        {
+                            "class": f"{s_class_extra}{snippet_id.module_snippet_name}_value"
+                        },
                         "Hello",
                     )
                     lst_s_value.append(s_value)
@@ -985,7 +960,7 @@ class CodeGeneratorWriter(models.Model):
 
             lst_div = []
             for snippet_id in lst_snippet_content:
-                xml_id_class = f"o_{snippet_id.module_snippet_name}"
+                xml_id_class = snippet_id.get_snippet_template_class()
                 xml_div = E.div(
                     {
                         "data-selector": f".{xml_id_class}",
@@ -1013,7 +988,7 @@ class CodeGeneratorWriter(models.Model):
             lst_link = []
             if lst_snippet_id_by_type:
                 for snippet_id in lst_snippet_id_by_type:
-                    xml_id = f"s_{snippet_id.module_snippet_name}"
+                    xml_id = snippet_id.get_snippet_template_xml_id()
 
                     xml_t = E.t(
                         {
@@ -1115,199 +1090,51 @@ class CodeGeneratorWriter(models.Model):
 
         for snippet_id in lst_snippet_id:
             if snippet_id.controller_feature == "model_show_item_list":
+                lst_xml_model = []
+
+                lst_var_s = snippet_id.get_model_var_s()
+                lst_var = snippet_id.get_model_var()
+                lst_var_prefix_associate_var = (
+                    snippet_id.get_model_var_prefix_associate_var()
+                )
+                lst_url_get_page = snippet_id.get_url_get_page()
+                lst_var_xml_id_unit_name = (
+                    snippet_id.get_snippet_xml_id_unit_name()
+                )
+                lst_var_xml_name_title = (
+                    snippet_id.get_snippet_xml_name_title()
+                )
+                lst_model_short_name_id = snippet_id.get_model_var_id()
+
                 if snippet_id.model_name:
-                    lst_model_name = snippet_id.model_name.split(";")
-                    if len(lst_model_name) > 1:
-                        _logger.warning(
-                            "Cannot support multiple model_name"
-                            f" '{lst_model_name}'"
-                        )
-                    model_name = lst_model_name[0]
+                    lst_model_name = snippet_id.get_model_list()
 
-                    if snippet_id.model_short_name:
-                        lst_model_short_name = (
-                            snippet_id.model_short_name.split(";")
-                        )
-                        if len(lst_model_short_name) > 1:
-                            _logger.warning(
-                                "Cannot support multiple model_short_name"
-                                f" '{lst_model_short_name}'"
+                    for i, model_name in enumerate(lst_model_name):
+                        one_pager_xml = (
+                            self._set_xml_views_file_one_pager_model_website(
+                                model_name,
+                                lst_model_short_name_id[i],
+                                lst_var_xml_id_unit_name[i],
+                                lst_var_xml_name_title[i],
                             )
-                        model_short_name = lst_model_short_name[0]
-                    else:
-                        model_short_name = model_name
-
-                    model_name_under = model_name.replace(".", "_")
-                    model_short_name_under = model_short_name.replace(".", "_")
-                    model_name_xml_name = f"{model_name_under}_unit"
-                    model_name_list_xml_name = f"{model_name_under}_list"
-                    if snippet_id.name:
-                        model_name_xml_name += (
-                            f"_{snippet_id.name.replace(' ', '_')}"
                         )
-                        model_name_list_xml_name += (
-                            f"_{snippet_id.name.replace(' ', '_')}"
+                        lst_template_xml.append(one_pager_xml)
+
+                        xml_model = self._create_xml_views_file_model_website(
+                            snippet_id,
+                            model_name,
+                            lst_var_s[i],
+                            lst_var[i],
+                            lst_var_prefix_associate_var[i],
+                            lst_url_get_page[i],
                         )
-                    model_short_name_s = f"{model_short_name_under}s"
-                    url_unit = f"/{snippet_id.code_generator_id.name}/{model_short_name_under}/"
-                    model_short_name_title = (
-                        model_short_name.replace(".", " ")
-                        .title()
-                        .replace(" ", "")
-                    )
-                    model_short_name_list_title = "List " + (
-                        model_short_name.replace(".", " ")
-                        .title()
-                        .replace(" ", "")
-                    )
-
-                    lst_xml_item = []
-                    self._create_generic_html_field_model_3(
-                        model_name, model_short_name_under, lst_xml_item
-                    )
-
-                    # one page
-                    root = E.template(
-                        {
-                            "id": model_name_xml_name,
-                            "name": model_short_name_title,
-                        },
-                        # <t t-call="website.layout">
-                        E.t(
-                            {"t-call": "website.layout"},
-                            # <div id="wrap">
-                            E.div(
-                                {"id": "wrap"},
-                                # <div class="oe_structure">
-                                E.div(
-                                    {"class": "oe_structure"},
-                                    # <section class="pt32 pb32" t-if="not offre">
-                                    E.section(
-                                        {
-                                            "class": "pt32 pb32",
-                                            "t-if": (
-                                                f"not {model_short_name_under}"
-                                            ),
-                                        },
-                                        # <div class="container">
-                                        E.div(
-                                            {"class": "container"},
-                                            # <div class="row s_nb_column_fixed">
-                                            E.div(
-                                                {
-                                                    "class": (
-                                                        "row s_nb_column_fixed"
-                                                    )
-                                                },
-                                                # <div class="col-lg-12 s_title pt16 pb16" style="text-align: center;">
-                                                E.div(
-                                                    {
-                                                        "class": (
-                                                            "col-lg-12 s_title"
-                                                            " pt16 pb16"
-                                                        ),
-                                                        "style": (
-                                                            "text-align:"
-                                                            " center;"
-                                                        ),
-                                                    },
-                                                    # <h1 class="s_title_default">
-                                                    E.h1(
-                                                        {
-                                                            "class": "s_title_default"
-                                                        },
-                                                        # <font style="font-size: 62px;">Offre non existante</font>
-                                                        E.font(
-                                                            {
-                                                                "style": (
-                                                                    "font-size:"
-                                                                    " 62px;"
-                                                                )
-                                                            },
-                                                            "Offre non"
-                                                            " existante",
-                                                        ),
-                                                    ),
-                                                ),
-                                            ),
-                                        ),
-                                    ),
-                                    # <section class="s_cover parallax s_parallax_is_fixed bg-black-50 pt96 pb96 s_parallax_no_overflow_hidden" data-scroll-background-ratio="1" style="background-image: none;" t-if="offre">
-                                    E.section(
-                                        {
-                                            "t-if": model_short_name_under,
-                                            "class": (
-                                                "s_cover parallax"
-                                                " s_parallax_is_fixed"
-                                                " bg-black-50"
-                                                " pt96 pb96"
-                                                " s_parallax_no_overflow_hidden"
-                                            ),
-                                            "data-scroll-background-ratio": (
-                                                "1"
-                                            ),
-                                            "style": "background-image: none;",
-                                        },
-                                        # <span class="s_parallax_bg oe_img_bg oe_custom_bg" style="background-image: url('/web/image/website.s_cover_default_image'); background-position: 50% 0;"/>
-                                        E.span(
-                                            {
-                                                "class": (
-                                                    "s_parallax_bg oe_img_bg"
-                                                    " oe_custom_bg"
-                                                ),
-                                                "style": (
-                                                    "background-image:"
-                                                    " url('/web/image/website.s_cover_default_image');"
-                                                    " background-position:"
-                                                    " 50% 0;"
-                                                ),
-                                            }
-                                        ),
-                                        # <div class="container">
-                                        E.div(
-                                            {"class": "container"},
-                                            # <div class="row s_nb_column_fixed">
-                                            E.div(
-                                                {
-                                                    "class": (
-                                                        "row s_nb_column_fixed"
-                                                    )
-                                                },
-                                                *lst_xml_item,
-                                            ),
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    )
-                    lst_template_xml.append(root)
-
-                    lst_xml_item = []
-                    self._create_generic_html_field_model_2(
-                        model_name, model_short_name_under, lst_xml_item
-                    )
-                    if snippet_id.show_diff_time:
-                        # <p class="o_default_snippet_text" t-if="offre_index &lt; len(lst_time)" t-raw="lst_time[offre_index]"/>
-                        xml_show_time = E.p(
-                            {
-                                "t-if": (
-                                    "len(lst_time) >="
-                                    f" {model_short_name_under}_index"
-                                ),
-                                "class": "o_default_snippet_text",
-                                "t-raw": (
-                                    f"lst_time[{model_short_name_under}_index]"
-                                ),
-                            }
-                        )
-                        lst_xml_item.append(xml_show_time)
+                        lst_xml_model.append(xml_model)
 
                     # Snippet content
                     root = E.template(
                         {
-                            "id": model_name_list_xml_name,
-                            "name": model_short_name_list_title,
+                            "id": snippet_id.get_snippet_xml_id_list_name(),
+                            "name": snippet_id.get_snippet_xml_name_title_list(),
                         },
                         # <t t-ignore="true">
                         E.t(
@@ -1316,82 +1143,7 @@ class CodeGeneratorWriter(models.Model):
                             E.div(
                                 {"class": "container"},
                                 # <div class="row align-items-center">
-                                E.div(
-                                    {"class": "row align-items-center"},
-                                    # <div class="col-lg-6 s_col_no_bgcolor pb24">
-                                    E.div(
-                                        {
-                                            "class": (
-                                                "col-lg-6 s_col_no_bgcolor"
-                                                " pb24"
-                                            )
-                                        },
-                                        # <div class="row" t-if="offres">
-                                        E.div(
-                                            {
-                                                "class": "row",
-                                                "t-if": model_short_name_s,
-                                            },
-                                            # <div t-as="offre" t-foreach="offres">
-                                            E.div(
-                                                {
-                                                    "t-foreach": model_short_name_s,
-                                                    "t-as": model_short_name_under,
-                                                },
-                                                # <a t-att-href="'/offre/%d' % offre.id" t-if="offre">
-                                                E.a(
-                                                    {
-                                                        "t-if": model_short_name_under,
-                                                        "t-att-href": (
-                                                            f"'{url_unit}%d' %"
-                                                            f" {model_short_name_under}.id"
-                                                        ),
-                                                    },
-                                                    # <div class="col-lg-12 pt16 pb16" data-name="Box">
-                                                    E.div(
-                                                        {
-                                                            "class": (
-                                                                "col-lg-12"
-                                                                " pt16 pb16"
-                                                            ),
-                                                            "data-name": "Box",
-                                                        },
-                                                        # <i class="fa fa-2x fa-files-o rounded-circle bg-primary s_features_grid_icon"/>
-                                                        E.i(
-                                                            {
-                                                                "class": (
-                                                                    "fa fa-2x"
-                                                                    " fa-files-o"
-                                                                    " rounded-circle"
-                                                                    " bg-primary"
-                                                                    " s_features_grid_icon"
-                                                                )
-                                                            }
-                                                        ),
-                                                        # <div class="s_features_grid_content">
-                                                        E.div(
-                                                            {
-                                                                "class": "s_features_grid_content"
-                                                            },
-                                                            *lst_xml_item,
-                                                        ),
-                                                    ),
-                                                ),
-                                            ),
-                                        ),
-                                        # <div class="row" t-if="not offres">
-                                        E.div(
-                                            {
-                                                "class": "row",
-                                                "t-if": (
-                                                    f"not {model_short_name_s}"
-                                                ),
-                                            },
-                                            "Aucune"
-                                            f" {model_short_name_under} disponible.",
-                                        ),
-                                    ),
-                                ),
+                                *lst_xml_model,
                             ),
                         ),
                     )
@@ -1408,7 +1160,203 @@ class CodeGeneratorWriter(models.Model):
                 module_file, pretty_print=True
             )
             result_str = result.decode()
+            # TODO < is not supported in xml attribute, so why support > ?
             result_str = result_str.replace("&gt;", ">")
             self.code_generator_data.write_file_str(
                 data_file_path, result_str, data_file=True
             )
+
+    def _set_xml_views_file_one_pager_model_website(
+        self,
+        model_name,
+        model_short_name_under,
+        xml_id_unit_name,
+        model_short_name_title,
+    ):
+        lst_xml_item = []
+        self._create_generic_html_field_model_3(
+            model_name, model_short_name_under, lst_xml_item
+        )
+
+        # one page
+        root = E.template(
+            {
+                "id": xml_id_unit_name,
+                "name": model_short_name_title,
+            },
+            # <t t-call="website.layout">
+            E.t(
+                {"t-call": "website.layout"},
+                # <div id="wrap">
+                E.div(
+                    {"id": "wrap"},
+                    # <div class="oe_structure">
+                    E.div(
+                        {"class": "oe_structure"},
+                        # <section class="pt32 pb32" t-if="not offre">
+                        E.section(
+                            {
+                                "class": "pt32 pb32",
+                                "t-if": f"not {model_short_name_under}",
+                            },
+                            # <div class="container">
+                            E.div(
+                                {"class": "container"},
+                                # <div class="row s_nb_column_fixed">
+                                E.div(
+                                    {"class": "row s_nb_column_fixed"},
+                                    # <div class="col-lg-12 s_title pt16 pb16" style="text-align: center;">
+                                    E.div(
+                                        {
+                                            "class": (
+                                                "col-lg-12 s_title pt16 pb16"
+                                            ),
+                                            "style": "text-align: center;",
+                                        },
+                                        # <h1 class="s_title_default">
+                                        E.h1(
+                                            {"class": "s_title_default"},
+                                            # <font style="font-size: 62px;">Offre non existante</font>
+                                            E.font(
+                                                {"style": "font-size: 62px;"},
+                                                f"{model_short_name_under} non"
+                                                " existante",
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                        # <section class="s_cover parallax s_parallax_is_fixed bg-black-50 pt96 pb96 s_parallax_no_overflow_hidden" data-scroll-background-ratio="1" style="background-image: none;" t-if="offre">
+                        E.section(
+                            {
+                                "t-if": model_short_name_under,
+                                "class": (
+                                    "s_cover parallax"
+                                    " s_parallax_is_fixed"
+                                    " bg-black-50"
+                                    " pt96 pb96"
+                                    " s_parallax_no_overflow_hidden"
+                                ),
+                                "data-scroll-background-ratio": "1",
+                                "style": "background-image: none;",
+                            },
+                            # <span class="s_parallax_bg oe_img_bg oe_custom_bg" style="background-image: url('/web/image/website.s_cover_default_image'); background-position: 50% 0;"/>
+                            E.span(
+                                {
+                                    "class": (
+                                        "s_parallax_bg oe_img_bg oe_custom_bg"
+                                    ),
+                                    "style": (
+                                        "background-image:"
+                                        " url('/web/image/website.s_cover_default_image');"
+                                        " background-position: 50% 0;"
+                                    ),
+                                }
+                            ),
+                            # <div class="container">
+                            E.div(
+                                {"class": "container"},
+                                # <div class="row s_nb_column_fixed">
+                                E.div(
+                                    {"class": "row s_nb_column_fixed"},
+                                    *lst_xml_item,
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        return root
+
+    def _create_xml_views_file_model_website(
+        self,
+        snippet_id,
+        model_name,
+        model_short_name_s,
+        model_short_name_under,
+        prefix_associate_var,
+        url_unit,
+    ):
+        lst_xml_item = []
+        self._create_generic_html_field_model_2(
+            model_name, model_short_name_under, lst_xml_item
+        )
+        if snippet_id.show_diff_time:
+            # <p class="o_default_snippet_text" t-if="offre_index &lt; len(lst_time)" t-raw="lst_time[offre_index]"/>
+            xml_show_time = E.p(
+                {
+                    "t-if": (
+                        f"len(lst_time{prefix_associate_var}) >="
+                        f" {model_short_name_under}_index"
+                    ),
+                    "class": "o_default_snippet_text",
+                    "t-raw": f"lst_time{prefix_associate_var}[{model_short_name_under}_index]",
+                }
+            )
+            lst_xml_item.append(xml_show_time)
+
+        return E.div(
+            {"class": "row align-items-center"},
+            # <div class="col-lg-6 s_col_no_bgcolor pb24">
+            E.div(
+                {"class": "col-lg-6 s_col_no_bgcolor pb24"},
+                # <div class="row" t-if="offres">
+                E.div(
+                    {
+                        "class": "row",
+                        "t-if": model_short_name_s,
+                    },
+                    # <div t-as="offre" t-foreach="offres">
+                    E.div(
+                        {
+                            "t-foreach": model_short_name_s,
+                            "t-as": model_short_name_under,
+                        },
+                        # <a t-att-href="'/offre/%d' % offre.id" t-if="offre">
+                        E.a(
+                            {
+                                "t-if": model_short_name_under,
+                                "t-att-href": (
+                                    f"'{url_unit}%d' %"
+                                    f" {model_short_name_under}.id"
+                                ),
+                            },
+                            # <div class="col-lg-12 pt16 pb16" data-name="Box">
+                            E.div(
+                                {
+                                    "class": "col-lg-12 pt16 pb16",
+                                    "data-name": "Box",
+                                },
+                                # <i class="fa fa-2x fa-files-o rounded-circle bg-primary s_features_grid_icon"/>
+                                E.i(
+                                    {
+                                        "class": (
+                                            "fa fa-2x"
+                                            " fa-files-o"
+                                            " rounded-circle"
+                                            " bg-primary"
+                                            " s_features_grid_icon"
+                                        )
+                                    }
+                                ),
+                                # <div class="s_features_grid_content">
+                                E.div(
+                                    {"class": "s_features_grid_content"},
+                                    *lst_xml_item,
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+                # <div class="row" t-if="not offres">
+                E.div(
+                    {
+                        "class": "row",
+                        "t-if": f"not {model_short_name_s}",
+                    },
+                    f"Aucune {model_short_name_under} disponible.",
+                ),
+            ),
+        )

@@ -7,7 +7,7 @@
             <form string="Titre">
                 <sheet>
                     <group>
-                        <field name="code" />
+                        <field name="code" widget="ace" options="{'mode': 'python'}" />
                     </group>
                     <group>
                         <field name="decorator" />

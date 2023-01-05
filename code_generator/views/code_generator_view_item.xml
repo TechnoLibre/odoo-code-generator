@@ -1,0 +1,522 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="code_generator_view_item_view_form" model="ir.ui.view">
+        <field name="name">code_generator_view_item_form</field>
+        <field name="model">code.generator.view.item</field>
+        <field name="arch" type="xml">
+            <form string="Titre">
+                <sheet>
+                    <group>
+                        <field name="action_name" />
+                    </group>
+                    <group>
+                        <field name="aria_label" />
+                    </group>
+                    <group>
+                        <field name="attrs" />
+                    </group>
+                    <group>
+                        <field name="background_type" />
+                    </group>
+                    <group>
+                        <field name="button_type" />
+                    </group>
+                    <group>
+                        <field name="child_id" />
+                    </group>
+                    <group>
+                        <field name="class_attr" />
+                    </group>
+                    <group>
+                        <field name="colspan" />
+                    </group>
+                    <group>
+                        <field name="context" />
+                    </group>
+                    <group>
+                        <field name="domain" />
+                    </group>
+                    <group>
+                        <field name="edit_only" />
+                    </group>
+                    <group>
+                        <field name="expr" />
+                    </group>
+                    <group>
+                        <field name="has_label" />
+                    </group>
+                    <group>
+                        <field name="icon" />
+                    </group>
+                    <group>
+                        <field name="is_help" />
+                    </group>
+                    <group>
+                        <field name="is_invisible" />
+                    </group>
+                    <group>
+                        <field name="is_readonly" />
+                    </group>
+                    <group>
+                        <field name="is_required" />
+                    </group>
+                    <group>
+                        <field name="item_type" />
+                    </group>
+                    <group>
+                        <field name="label" />
+                    </group>
+                    <group>
+                        <field name="name" />
+                    </group>
+                    <group>
+                        <field name="parent_id" />
+                    </group>
+                    <group>
+                        <field name="password" />
+                    </group>
+                    <group>
+                        <field name="placeholder" />
+                    </group>
+                    <group>
+                        <field name="position" />
+                    </group>
+                    <group>
+                        <field name="role" />
+                    </group>
+                    <group>
+                        <field name="section_type" />
+                    </group>
+                    <group>
+                        <field name="sequence" />
+                    </group>
+                    <group>
+                        <field name="t_attf_class" />
+                    </group>
+                    <group>
+                        <field name="t_if" />
+                    </group>
+                    <group>
+                        <field name="t_name" />
+                    </group>
+                    <group>
+                        <field name="title" />
+                    </group>
+                    <group>
+                        <field name="type" />
+                    </group>
+                    <group>
+                        <field name="widget" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="code_generator_view_item_view_graph" model="ir.ui.view">
+        <field name="name">code_generator_view_item_graph</field>
+        <field name="model">code.generator.view.item</field>
+        <field name="arch" type="xml">
+            <graph string="Code generator view item">
+                <field name="action_name" type="row" />
+                <field name="aria_label" type="row" />
+                <field name="attrs" type="row" />
+                <field name="background_type" type="row" />
+                <field name="button_type" type="row" />
+                <field name="class_attr" type="row" />
+                <field name="colspan" type="measure" />
+                <field name="context" type="row" />
+                <field name="domain" type="row" />
+                <field name="edit_only" type="row" />
+                <field name="expr" type="row" />
+                <field name="has_label" type="row" />
+                <field name="icon" type="row" />
+                <field name="is_help" type="row" />
+                <field name="is_invisible" type="row" />
+                <field name="is_readonly" type="row" />
+                <field name="is_required" type="row" />
+                <field name="item_type" type="row" />
+                <field name="label" type="row" />
+                <field name="name" type="row" />
+                <field name="parent_id" type="row" />
+                <field name="password" type="row" />
+                <field name="placeholder" type="row" />
+                <field name="position" type="row" />
+                <field name="role" type="row" />
+                <field name="section_type" type="row" />
+                <field name="sequence" type="measure" />
+                <field name="t_attf_class" type="row" />
+                <field name="t_if" type="row" />
+                <field name="t_name" type="row" />
+                <field name="title" type="row" />
+                <field name="type" type="row" />
+                <field name="widget" type="row" />
+            </graph>
+        </field>
+    </record>
+
+    <record id="code_generator_view_item_view_kanban" model="ir.ui.view">
+        <field name="name">code_generator_view_item_kanban</field>
+        <field name="model">code.generator.view.item</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="action_name" />
+                <field name="aria_label" />
+                <field name="attrs" />
+                <field name="background_type" />
+                <field name="button_type" />
+                <field name="child_id" />
+                <field name="class_attr" />
+                <field name="colspan" />
+                <field name="context" />
+                <field name="domain" />
+                <field name="edit_only" />
+                <field name="expr" />
+                <field name="has_label" />
+                <field name="icon" />
+                <field name="is_help" />
+                <field name="is_invisible" />
+                <field name="is_readonly" />
+                <field name="is_required" />
+                <field name="item_type" />
+                <field name="label" />
+                <field name="name" />
+                <field name="parent_id" />
+                <field name="password" />
+                <field name="placeholder" />
+                <field name="position" />
+                <field name="role" />
+                <field name="section_type" />
+                <field name="sequence" />
+                <field name="t_attf_class" />
+                <field name="t_if" />
+                <field name="t_name" />
+                <field name="title" />
+                <field name="type" />
+                <field name="widget" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="action_name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="aria_label" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="attrs" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="background_type" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="button_type" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="child_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="class_attr" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="colspan" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="context" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="domain" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.edit_only.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.edit_only.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="expr" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.has_label.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.has_label.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="icon" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.is_help.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.is_help.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.is_invisible.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.is_invisible.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.is_readonly.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.is_readonly.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.is_required.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.is_required.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="item_type" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="label" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="parent_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.password.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.password.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="placeholder" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="position" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="role" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="section_type" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="sequence" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="t_attf_class" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="t_if" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="t_name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="title" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="type" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="widget" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="code_generator_view_item_view_pivot" model="ir.ui.view">
+        <field name="name">code_generator_view_item_pivot</field>
+        <field name="model">code.generator.view.item</field>
+        <field name="arch" type="xml">
+            <pivot string="Code generator view item">
+                <field name="action_name" type="row" />
+                <field name="aria_label" type="row" />
+                <field name="attrs" type="row" />
+                <field name="background_type" type="row" />
+                <field name="button_type" type="row" />
+                <field name="class_attr" type="row" />
+                <field name="colspan" type="measure" />
+                <field name="context" type="row" />
+                <field name="domain" type="row" />
+                <field name="edit_only" type="row" />
+                <field name="expr" type="row" />
+                <field name="has_label" type="row" />
+                <field name="icon" type="row" />
+                <field name="is_help" type="row" />
+                <field name="is_invisible" type="row" />
+                <field name="is_readonly" type="row" />
+                <field name="is_required" type="row" />
+                <field name="item_type" type="row" />
+                <field name="label" type="row" />
+                <field name="name" type="row" />
+                <field name="parent_id" type="row" />
+                <field name="password" type="row" />
+                <field name="placeholder" type="row" />
+                <field name="position" type="row" />
+                <field name="role" type="row" />
+                <field name="section_type" type="row" />
+                <field name="sequence" type="measure" />
+                <field name="t_attf_class" type="row" />
+                <field name="t_if" type="row" />
+                <field name="t_name" type="row" />
+                <field name="title" type="row" />
+                <field name="type" type="row" />
+                <field name="widget" type="row" />
+            </pivot>
+        </field>
+    </record>
+
+    <record id="code_generator_view_item_view_search" model="ir.ui.view">
+        <field name="name">code_generator_view_item_search</field>
+        <field name="model">code.generator.view.item</field>
+        <field name="arch" type="xml">
+            <search string="Code generator view item">
+                <filter domain="[('action_name','!=',False)]" name="action_name" string="Action name" />
+                <filter domain="[('aria_label','!=',False)]" name="aria_label" string="Aria Label" />
+                <filter domain="[('attrs','!=',False)]" name="attrs" string="Attributes" />
+                <filter domain="[('background_type','!=',False)]" name="background_type" string="Background Type" />
+                <filter domain="[('button_type','!=',False)]" name="button_type" string="Button Type" />
+                <filter domain="[('child_id','!=',False)]" name="child_id" string="Child" />
+                <filter domain="[('class_attr','!=',False)]" name="class_attr" string="Class Attr" />
+                <filter domain="[('colspan','!=',False)]" name="colspan" string="Colspan" />
+                <filter domain="[('context','!=',False)]" name="context" string="Context" />
+                <filter domain="[('domain','!=',False)]" name="domain" string="Domain" />
+                <filter domain="[('edit_only','=',True)]" name="edit_only" string="Edit only" />
+                <filter domain="[('expr','!=',False)]" name="expr" string="Expr" />
+                <filter domain="[('has_label','=',True)]" name="has_label" string="Labeled" />
+                <filter domain="[('icon','!=',False)]" name="icon" string="Icon" />
+                <filter domain="[('is_help','=',True)]" name="is_help" string="Help" />
+                <filter domain="[('is_invisible','=',True)]" name="is_invisible" string="Invisible" />
+                <filter domain="[('is_readonly','=',True)]" name="is_readonly" string="Readonly" />
+                <filter domain="[('is_required','=',True)]" name="is_required" string="Required" />
+                <filter domain="[('item_type','!=',False)]" name="item_type" string="Item Type" />
+                <filter domain="[('label','!=',False)]" name="label" string="Label" />
+                <filter domain="[('name','!=',False)]" name="name" string="Name" />
+                <filter domain="[('parent_id','!=',False)]" name="parent_id" string="Parent" />
+                <filter domain="[('password','=',True)]" name="password" string="Password" />
+                <filter domain="[('placeholder','!=',False)]" name="placeholder" string="Placeholder" />
+                <filter domain="[('position','!=',False)]" name="position" string="Position" />
+                <filter domain="[('role','!=',False)]" name="role" string="Role" />
+                <filter domain="[('section_type','!=',False)]" name="section_type" string="Section Type" />
+                <filter domain="[('sequence','!=',False)]" name="sequence" string="Sequence" />
+                <filter domain="[('t_attf_class','!=',False)]" name="t_attf_class" string="T Attf Class" />
+                <filter domain="[('t_if','!=',False)]" name="t_if" string="T If" />
+                <filter domain="[('t_name','!=',False)]" name="t_name" string="T Name" />
+                <filter domain="[('title','!=',False)]" name="title" string="Title" />
+                <filter domain="[('type','!=',False)]" name="type" string="Type" />
+                <filter domain="[('widget','!=',False)]" name="widget" string="Widget" />
+            </search>
+        </field>
+    </record>
+
+    <record id="code_generator_view_item_view_tree" model="ir.ui.view">
+        <field name="name">code_generator_view_item_tree</field>
+        <field name="model">code.generator.view.item</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="action_name" />
+                <field name="aria_label" />
+                <field name="attrs" />
+                <field name="background_type" />
+                <field name="button_type" />
+                <field name="child_id" />
+                <field name="class_attr" />
+                <field name="colspan" />
+                <field name="context" />
+                <field name="domain" />
+                <field name="edit_only" />
+                <field name="expr" />
+                <field name="has_label" />
+                <field name="icon" />
+                <field name="is_help" />
+                <field name="is_invisible" />
+                <field name="is_readonly" />
+                <field name="is_required" />
+                <field name="item_type" />
+                <field name="label" />
+                <field name="name" />
+                <field name="parent_id" />
+                <field name="password" />
+                <field name="placeholder" />
+                <field name="position" />
+                <field name="role" />
+                <field name="section_type" />
+                <field name="sequence" />
+                <field name="t_attf_class" />
+                <field name="t_if" />
+                <field name="t_name" />
+                <field name="title" />
+                <field name="type" />
+                <field name="widget" />
+            </tree>
+        </field>
+    </record>
+
+    <act_window
+        id="code_generator_view_item_generator_view_item_action_window"
+        name="Generator view item"
+        res_model="code.generator.view.item"
+        view_mode="kanban,tree,pivot,graph,form"
+    />
+</odoo>

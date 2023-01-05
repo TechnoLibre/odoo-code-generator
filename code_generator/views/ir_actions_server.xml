@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_server_action_form_inherit" model="ir.ui.view">
+        <field name="model">ir.actions.server</field>
+        <field name="inherit_id" ref="base.view_server_action_form" />
+        <field name="arch" type="xml">
+            <notebook position="before">
+                <group name="code_generator_module" string="Code Generator Module">
+                    <group>
+                        <field name="is_code_generator" />
+                        <field name="comment" />
+                    </group>
+                </group>
+            </notebook>
+        </field>
+    </record>
+
+    <record id="view_server_action_search_inherit" model="ir.ui.view">
+        <field name="model">ir.actions.server</field>
+        <field name="inherit_id" ref="base.view_server_action_search" />
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='usage']" position="after">
+                <filter string='Code Generator' name='code_generator' domain="[('is_code_generator', '!=', False)]" />
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_server_action_tree_inherit" model="ir.ui.view">
+        <field name="model">ir.actions.server</field>
+        <field name="inherit_id" ref="base.view_server_action_tree" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='usage']" position="after">
+                <field name="is_code_generator" />
+                <field name="comment" />
+            </xpath>
+        </field>
+    </record>
+
+    <record id="ir_actions_server_view_kanban" model="ir.ui.view">
+        <field name="name">ir_actions_server_kanban</field>
+        <field name="model">ir.actions.server</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="is_code_generator" />
+                <field name="model_id" />
+                <field name="name" />
+                <field name="sequence" />
+                <field name="state" />
+                <field name="comment" />
+                <field name="usage" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="text-success float-right mb4" t-if="record.is_code_generator.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.is_code_generator.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="model_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="sequence" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="state" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="comment" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="usage" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <act_window
+        id="ir_actions_server_actions_server_action_window"
+        name="Actions server"
+        res_model="ir.actions.server"
+        context="{'search_default_code_generator': 1}"
+        view_mode="kanban,tree,form"
+    />
+</odoo>

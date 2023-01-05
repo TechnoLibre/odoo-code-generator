@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="code_generator_module_external_dependency_view_form" model="ir.ui.view">
+        <field name="name">code_generator_module_external_dependency_form</field>
+        <field name="model">code.generator.module.external.dependency</field>
+        <field name="arch" type="xml">
+            <form string="Titre">
+                <sheet>
+                    <group>
+                        <field name="application_type" />
+                    </group>
+                    <group>
+                        <field name="depend" />
+                    </group>
+                    <group>
+                        <field name="is_template" />
+                    </group>
+                    <group>
+                        <field name="module_id" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="code_generator_module_external_dependency_view_graph" model="ir.ui.view">
+        <field name="name">code_generator_module_external_dependency_graph</field>
+        <field name="model">code.generator.module.external.dependency</field>
+        <field name="arch" type="xml">
+            <graph string="Code generator module external dependency">
+                <field name="application_type" type="row" />
+                <field name="depend" type="row" />
+                <field name="is_template" type="row" />
+                <field name="module_id" type="row" />
+            </graph>
+        </field>
+    </record>
+
+    <record id="code_generator_module_external_dependency_view_kanban" model="ir.ui.view">
+        <field name="name">code_generator_module_external_dependency_kanban</field>
+        <field name="model">code.generator.module.external.dependency</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="application_type" />
+                <field name="depend" />
+                <field name="is_template" />
+                <field name="module_id" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="application_type" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="depend" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.is_template.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.is_template.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="module_id" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="code_generator_module_external_dependency_view_pivot" model="ir.ui.view">
+        <field name="name">code_generator_module_external_dependency_pivot</field>
+        <field name="model">code.generator.module.external.dependency</field>
+        <field name="arch" type="xml">
+            <pivot string="Code generator module external dependency">
+                <field name="application_type" type="row" />
+                <field name="depend" type="row" />
+                <field name="is_template" type="row" />
+                <field name="module_id" type="row" />
+            </pivot>
+        </field>
+    </record>
+
+    <record id="code_generator_module_external_dependency_view_search" model="ir.ui.view">
+        <field name="name">code_generator_module_external_dependency_search</field>
+        <field name="model">code.generator.module.external.dependency</field>
+        <field name="arch" type="xml">
+            <search string="Code generator module external dependency">
+                <filter domain="[('application_type','!=',False)]" name="application_type" string="Application Type" />
+                <filter domain="[('depend','!=',False)]" name="depend" string="Dependency name" />
+                <filter domain="[('is_template','=',True)]" name="is_template" string="Is template" />
+                <filter domain="[('module_id','!=',False)]" name="module_id" string="Module" />
+            </search>
+        </field>
+    </record>
+
+    <record id="code_generator_module_external_dependency_view_tree" model="ir.ui.view">
+        <field name="name">code_generator_module_external_dependency_tree</field>
+        <field name="model">code.generator.module.external.dependency</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="application_type" />
+                <field name="depend" />
+                <field name="is_template" />
+                <field name="module_id" />
+            </tree>
+        </field>
+    </record>
+
+    <act_window
+        id="code_generator_module_external_dependency_generator_module_external_dependency_action_window"
+        name="Generator module external dependency"
+        res_model="code.generator.module.external.dependency"
+        view_mode="kanban,tree,pivot,graph,form"
+    />
+</odoo>

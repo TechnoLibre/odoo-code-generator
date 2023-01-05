@@ -4,6 +4,7 @@ from odoo import api, fields, models, modules, tools
 class IrActionsReport(models.Model):
     _inherit = "ir.actions.report"
 
+    # TODO missing link to code_generator
     m2o_model = fields.Many2one(
         comodel_name="ir.model",
         string="Code generator Model",
@@ -16,6 +17,7 @@ class IrActionsReport(models.Model):
         comodel_name="ir.ui.view",
         string="Template",
         compute="_compute_m2os",
+        store=True,
         help="Template related with this report",
     )
 

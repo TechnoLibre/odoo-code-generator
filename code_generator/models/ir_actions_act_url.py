@@ -7,6 +7,7 @@ class IrActionsActUrl(models.Model):
     m2o_code_generator = fields.Many2one(
         comodel_name="code.generator.module",
         string="Code Generator",
+        store=True,
         help="Code Generator relation",
         ondelete="cascade",
     )

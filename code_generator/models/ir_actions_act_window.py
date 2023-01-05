@@ -7,6 +7,7 @@ class IrActionsActWindow(models.Model):
     m2o_res_model = fields.Many2one(
         comodel_name="ir.model",
         string="Res Model",
+        store=True,
         help="Res Model",
         ondelete="cascade",
     )
@@ -14,6 +15,7 @@ class IrActionsActWindow(models.Model):
     m2o_src_model = fields.Many2one(
         comodel_name="ir.model",
         string="Src Model",
+        store=True,
         help="Src Model",
         ondelete="cascade",
     )

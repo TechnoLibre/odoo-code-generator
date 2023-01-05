@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-    <record model="ir.ui.view" id="ir_model_form_inherited">
+    <record id="ir_model_form_inherited" model="ir.ui.view">
         <field name="name">ir.model.form</field>
         <field name="model">ir.model</field>
         <field name="inherit_id" ref="base.view_model_form" />
@@ -109,72 +109,21 @@
         </field>
     </record>
 
-    <record model="ir.ui.view" id="ir_model_constraint_form_inherited">
-        <field name="name">ir.model.constraint.form</field>
-        <field name="model">ir.model.constraint</field>
-        <field name="inherit_id" ref="base.view_model_constraint_form" />
+    <record id="view_model_search_inherit" model="ir.ui.view">
+        <field name="model">ir.model</field>
+        <field name="inherit_id" ref="base.view_model_search" />
         <field name="arch" type="xml">
-            <group position="after">
-                <group name="code_generator_module" string="Code Generator Module">
-                    <group>
-                        <field name="definition" />
-                        <field name="model_state" invisible="1" />
-                        <field
-                            name="message"
-                            attrs="{'required': [('type', '==', 'u'), ('model_state', '==', 'manual')]}"
-                        />
-                    </group>
-                </group>
-            </group>
+            <xpath expr="//filter[@name='base']" position="after">
+                <filter string='Code Generator' name='code_generator' domain="[('m2o_module', '!=', False)]" />
+            </xpath>
         </field>
     </record>
 
-    <record model="ir.ui.view" id="ir_model_constraint_tree_inherited">
-        <field name="name">ir.model.constraint.tree</field>
-        <field name="model">ir.model.constraint</field>
-        <field name="inherit_id" ref="base.view_model_constraint_list" />
-        <field name="arch" type="xml">
-            <field name="name" position="after">
-                <field name="definition" />
-            </field>
-        </field>
-    </record>
-
-    <record model="ir.ui.view" id="ir_access_view_tree_inherited">
-        <field name="model">ir.model.access</field>
-        <field name="inherit_id" ref="base.ir_access_view_tree" />
-        <field name="arch" type="xml">
-            <tree position="attributes">
-                <attribute name="editable" />
-            </tree>
-        </field>
-    </record>
-
-    <record model="ir.ui.view" id="ir_access_view_form_inherited">
-        <field name="model">ir.model.access</field>
-        <field name="inherit_id" ref="base.ir_access_view_form" />
-        <field name="arch" type="xml">
-            <field name="name" position="attributes">
-                <attribute name="class">name_input</attribute>
-            </field>
-            <field name="model_id" position="attributes">
-                <attribute name="class">m2o_model_input</attribute>
-            </field>
-            <field name="group_id" position="attributes">
-                <attribute name="class">group_input</attribute>
-            </field>
-            <field name="perm_read" position="attributes">
-                <attribute name="class">perm_read_input</attribute>
-            </field>
-            <field name="perm_write" position="attributes">
-                <attribute name="class">perm_write_input</attribute>
-            </field>
-            <field name="perm_create" position="attributes">
-                <attribute name="class">perm_create_input</attribute>
-            </field>
-            <field name="perm_unlink" position="attributes">
-                <attribute name="class">perm_unlink_input</attribute>
-            </field>
-        </field>
-    </record>
+    <act_window
+        id="ir_model_model_action_window"
+        name="Model"
+        res_model="ir.model"
+        context="{'search_default_code_generator': 1}"
+        view_mode="kanban,tree,form"
+    />
 </odoo>

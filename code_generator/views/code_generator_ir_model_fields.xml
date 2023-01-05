@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="code_generator_ir_model_fields_view_form" model="ir.ui.view">
+        <field name="name">code_generator_ir_model_fields_form</field>
+        <field name="model">code.generator.ir.model.fields</field>
+        <field name="arch" type="xml">
+            <form string="Titre">
+                <sheet>
+                    <group>
+                        <field name="code_generator_compute" />
+                    </group>
+                    <group>
+                        <field name="comment_after" />
+                    </group>
+                    <group>
+                        <field name="comment_before" />
+                    </group>
+                    <group>
+                        <field name="default_lambda" />
+                    </group>
+                    <group>
+                        <field name="field_context" />
+                    </group>
+                    <group>
+                        <field name="filter_field_attribute" />
+                    </group>
+                    <group>
+                        <field name="is_show_whitelist_model_inherit" />
+                    </group>
+                    <group>
+                        <field name="m2o_fields" />
+                    </group>
+                    <group>
+                        <field name="m2o_module" />
+                    </group>
+                    <group>
+                        <field name="name" />
+                    </group>
+                    <group>
+                        <field name="nomenclature_blacklist" />
+                    </group>
+                    <group>
+                        <field name="nomenclature_whitelist" />
+                    </group>
+                    <group>
+                        <field name="selection" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="code_generator_ir_model_fields_view_graph" model="ir.ui.view">
+        <field name="name">code_generator_ir_model_fields_graph</field>
+        <field name="model">code.generator.ir.model.fields</field>
+        <field name="arch" type="xml">
+            <graph string="Code generator ir model fields">
+                <field name="code_generator_compute" type="row" />
+                <field name="comment_after" type="row" />
+                <field name="comment_before" type="row" />
+                <field name="default_lambda" type="row" />
+                <field name="field_context" type="row" />
+                <field name="filter_field_attribute" type="row" />
+                <field name="is_show_whitelist_model_inherit" type="row" />
+                <field name="m2o_fields" type="row" />
+                <field name="m2o_module" type="row" />
+                <field name="name" type="row" />
+                <field name="nomenclature_blacklist" type="row" />
+                <field name="nomenclature_whitelist" type="row" />
+                <field name="selection" type="row" />
+            </graph>
+        </field>
+    </record>
+
+    <record id="code_generator_ir_model_fields_view_kanban" model="ir.ui.view">
+        <field name="name">code_generator_ir_model_fields_kanban</field>
+        <field name="model">code.generator.ir.model.fields</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="code_generator_compute" />
+                <field name="comment_after" />
+                <field name="comment_before" />
+                <field name="default_lambda" />
+                <field name="field_context" />
+                <field name="filter_field_attribute" />
+                <field name="is_show_whitelist_model_inherit" />
+                <field name="m2o_fields" />
+                <field name="m2o_module" />
+                <field name="name" />
+                <field name="nomenclature_blacklist" />
+                <field name="nomenclature_whitelist" />
+                <field name="selection" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code_generator_compute" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="comment_after" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="comment_before" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="default_lambda" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="field_context" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="filter_field_attribute" />
+                                        </strong>
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.is_show_whitelist_model_inherit.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.is_show_whitelist_model_inherit.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="m2o_fields" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="m2o_module" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="name" />
+                                        </strong>
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.nomenclature_blacklist.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.nomenclature_blacklist.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li
+                                        class="text-success float-right mb4"
+                                        t-if="record.nomenclature_whitelist.raw_value"
+                                    >
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li
+                                        class="text-danger float-right mb4"
+                                        t-if="!record.nomenclature_whitelist.raw_value"
+                                    >
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="selection" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="code_generator_ir_model_fields_view_pivot" model="ir.ui.view">
+        <field name="name">code_generator_ir_model_fields_pivot</field>
+        <field name="model">code.generator.ir.model.fields</field>
+        <field name="arch" type="xml">
+            <pivot string="Code generator ir model fields">
+                <field name="code_generator_compute" type="row" />
+                <field name="comment_after" type="row" />
+                <field name="comment_before" type="row" />
+                <field name="default_lambda" type="row" />
+                <field name="field_context" type="row" />
+                <field name="filter_field_attribute" type="row" />
+                <field name="is_show_whitelist_model_inherit" type="row" />
+                <field name="m2o_fields" type="row" />
+                <field name="m2o_module" type="row" />
+                <field name="name" type="row" />
+                <field name="nomenclature_blacklist" type="row" />
+                <field name="nomenclature_whitelist" type="row" />
+                <field name="selection" type="row" />
+            </pivot>
+        </field>
+    </record>
+
+    <record id="code_generator_ir_model_fields_view_search" model="ir.ui.view">
+        <field name="name">code_generator_ir_model_fields_search</field>
+        <field name="model">code.generator.ir.model.fields</field>
+        <field name="arch" type="xml">
+            <search string="Code generator ir model fields">
+                <filter
+                    domain="[('code_generator_compute','!=',False)]"
+                    name="code_generator_compute"
+                    string="Compute Code Generator"
+                />
+                <filter domain="[('comment_after','!=',False)]" name="comment_after" string="Comment after field" />
+                <filter domain="[('comment_before','!=',False)]" name="comment_before" string="Comment before field" />
+                <filter domain="[('default_lambda','!=',False)]" name="default_lambda" string="Default lambda value" />
+                <filter domain="[('field_context','!=',False)]" name="field_context" string="Field Context" />
+                <filter
+                    domain="[('filter_field_attribute','!=',False)]"
+                    name="filter_field_attribute"
+                    string="Filter Field Attribute"
+                />
+                <filter
+                    domain="[('is_show_whitelist_model_inherit','=',True)]"
+                    name="is_show_whitelist_model_inherit"
+                    string="Show in whitelist model inherit"
+                />
+                <filter domain="[('m2o_fields','!=',False)]" name="m2o_fields" string="Fields" />
+                <filter domain="[('m2o_module','!=',False)]" name="m2o_module" string="Module" />
+                <filter domain="[('name','!=',False)]" name="name" string="Name" />
+                <filter
+                    domain="[('nomenclature_blacklist','=',True)]"
+                    name="nomenclature_blacklist"
+                    string="Ignore from nomenclature."
+                />
+                <filter
+                    domain="[('nomenclature_whitelist','=',True)]"
+                    name="nomenclature_whitelist"
+                    string="Force to nomenclature."
+                />
+                <filter domain="[('selection','!=',False)]" name="selection" string="Selection Options" />
+            </search>
+        </field>
+    </record>
+
+    <record id="code_generator_ir_model_fields_view_tree" model="ir.ui.view">
+        <field name="name">code_generator_ir_model_fields_tree</field>
+        <field name="model">code.generator.ir.model.fields</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="code_generator_compute" />
+                <field name="comment_after" />
+                <field name="comment_before" />
+                <field name="default_lambda" />
+                <field name="field_context" />
+                <field name="filter_field_attribute" />
+                <field name="is_show_whitelist_model_inherit" />
+                <field name="m2o_fields" />
+                <field name="m2o_module" />
+                <field name="name" />
+                <field name="nomenclature_blacklist" />
+                <field name="nomenclature_whitelist" />
+                <field name="selection" />
+            </tree>
+        </field>
+    </record>
+
+    <act_window
+        id="code_generator_ir_model_fields_generator_ir_model_fields_action_window"
+        name="Generator ir model fields"
+        res_model="code.generator.ir.model.fields"
+        view_mode="kanban,tree,pivot,graph,form"
+    />
+</odoo>

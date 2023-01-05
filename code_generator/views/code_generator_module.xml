@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-    <record model="ir.ui.view" id="code_generator_module_form">
+    <record id="code_generator_module_form" model="ir.ui.view">
         <field name="name">code.generator.module.form</field>
         <field name="model">code.generator.module</field>
-        <field name="mode">primary</field>
         <field name="inherit_id" ref="base.module_form" />
+        <field name="mode">primary</field>
         <field name="arch" type="xml">
             <form position="attributes">
                 <attribute name="create">1</attribute>
@@ -211,7 +211,7 @@
         <field name="view_type">form</field>
         <field name="view_mode">tree,form</field>
         <field name="domain">[('state', '!=', 'uninstallable')]</field>
-        <field name="context">{'search_default_app':1}</field>
+        <field name="context">{'search_default_app':0}</field>
         <field name="search_view_id" ref="code_generator_module_search" />
         <field name="help" type="html">
             <p class="o_view_nocontent_empty_folder">Add a new module</p>
@@ -219,30 +219,12 @@
         </field>
     </record>
 
-    <menuitem
-        id="code_generator_main_menu"
-        name="Code Generator"
-        web_icon="code_generator,static/description/icon.png"
-    />
-
-    <menuitem
-        id="code_generator_generator_menu"
-        name="Modules"
-        parent="code_generator_main_menu"
-        action="code_generator_module_actionwindow"
-        groups="code_generator_manager"
-        sequence="2"
-    />
-
     <record model="ir.actions.server" id="code_generator_module_actionserver">
         <field name="name">Generate code</field>
         <field name="model_id" ref="model_code_generator_module" />
         <field name="binding_model_id" ref="model_code_generator_module" />
         <field name="state">code</field>
-        <field name="code">
-            if records:
-    action = {"type": "ir.actions.act_url", "target": "self", "url": "/code_generator/%s" % ','.join(records.mapped(lambda
-            r: str(r.id)))}
-        </field>
+        <!-- prettier-ignore-start --><field name="code">if records:
+    action = {"type": "ir.actions.act_url", "target": "self", "url": "/code_generator/%s" % ','.join(records.mapped(lambda r: str(r.id)))}</field><!-- prettier-ignore-end -->
     </record>
 </odoo>

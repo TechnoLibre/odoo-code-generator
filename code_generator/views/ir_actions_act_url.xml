@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="ir_actions_act_url_view_form" model="ir.ui.view">
+        <field name="name">ir_actions_act_url_form</field>
+        <field name="model">ir.actions.act_url</field>
+        <field name="arch" type="xml">
+            <form string="Titre">
+                <sheet>
+                    <group>
+                        <field name="binding_model_id" />
+                    </group>
+                    <group>
+                        <field name="binding_type" />
+                    </group>
+                    <group>
+                        <field name="help" />
+                    </group>
+                    <group>
+                        <field name="name" />
+                    </group>
+                    <group>
+                        <field name="target" />
+                    </group>
+                    <group>
+                        <field name="type" />
+                    </group>
+                    <group>
+                        <field name="url" />
+                    </group>
+                    <group>
+                        <field name="xml_id" />
+                    </group>
+                    <group>
+                        <field name="m2o_code_generator" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="ir_actions_act_url_view_kanban" model="ir.ui.view">
+        <field name="name">ir_actions_act_url_kanban</field>
+        <field name="model">ir.actions.act_url</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="binding_model_id" />
+                <field name="binding_type" />
+                <field name="help" />
+                <field name="name" />
+                <field name="target" />
+                <field name="type" />
+                <field name="url" />
+                <field name="xml_id" />
+                <field name="m2o_code_generator" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="binding_model_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="binding_type" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="help" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="target" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="type" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="url" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="xml_id" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="m2o_code_generator" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="ir_actions_act_url_view_search" model="ir.ui.view">
+        <field name="name">ir_actions_act_url_search</field>
+        <field name="model">ir.actions.act_url</field>
+        <field name="arch" type="xml">
+            <search string="Ir actions act url">
+                <filter domain="[('binding_model_id','!=',False)]" name="binding_model_id" string="Binding Model" />
+                <filter domain="[('binding_type','!=',False)]" name="binding_type" string="Binding Type" />
+                <filter domain="[('help','!=',False)]" name="help" string="Action Description" />
+                <filter domain="[('name','!=',False)]" name="name" string="Action Name" />
+                <filter domain="[('target','!=',False)]" name="target" string="Action Target" />
+                <filter domain="[('type','!=',False)]" name="type" string="Action Type" />
+                <filter domain="[('url','!=',False)]" name="url" string="Action URL" />
+                <filter domain="[('xml_id','!=',False)]" name="xml_id" string="External ID" />
+                <filter
+                    domain="[('m2o_code_generator','!=',False)]"
+                    name="m2o_code_generator"
+                    string="Code Generator"
+                />
+            </search>
+        </field>
+    </record>
+
+    <record id="ir_actions_act_url_view_tree" model="ir.ui.view">
+        <field name="name">ir_actions_act_url_tree</field>
+        <field name="model">ir.actions.act_url</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="binding_model_id" />
+                <field name="binding_type" />
+                <field name="help" />
+                <field name="name" />
+                <field name="target" />
+                <field name="type" />
+                <field name="url" />
+                <field name="xml_id" />
+                <field name="m2o_code_generator" />
+            </tree>
+        </field>
+    </record>
+
+    <act_window
+        id="ir_actions_act_url_actions_act_url_action_window"
+        name="Actions act url"
+        res_model="ir.actions.act_url"
+        context="{'search_default_m2o_code_generator': 1}"
+        view_mode="kanban,tree,form"
+    />
+</odoo>

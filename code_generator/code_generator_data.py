@@ -1,9 +1,11 @@
+import asyncio
 import copy
 import logging
 import os
 import shutil
 import subprocess
 from collections import defaultdict
+from typing import Tuple
 
 import xmlformatter
 from code_writer import CodeWriter
@@ -434,6 +436,19 @@ class CodeGeneratorData:
         except Exception as e:
             _logger.error(e)
 
+    async def execute_async_subprocess(self, cmd) -> Tuple[str, int]:
+        process = await asyncio.create_subprocess_shell(
+            cmd, stdout=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await process.communicate()
+        if stdout:
+            result = stdout.decode()
+        else:
+            result = ""
+        if stderr:
+            result += stderr.decode()
+        return result, 0
+
     def generate_python_init_file(self, cg_module):
         for component, lst_module in self._dct_import_dir.items():
             init_path = os.path.join(component, "__init__.py")
@@ -523,11 +538,13 @@ class CodeGeneratorData:
             os.path.join(os.path.dirname(__file__), "..", "..", "..")
         )
         max_col = 79
+        parallel = True
         use_prettier = True
         use_format_black = True  # Else, oca-autopep8
         use_clean_import_isort = True
         enable_xml_formatter = False  # Else, prettier-xml
         # Manual format with def with programmer style
+        lst_cmd = []
         for path_file in self.lst_path_file:
             relative_path = path_file[len(self.module_path) + 1 :]
             if path_file.endswith(".py"):
@@ -561,47 +578,35 @@ class CodeGeneratorData:
             elif path_file.endswith(".js"):
                 if use_prettier:
                     cmd = f"prettier --write --tab-width 4 {path_file}"
-                    result = self.subprocess_cmd(cmd)
-                    if result:
-                        _logger.info(f"prettier {result.decode()}")
+                    lst_cmd.append(cmd)
                 else:
                     cmd = (
                         f"cd {workspace_path};."
                         f" .venv/bin/activate;css-html-prettify.py {path_file}"
                     )
-                    result = self.subprocess_cmd(cmd)
-                    if result:
-                        _logger.warning(result)
+                    lst_cmd.append(cmd)
 
             elif path_file.endswith(".scss") or path_file.endswith(".css"):
                 if use_prettier:
                     cmd = f"prettier --write {path_file}"
-                    result = self.subprocess_cmd(cmd)
-                    if result:
-                        _logger.info(f"prettier {result.decode()}")
+                    lst_cmd.append(cmd)
                 else:
                     cmd = (
                         f"cd {workspace_path};."
                         f" .venv/bin/activate;css-html-prettify.py {path_file}"
                     )
-                    result = self.subprocess_cmd(cmd)
-                    if result:
-                        _logger.warning(result)
+                    lst_cmd.append(cmd)
 
             elif path_file.endswith(".html"):
                 if use_prettier:
                     cmd = f"prettier --write {path_file}"
-                    result = self.subprocess_cmd(cmd)
-                    if result:
-                        _logger.info(f"prettier {result.decode()}")
+                    lst_cmd.append(cmd)
                 else:
                     cmd = (
                         f"cd {workspace_path};."
                         f" .venv/bin/activate;css-html-prettify.py {path_file}"
                     )
-                    result = self.subprocess_cmd(cmd)
-                    if result:
-                        _logger.warning(result)
+                    lst_cmd.append(cmd)
 
             elif path_file.endswith(".xml"):
                 if use_prettier and not enable_xml_formatter:
@@ -622,9 +627,36 @@ class CodeGeneratorData:
                             f" {path_file}"
                         )
 
-                    result = self.subprocess_cmd(cmd)
-                    if result:
+                    lst_cmd.append(cmd)
+
+        if parallel:
+            # Run in parallel prettier for more speed
+            try:
+                if asyncio.get_event_loop().is_closed():
+                    asyncio.set_event_loop(asyncio.new_event_loop())
+            except Exception as e:
+                _logger.error(e)
+                parallel = False
+
+        if parallel:
+            loop = asyncio.get_event_loop()
+            task_list = [self.execute_async_subprocess(a) for a in lst_cmd]
+            tpl_result = {}
+            try:
+                commands = asyncio.gather(*task_list)
+                tpl_result = loop.run_until_complete(commands)
+            finally:
+                loop.close()
+            for result in tpl_result:
+                _logger.info("prettier " + result[0])
+        else:
+            for cmd in lst_cmd:
+                result = self.subprocess_cmd(cmd)
+                if result:
+                    if use_prettier:
                         _logger.info(f"prettier {result.decode()}")
+                    else:
+                        _logger.info(f"css-html-prettify {result.decode()}")
 
         # Optimize import python
         if use_clean_import_isort:
@@ -636,6 +668,8 @@ class CodeGeneratorData:
 
             if result:
                 _logger.info(f"isort {result.decode()}")
+            else:
+                _logger.info("isort no result.")
 
         # Automatic format
         # TODO check diff before and after format to auto improvement of generation
@@ -679,3 +713,4 @@ class CodeGeneratorData:
                     self.write_file_binary(
                         relative_path, formatter.format_file(path_file)
                     )
+        _logger.info("End of auto_format")

@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="code_generator_model_code_import_view_form" model="ir.ui.view">
+        <field name="name">code_generator_model_code_import_form</field>
+        <field name="model">code.generator.model.code.import</field>
+        <field name="arch" type="xml">
+            <form string="Titre">
+                <sheet>
+                    <group>
+                        <field name="code" widget="ace" options="{'mode': 'python'}" />
+                    </group>
+                    <group>
+                        <field name="is_templated" />
+                    </group>
+                    <group>
+                        <field name="m2o_model" />
+                    </group>
+                    <group>
+                        <field name="m2o_module" />
+                    </group>
+                    <group>
+                        <field name="name" />
+                    </group>
+                    <group>
+                        <field name="sequence" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="code_generator_model_code_import_view_graph" model="ir.ui.view">
+        <field name="name">code_generator_model_code_import_graph</field>
+        <field name="model">code.generator.model.code.import</field>
+        <field name="arch" type="xml">
+            <graph string="Code generator model code import">
+                <field name="code" type="row" />
+                <field name="is_templated" type="row" />
+                <field name="m2o_model" type="row" />
+                <field name="m2o_module" type="row" />
+                <field name="name" type="row" />
+                <field name="sequence" type="measure" />
+            </graph>
+        </field>
+    </record>
+
+    <record id="code_generator_model_code_import_view_kanban" model="ir.ui.view">
+        <field name="name">code_generator_model_code_import_kanban</field>
+        <field name="model">code.generator.model.code.import</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="code" />
+                <field name="is_templated" />
+                <field name="m2o_model" />
+                <field name="m2o_module" />
+                <field name="name" />
+                <field name="sequence" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <ul>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="code" />
+                                        </strong>
+                                    </li>
+                                    <li class="text-success float-right mb4" t-if="record.is_templated.raw_value">
+                                        <i aria-label="Ok" class="fa fa-circle" role="img" title="Ok" />
+                                    </li>
+                                    <li class="text-danger float-right mb4" t-if="!record.is_templated.raw_value">
+                                        <i aria-label="Invalid" class="fa fa-circle" role="img" title="Invalid" />
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="m2o_model" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="m2o_module" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="name" />
+                                        </strong>
+                                    </li>
+                                    <li class="mb4">
+                                        <strong>
+                                            <field name="sequence" />
+                                        </strong>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="code_generator_model_code_import_view_pivot" model="ir.ui.view">
+        <field name="name">code_generator_model_code_import_pivot</field>
+        <field name="model">code.generator.model.code.import</field>
+        <field name="arch" type="xml">
+            <pivot string="Code generator model code import">
+                <field name="code" type="row" />
+                <field name="is_templated" type="row" />
+                <field name="m2o_model" type="row" />
+                <field name="m2o_module" type="row" />
+                <field name="name" type="row" />
+                <field name="sequence" type="measure" />
+            </pivot>
+        </field>
+    </record>
+
+    <record id="code_generator_model_code_import_view_search" model="ir.ui.view">
+        <field name="name">code_generator_model_code_import_search</field>
+        <field name="model">code.generator.model.code.import</field>
+        <field name="arch" type="xml">
+            <search string="Code generator model code import">
+                <filter domain="[('code','!=',False)]" name="code" string="Code" />
+                <filter domain="[('is_templated','=',True)]" name="is_templated" string="Templated" />
+                <filter domain="[('m2o_model','!=',False)]" name="m2o_model" string="Model" />
+                <filter domain="[('m2o_module','!=',False)]" name="m2o_module" string="Module" />
+                <filter domain="[('name','!=',False)]" name="name" string="Import name" />
+                <filter domain="[('sequence','!=',False)]" name="sequence" string="Sequence" />
+            </search>
+        </field>
+    </record>
+
+    <record id="code_generator_model_code_import_view_tree" model="ir.ui.view">
+        <field name="name">code_generator_model_code_import_tree</field>
+        <field name="model">code.generator.model.code.import</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="code" />
+                <field name="is_templated" />
+                <field name="m2o_model" />
+                <field name="m2o_module" />
+                <field name="name" />
+                <field name="sequence" />
+            </tree>
+        </field>
+    </record>
+
+    <act_window
+        id="code_generator_model_code_import_generator_model_code_import_action_window"
+        name="Generator model code import"
+        res_model="code.generator.model.code.import"
+        view_mode="kanban,tree,pivot,graph,form"
+    />
+</odoo>

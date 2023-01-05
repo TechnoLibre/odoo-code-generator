@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-    <record model="ir.ui.view" id="code_generator_settings_form">
+    <record id="code_generator_settings_form" model="ir.ui.view">
         <field name="name">res.config.settings.form.inherit.codegenerator</field>
         <field name="model">res.config.settings</field>
         <field name="inherit_id" ref="base.res_config_settings_view_form" />
@@ -43,13 +43,4 @@
         <field name="target">inline</field>
         <field name="context">{'module' : 'code_generator'}</field>
     </record>
-
-    <menuitem
-        id="code_generator_settings_menu"
-        name="Settings"
-        parent="code_generator_main_menu"
-        action="code_generator_settings_actionwindow"
-        groups="code_generator_manager"
-        sequence="900"
-    />
 </odoo>

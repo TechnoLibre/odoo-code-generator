@@ -227,6 +227,14 @@ class IrModelFields(models.Model):
         help="Enable this to ignore it when write code."
     )
 
+    # TODO this is wrong, use instead link to code_generator.
+    # TODO this technique doesn't work... use code_generator
+    is_code_generator = fields.Boolean(
+        compute="_compute_is_code_generator",
+        store=True,
+        help="Do a link with code generator to show associate model fields",
+    )
+
     is_date_end_view = fields.Boolean(
         string="Show end date view",
         help="View timeline only, end field.",
@@ -340,6 +348,17 @@ class IrModelFields(models.Model):
             " View search only."
         ),
     )
+
+    @api.depends("model_id")
+    def _compute_is_code_generator(self):
+        for rec in self:
+            # TODO this is wrong, because it will show if multiple code.generator.module
+            cgs = self.env["code.generator.module"].search([])
+            if cgs:
+                for cg in cgs:
+                    model_ids = cg.o2m_models
+                    if rec.model_id.id in model_ids.ids:
+                        rec.is_code_generator = True
 
     @api.constrains("name", "state")
     def _check_name(self):

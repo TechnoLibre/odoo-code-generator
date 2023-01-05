@@ -1,42 +1,48 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-  <record id="code_generator_add_model_action" model="ir.actions.act_window">
-    <field name="name">Model</field>
-    <field name="type">ir.actions.act_window</field>
-    <field name="res_model">code.generator.add.model.wizard</field>
-    <field name="view_mode">form</field>
-    <field name="target">new</field>
-  </record>
+    <record id="code_generator_add_model_action" model="ir.actions.act_window">
+        <field name="name">Model</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">code.generator.add.model.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
 
-  <record id="code_generator_add_model_form" model="ir.ui.view">
-    <field name="name">Code Generator Add Models</field>
-    <field name="model">code.generator.add.model.wizard</field>
-    <field name="arch" type="xml">
-      <form string="Views">
-        <sheet>
-          <group invisible="1">
-            <field name="code_generator_id" invisible="1"/>
-            <field name="user_id" options="{'no_open': False}" invisible="1"/>
-          </group>
-          <group>
-            <group string="Options">
-              <field name="option_adding"/>
-              <field name="option_blacklist" attrs="{'invisible': [('option_adding', '!=', 'nomenclator')]}"/>
-              <field name="clear_fields_blacklist" attrs="{'invisible': [('option_adding', '!=', 'nomenclator')]}"/>
-            </group>
-          </group>
-          <group string="Models">
-            <field name="model_ids" nolabel="1"/>
-          </group>
-          <group string="Fields" attrs="{'invisible': [('option_adding', '!=', 'nomenclator')]}">
-            <field name="field_ids" nolabel="1"/>
-          </group>
-          <footer>
-            <button string="_Generate" name="button_generate_add_model" type="object" class="btn-primary"/>
-            <button string="Cancel" class="btn-default" special="cancel"/>
-          </footer>
-        </sheet>
-      </form>
-    </field>
-  </record>
+    <record id="code_generator_add_model_form" model="ir.ui.view">
+        <field name="name">Code Generator Add Models</field>
+        <field name="model">code.generator.add.model.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Views">
+                <sheet>
+                    <group invisible="1">
+                        <field name="code_generator_id" invisible="1" />
+                        <field name="user_id" options="{'no_open': False}" invisible="1" />
+                    </group>
+                    <group>
+                        <group string="Options">
+                            <field name="option_adding" />
+                            <field
+                                name="option_blacklist"
+                                attrs="{'invisible': [('option_adding', '!=', 'nomenclator')]}"
+                            />
+                            <field
+                                name="clear_fields_blacklist"
+                                attrs="{'invisible': [('option_adding', '!=', 'nomenclator')]}"
+                            />
+                        </group>
+                    </group>
+                    <group string="Models">
+                        <field name="model_ids" nolabel="1" />
+                    </group>
+                    <group string="Fields" attrs="{'invisible': [('option_adding', '!=', 'nomenclator')]}">
+                        <field name="field_ids" nolabel="1" />
+                    </group>
+                    <footer>
+                        <button string="_Generate" name="button_generate_add_model" type="object" class="btn-primary" />
+                        <button string="Cancel" class="btn-default" special="cancel" />
+                    </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
 </odoo>

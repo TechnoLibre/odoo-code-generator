@@ -1,22 +1,23 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-
-  <record id="code_generator_generate_portal_form" model="ir.ui.view">
-    <field name="name">Code Generator Generate views</field>
-    <field name="model">code.generator.generate.views.wizard</field>
-    <field name="inherit_id" ref="code_generator.code_generator_generate_views_form"/>
-    <field name="arch" type="xml">
-      <xpath expr="//form/sheet/notebook/page[@name='internal_view']" position="after">
-        <page name="portal" string="Portal">
-          <group>
-            <field name="enable_generate_portal" attrs="{'invisible': [('enable_generate_all', '=', True)]}"/>
-          </group>
-          <!--              <group string="Model" attrs="{'invisible': [('all_model', '=', True)]}">-->
-          <!--                <field name="selected_model_ids" nolabel="1"/>-->
-          <!--              </group>-->
-        </page>
-      </xpath>
-    </field>
-  </record>
-
+    <record id="code_generator_generate_portal_form" model="ir.ui.view">
+        <field name="name">Code Generator Generate views</field>
+        <field name="model">code.generator.generate.views.wizard</field>
+        <field name="inherit_id" ref="code_generator.code_generator_generate_views_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet/notebook/page[@name='internal_view']" position="after">
+                <page name="portal" string="Portal">
+                    <group>
+                        <field
+                            name="enable_generate_portal"
+                            attrs="{'invisible': [('enable_generate_all', '=', True)]}"
+                        />
+                    </group>
+                    <!--              <group string="Model" attrs="{'invisible': [('all_model', '=', True)]}">-->
+                    <!--                <field name="selected_model_ids" nolabel="1"/>-->
+                    <!--              </group>-->
+                </page>
+            </xpath>
+        </field>
+    </record>
 </odoo>

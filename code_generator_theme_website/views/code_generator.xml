@@ -1,37 +1,38 @@
-<?xml version= "1.0" ?>
+<?xml version="1.0" ?>
 <odoo>
+    <record model="ir.ui.view" id="code_generator_module_theme_website_form_inherit">
+        <field name="name">code.generator.module.form.inherit</field>
+        <field name="model">code.generator.module</field>
+        <field name="inherit_id" ref="code_generator.code_generator_module_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='application']" position="after">
+                <field name="theme_website" />
+                <field name="theme_website_primary_color" invisible="1" />
+                <field name="theme_website_secondary_color" invisible="1" />
+                <field name="theme_website_extra_1_color" invisible="1" />
+                <field name="theme_website_extra_2_color" invisible="1" />
+                <field name="theme_website_extra_3_color" invisible="1" />
+                <field name="theme_website_body_color" invisible="1" />
+                <field name="theme_website_menu_color" invisible="1" />
+                <field name="theme_website_footer_color" invisible="1" />
+                <field name="theme_website_text_color" invisible="1" />
+            </xpath>
 
-  <record model="ir.ui.view" id="code_generator_module_theme_website_form_inherit">
-    <field name="name">code.generator.module.form.inherit</field>
-    <field name="model">code.generator.module</field>
-    <field name="inherit_id" ref="code_generator.code_generator_module_form"/>
-    <field name="arch" type="xml">
+            <xpath expr="//field[@name='application']" position="attributes">
+                <attribute name="attrs">{'invisible': [('theme_website','=',True)]}</attribute>
+            </xpath>
 
-      <xpath expr="//field[@name='application']" position="after">
-        <field name="theme_website"/>
-        <field name="theme_website_primary_color" invisible="1"/>
-        <field name="theme_website_secondary_color" invisible="1"/>
-        <field name="theme_website_extra_1_color" invisible="1"/>
-        <field name="theme_website_extra_2_color" invisible="1"/>
-        <field name="theme_website_extra_3_color" invisible="1"/>
-        <field name="theme_website_body_color" invisible="1"/>
-        <field name="theme_website_menu_color" invisible="1"/>
-        <field name="theme_website_footer_color" invisible="1"/>
-        <field name="theme_website_text_color" invisible="1"/>
-      </xpath>
+            <!--      <xpath expr="//button[@name='%(code_generator.code_generator_generate_views_action)d']"-->
+            <!--             position="attributes">-->
+            <!--        <attribute name="attrs">{'invisible': [('theme_website','=',True)]}</attribute>-->
+            <!--      </xpath>-->
 
-      <xpath expr="//field[@name='application']" position="attributes">
-        <attribute name="attrs">{'invisible': [('theme_website','=',True)]}</attribute>
-      </xpath>
-
-      <!--      <xpath expr="//button[@name='%(code_generator.code_generator_generate_views_action)d']"-->
-      <!--             position="attributes">-->
-      <!--        <attribute name="attrs">{'invisible': [('theme_website','=',True)]}</attribute>-->
-      <!--      </xpath>-->
-
-      <xpath expr="//button[@name='%(code_generator.code_generator_generate_views_action)d']"
-             position="attributes">
-        <attribute name="context">{
+            <xpath
+                expr="//button[@name='%(code_generator.code_generator_generate_views_action)d']"
+                position="attributes"
+            >
+                <attribute name="context">
+                    {
           'default_enable_generate_all': theme_website != True,
           'default_all_model': theme_website != True,
           'default_enable_generate_theme_website': theme_website == True,
@@ -47,10 +48,8 @@
           'default_theme_website_menu_color': theme_website_menu_color,
           'default_theme_website_text_color': theme_website_text_color,
           }
-        </attribute>
-      </xpath>
-
-    </field>
-  </record>
-
+                </attribute>
+            </xpath>
+        </field>
+    </record>
 </odoo>

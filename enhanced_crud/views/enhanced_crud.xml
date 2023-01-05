@@ -1,43 +1,39 @@
-<?xml version= "1.0" ?>
+<?xml version="1.0" ?>
 <odoo>
+    <record model="ir.ui.view" id="enhanced_crud_act_window_tree">
+        <field name="name">enhanced.crud.act_window.tree</field>
+        <field name="model">enhanced.crud.act_window</field>
+        <field name="arch" type="xml">
+            <tree editable="top">
+                <field name="m2o_act_window" />
+            </tree>
+        </field>
+    </record>
 
-  <record model="ir.ui.view" id="enhanced_crud_act_window_tree">
-    <field name="name">enhanced.crud.act_window.tree</field>
-    <field name="model">enhanced.crud.act_window</field>
-    <field name="arch" type="xml">
-      <tree editable="top">
-        <field name="m2o_act_window"/>
-      </tree>
-    </field>
-  </record>
+    <record model="ir.actions.act_window" id="enhanced_crud_act_window_actionwindow">
+        <field name="name">Window actions</field>
+        <field name="res_model">enhanced.crud.act_window</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_empty_folder">Add a new window action</p>
+            <p>Window actions whose views have their js_class attribute pointed to the Enhanced CRUD module</p>
+        </field>
+    </record>
 
-  <record model="ir.actions.act_window" id="enhanced_crud_act_window_actionwindow">
-    <field name="name">Window actions</field>
-    <field name="res_model">enhanced.crud.act_window</field>
-    <field name="view_type">form</field>
-    <field name="view_mode">tree,form</field>
-    <field name="help" type="html">
-      <p class="o_view_nocontent_empty_folder">
-        Add a new window action
-      </p>
-      <p>
-        Window actions whose views have their js_class attribute pointed to the Enhanced CRUD module
-      </p>
-    </field>
-  </record>
+    <menuitem
+        id="enhanced_crud_act_window_menu"
+        name="Window Actions"
+        parent="enhanced_crud.enhanced_crud_main_menu"
+        groups="enhanced_crud_manager"
+        sequence="2"
+    />
 
-  <menuitem id="enhanced_crud_act_window_menu"
-            name="Window Actions"
-            parent="enhanced_crud.enhanced_crud_main_menu"
-            groups="enhanced_crud_manager"
-            sequence="2"
-  />
-
-  <menuitem id="enhanced_crud_act_window_associated_menu"
-            name="Associated window actions"
-            parent="enhanced_crud_act_window_menu"
-            action="enhanced_crud_act_window_actionwindow"
-            sequence="2"
-  />
-
+    <menuitem
+        id="enhanced_crud_act_window_associated_menu"
+        name="Associated window actions"
+        parent="enhanced_crud_act_window_menu"
+        action="enhanced_crud_act_window_actionwindow"
+        sequence="2"
+    />
 </odoo>

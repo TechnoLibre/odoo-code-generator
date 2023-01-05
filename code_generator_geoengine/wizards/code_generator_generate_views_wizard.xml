@@ -1,15 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-
-  <record model="ir.ui.view" id="code_generator_generate_views_form_inherit">
-    <field name="name">Code Generator Generate Geoengine views</field>
-    <field name="model">code.generator.generate.views.wizard</field>
-    <field name="inherit_id" ref="code_generator.code_generator_generate_views_form"/>
-    <field name="arch" type="xml">
-      <xpath expr="//group[@name='clear']" position="inside">
-        <field name="clear_all_geoengine"/>
-      </xpath>
-    </field>
-  </record>
-
+    <record model="ir.ui.view" id="code_generator_generate_views_form_inherit">
+        <field name="name">Code Generator Generate Geoengine views</field>
+        <field name="model">code.generator.generate.views.wizard</field>
+        <field name="inherit_id" ref="code_generator.code_generator_generate_views_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='clear']" position="inside">
+                <field name="clear_all_geoengine" />
+            </xpath>
+        </field>
+    </record>
 </odoo>

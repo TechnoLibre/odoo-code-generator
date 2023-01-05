@@ -1,63 +1,68 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
+    <record model="ir.ui.view" id="ir_ui_view_menu_form_inherited">
+        <field name="name">ir.ui.menu.form</field>
+        <field name="model">ir.ui.menu</field>
+        <field name="inherit_id" ref="base.edit_menu_access" />
+        <field name="arch" type="xml">
+            <field name="name" position="attributes">
+                <attribute name="class">name_input</attribute>
+            </field>
 
-  <record model="ir.ui.view" id="ir_ui_view_menu_form_inherited">
-    <field name="name">ir.ui.menu.form</field>
-    <field name="model">ir.ui.menu</field>
-    <field name="inherit_id" ref="base.edit_menu_access"/>
-    <field name="arch" type="xml">
+            <field name="parent_id" position="attributes">
+                <attribute name="class">parent_id_input</attribute>
+            </field>
 
-      <field name="name" position="attributes">
-        <attribute name="class">name_input</attribute>
-      </field>
+            <field name="action" position="attributes">
+                <attribute name="class">action_input</attribute>
+            </field>
 
-      <field name="parent_id" position="attributes">
-        <attribute name="class">parent_id_input</attribute>
-      </field>
+            <notebook position="before">
+                <group
+                    name="code_generator_module"
+                    string="Code Generator Module"
+                    invisible="context.get('hide_m2o_module', False)"
+                >
+                    <group>
+                        <field
+                            name="m2o_module"
+                            options="{'no_create': True, 'no_edit': True}"
+                            class="m2o_module_input"
+                        />
+                    </group>
+                </group>
+            </notebook>
+        </field>
+    </record>
 
-      <field name="action" position="attributes">
-        <attribute name="class">action_input</attribute>
-      </field>
+    <record model="ir.ui.view" id="ir_ui_view_view_form_inherited">
+        <field name="name">ir.ui.view.form</field>
+        <field name="model">ir.ui.view</field>
+        <field name="inherit_id" ref="base.view_view_form" />
+        <field name="arch" type="xml">
+            <field name="name" position="attributes">
+                <attribute name="class">name_input</attribute>
+            </field>
 
-      <notebook position="before">
-        <group name="code_generator_module" string="Code Generator Module"
-               invisible="context.get('hide_m2o_module', False)">
-          <group>
-            <field name="m2o_module" options="{'no_create': True, 'no_edit': True}" class="m2o_module_input"/>
-          </group>
-        </group>
-      </notebook>
+            <field name="type" position="attributes">
+                <attribute name="class">view_type_input</attribute>
+            </field>
 
-    </field>
-  </record>
+            <notebook position="before">
+                <group name="code_generator_module" string="Code Generator Module">
+                    <group>
+                        <field
+                            name="m2o_model"
+                            options="{'no_create': True, 'no_edit': True}"
+                            class="m2o_model_input"
+                        />
+                    </group>
+                </group>
+            </notebook>
 
-  <record model="ir.ui.view" id="ir_ui_view_view_form_inherited">
-    <field name="name">ir.ui.view.form</field>
-    <field name="model">ir.ui.view</field>
-    <field name="inherit_id" ref="base.view_view_form"/>
-    <field name="arch" type="xml">
-
-      <field name="name" position="attributes">
-        <attribute name="class">name_input</attribute>
-      </field>
-
-      <field name="type" position="attributes">
-        <attribute name="class">view_type_input</attribute>
-      </field>
-
-      <notebook position="before">
-        <group name="code_generator_module" string="Code Generator Module">
-          <group>
-            <field name="m2o_model" options="{'no_create': True, 'no_edit': True}" class="m2o_model_input"/>
-          </group>
-        </group>
-      </notebook>
-
-      <field name="arch_base" position="attributes">
-        <attribute name="class">arch_base_input</attribute>
-      </field>
-
-    </field>
-  </record>
-
+            <field name="arch_base" position="attributes">
+                <attribute name="class">arch_base_input</attribute>
+            </field>
+        </field>
+    </record>
 </odoo>

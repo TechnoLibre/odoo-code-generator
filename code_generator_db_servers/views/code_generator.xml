@@ -1,220 +1,240 @@
-<?xml version= "1.0" ?>
+<?xml version="1.0" ?>
 <odoo>
+    <record model="ir.ui.view" id="code_generator_db_form">
+        <field name="name">code.generator.db.form</field>
+        <field name="model">code.generator.db</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="m2o_dbtype" />
+                            <field name="m2o_dbtype_name" invisible="True" />
+                        </group>
+                        <group>
+                            <field name="database" />
+                            <field name="schema" attrs="{'required': [('m2o_dbtype_name', '!=', 'SQLServer')]}" />
+                            <field name="host" />
+                            <field name="port" />
+                            <field name="user" />
+                            <field name="password" password="True" />
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="accept_primary_key" />
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
 
-  <record model="ir.ui.view" id="code_generator_db_form">
-    <field name="name">code.generator.db.form</field>
-    <field name="model">code.generator.db</field>
-    <field name="arch" type="xml">
-      <form>
-        <sheet>
-          <group>
-            <group>
-              <field name="m2o_dbtype"/>
-              <field name="m2o_dbtype_name" invisible="True"/>
-            </group>
-            <group>
-              <field name="database"/>
-              <field name="schema" attrs="{'required': [('m2o_dbtype_name', '!=', 'SQLServer')]}"/>
-              <field name="host"/>
-              <field name="port"/>
-              <field name="user"/>
-              <field name="password" password="True"/>
-            </group>
-          </group>
-          <group>
-            <group>
-              <field name="accept_primary_key"/>
-            </group>
-          </group>
-        </sheet>
-      </form>
-    </field>
-  </record>
+    <record model="ir.ui.view" id="code_generator_db_tree">
+        <field name="name">code.generator.db.tree</field>
+        <field name="model">code.generator.db</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="m2o_dbtype" />
+                <field name="host" />
+                <field name="port" />
+                <field name="user" />
+                <field name="password" password="True" />
+            </tree>
+        </field>
+    </record>
 
-  <record model="ir.ui.view" id="code_generator_db_tree">
-    <field name="name">code.generator.db.tree</field>
-    <field name="model">code.generator.db</field>
-    <field name="arch" type="xml">
-      <tree>
-        <field name="m2o_dbtype"/>
-        <field name="host"/>
-        <field name="port"/>
-        <field name="user"/>
-        <field name="password" password="True"/>
-      </tree>
-    </field>
-  </record>
+    <record model="ir.actions.act_window" id="code_generator_db_actionwindow">
+        <field name="name">Databases</field>
+        <field name="res_model">code.generator.db</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_empty_folder">Add a new database</p>
+            <p>Databases whose tables could be imported to Odoo and then be exported into code</p>
+        </field>
+    </record>
 
-  <record model="ir.actions.act_window" id="code_generator_db_actionwindow">
-    <field name="name">Databases</field>
-    <field name="res_model">code.generator.db</field>
-    <field name="view_type">form</field>
-    <field name="view_mode">tree,form</field>
-    <field name="help" type="html">
-      <p class="o_view_nocontent_empty_folder">
-        Add a new database
-      </p>
-      <p>
-        Databases whose tables could be imported to Odoo and then be exported into code
-      </p>
-    </field>
-  </record>
+    <menuitem
+        id="code_generator_db_menu"
+        name="Databases"
+        parent="code_generator.code_generator_main_menu"
+        sequence="4"
+    />
 
-  <menuitem id="code_generator_db_menu"
-            name="Databases"
-            parent="code_generator.code_generator_main_menu"
-            sequence="4"
-  />
+    <menuitem
+        id="code_generator_generator_server_menu"
+        name="Databases"
+        parent="code_generator_db_menu"
+        action="code_generator_db_actionwindow"
+        groups="code_generator.code_generator_manager"
+        sequence="1"
+    />
 
-  <menuitem id="code_generator_generator_server_menu"
-            name="Databases"
-            parent="code_generator_db_menu"
-            action="code_generator_db_actionwindow"
-            groups="code_generator.code_generator_manager"
-            sequence="1"
-  />
+    <record model="ir.ui.view" id="code_generator_db_table_tree">
+        <field name="name">code.generator.db.table.tree</field>
+        <field name="model">code.generator.db.table</field>
+        <field name="arch" type="xml">
+            <tree editable="top" decoration-success="has_update and not delete" decoration-muted="delete">
+                <field name="m2o_db" />
+                <field name="name" />
+                <field name="nomenclator" widget="boolean_toggle" />
+                <field name="new_model_name" />
+                <field name="new_description" />
+                <field name="new_rec_name" />
+                <field name="delete" />
+                <field name="has_update" invisible="1" />
+            </tree>
+        </field>
+    </record>
 
-  <record model="ir.ui.view" id="code_generator_db_table_tree">
-    <field name="name">code.generator.db.table.tree</field>
-    <field name="model">code.generator.db.table</field>
-    <field name="arch" type="xml">
-      <tree editable="top" decoration-success="has_update and not delete" decoration-muted="delete">
-        <field name="m2o_db"/>
-        <field name="name"/>
-        <field name="nomenclator" widget="boolean_toggle"/>
-        <field name="new_model_name"/>
-        <field name="new_description"/>
-        <field name="new_rec_name"/>
-        <field name="delete"/>
-        <field name="has_update" invisible="1"/>
-      </tree>
-    </field>
-  </record>
+    <record model="ir.ui.view" id="code_generator_db_table_search">
+        <field name="name">code.generator.db.table.search</field>
+        <field name="model">code.generator.db.table</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" />
+                <group expand="1" string="Group by">
+                    <filter
+                        name="group_by_m2o_db"
+                        context="{'group_by': 'm2o_db'}"
+                        string="Databases"
+                        help="Databases"
+                    />
+                    <filter
+                        name="group_by_table_type"
+                        context="{'group_by': 'table_type'}"
+                        string="Table Type"
+                        help="Table Type"
+                    />
+                </group>
+            </search>
+        </field>
+    </record>
 
-  <record model="ir.ui.view" id="code_generator_db_table_search">
-    <field name="name">code.generator.db.table.search</field>
-    <field name="model">code.generator.db.table</field>
-    <field name="arch" type="xml">
-      <search>
-        <field name="name"/>
-        <group expand="1" string="Group by">
-          <filter name="group_by_m2o_db" context="{'group_by': 'm2o_db'}" string="Databases" help="Databases"/>
-          <filter name="group_by_table_type" context="{'group_by': 'table_type'}" string="Table Type"
-                  help="Table Type"/>
-        </group>
-      </search>
-    </field>
-  </record>
+    <record model="ir.actions.act_window" id="code_generator_db_table_actionwindow">
+        <field name="name">Tables</field>
+        <field name="res_model">code.generator.db.table</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">tree,form</field>
+        <!--<field name="context">{'group_by': ['m2o_db']}</field>-->
+        <field name="help" type="html">
+            <p class="o_view_nocontent_empty_folder">Tables belonging to the inserted Databases</p>
+        </field>
+    </record>
 
-  <record model="ir.actions.act_window" id="code_generator_db_table_actionwindow">
-    <field name="name">Tables</field>
-    <field name="res_model">code.generator.db.table</field>
-    <field name="view_type">form</field>
-    <field name="view_mode">tree,form</field>
-    <!--<field name="context">{'group_by': ['m2o_db']}</field>-->
-    <field name="help" type="html">
-      <p class="o_view_nocontent_empty_folder">
-        Tables belonging to the inserted Databases
-      </p>
-    </field>
-  </record>
+    <menuitem
+        id="code_generator_generator_table_menu"
+        name="Tables"
+        parent="code_generator_db_menu"
+        action="code_generator_db_table_actionwindow"
+        groups="code_generator.code_generator_manager"
+        sequence="2"
+    />
 
-  <menuitem id="code_generator_generator_table_menu"
-            name="Tables"
-            parent="code_generator_db_menu"
-            action="code_generator_db_table_actionwindow"
-            groups="code_generator.code_generator_manager"
-            sequence="2"
-  />
+    <record model="ir.ui.view" id="code_generator_db_column_tree">
+        <field name="name">code.generator.db.column.tree</field>
+        <field name="model">code.generator.db.column</field>
+        <field name="arch" type="xml">
+            <tree
+                editable="top"
+                decoration-success="has_update and not temporary_name_field and not delete and not ignore_field"
+                decoration-muted="temporary_name_field or delete or ignore_field"
+            >
+                <field name="m2o_table" />
+                <field name="name" />
+                <field name="description" />
+                <field name="column_type" />
+                <field name="relation" />
+                <field name="required" />
+                <field name="delete" />
+                <field name="ignore_field" />
+                <field name="new_name" />
+                <field name="new_description" />
+                <field name="new_type" />
+                <field name="new_help" />
+                <field name="new_change_required" />
+                <field name="new_required" />
+                <field name="add_one2many" />
+                <field name="force_widget" />
+                <field name="path_binary" />
+                <field name="sql_select_modify" />
+                <field name="compute_data_function" />
+                <field name="has_update" invisible="1" />
+                <field name="temporary_name_field" invisible="1" />
+            </tree>
+        </field>
+    </record>
 
-  <record model="ir.ui.view" id="code_generator_db_column_tree">
-    <field name="name">code.generator.db.column.tree</field>
-    <field name="model">code.generator.db.column</field>
-    <field name="arch" type="xml">
-      <tree editable="top" decoration-success="has_update and not temporary_name_field and not delete and not ignore_field" decoration-muted="temporary_name_field or delete or ignore_field">
-        <field name="m2o_table"/>
-        <field name="name"/>
-        <field name="description"/>
-        <field name="column_type"/>
-        <field name="relation"/>
-        <field name="required"/>
-        <field name="delete"/>
-        <field name="ignore_field"/>
-        <field name="new_name"/>
-        <field name="new_description"/>
-        <field name="new_type"/>
-        <field name="new_help"/>
-        <field name="new_change_required"/>
-        <field name="new_required"/>
-        <field name="add_one2many"/>
-        <field name="force_widget"/>
-        <field name="path_binary"/>
-        <field name="sql_select_modify"/>
-        <field name="compute_data_function"/>
-        <field name="has_update" invisible="1"/>
-        <field name="temporary_name_field" invisible="1"/>
-      </tree>
-    </field>
-  </record>
+    <record model="ir.ui.view" id="code_generator_db_column_search">
+        <field name="name">code.generator.db.column.search</field>
+        <field name="model">code.generator.db.column</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" />
+                <group expand="1" string="Group by">
+                    <filter
+                        name="group_by_m2o_table"
+                        context="{'group_by': 'm2o_table'}"
+                        string="Tables"
+                        help="Tables"
+                    />
+                    <filter
+                        name="group_by_column_type"
+                        context="{'group_by': 'column_type'}"
+                        string="Table Type"
+                        help="Column Type"
+                    />
+                    <filter
+                        name="group_by_required"
+                        context="{'group_by': 'required'}"
+                        string="Required"
+                        help="Columns required"
+                    />
+                </group>
+            </search>
+        </field>
+    </record>
 
-  <record model="ir.ui.view" id="code_generator_db_column_search">
-    <field name="name">code.generator.db.column.search</field>
-    <field name="model">code.generator.db.column</field>
-    <field name="arch" type="xml">
-      <search>
-        <field name="name"/>
-        <group expand="1" string="Group by">
-          <filter name="group_by_m2o_table" context="{'group_by': 'm2o_table'}" string="Tables" help="Tables"/>
-          <filter name="group_by_column_type" context="{'group_by': 'column_type'}" string="Table Type"
-                  help="Column Type"/>
-          <filter name="group_by_required" context="{'group_by': 'required'}" string="Required"
-                  help="Columns required"/>
-        </group>
-      </search>
-    </field>
-  </record>
+    <record model="ir.actions.act_window" id="code_generator_db_column_actionwindow">
+        <field name="name">Columns</field>
+        <field name="res_model">code.generator.db.column</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_empty_folder">Columns belonging to the inserted Databases</p>
+        </field>
+    </record>
 
-  <record model="ir.actions.act_window" id="code_generator_db_column_actionwindow">
-    <field name="name">Columns</field>
-    <field name="res_model">code.generator.db.column</field>
-    <field name="view_type">form</field>
-    <field name="view_mode">tree,form</field>
-    <field name="help" type="html">
-      <p class="o_view_nocontent_empty_folder">
-        Columns belonging to the inserted Databases
-      </p>
-    </field>
-  </record>
+    <menuitem
+        id="code_generator_generator_column_menu"
+        name="Columns"
+        parent="code_generator_db_menu"
+        action="code_generator_db_column_actionwindow"
+        groups="code_generator.code_generator_manager"
+        sequence="3"
+    />
 
-  <menuitem id="code_generator_generator_column_menu"
-            name="Columns"
-            parent="code_generator_db_menu"
-            action="code_generator_db_column_actionwindow"
-            groups="code_generator.code_generator_manager"
-            sequence="3"
-  />
-
-  <record model="ir.actions.server" id="code_generator_db_table_generate_code_actionserver">
-    <field name="name">Generate module</field>
-    <field name="model_id" ref="model_code_generator_db_table"/>
-    <field name="binding_model_id" ref="model_code_generator_db_table"/>
-    <field name="state">code</field>
-    <field name="code">
-if records:
+    <record model="ir.actions.server" id="code_generator_db_table_generate_code_actionserver">
+        <field name="name">Generate module</field>
+        <field name="model_id" ref="model_code_generator_db_table" />
+        <field name="binding_model_id" ref="model_code_generator_db_table" />
+        <field name="state">code</field>
+        <field name="code">
+            if records:
     records.generate_module()
     # action = {"type": "ir.actions.client", "tag": "reload", "params": {"menu_id": env.ref('code_generator.code_generator_generator_menu').id}}
-    </field>
-  </record>
+        </field>
+    </record>
 
-  <record model="ir.actions.server" id="code_generator_db_table_toggle_nomenclators_actionserver">
-    <field name="name">Toggle Nomenclator property</field>
-    <field name="model_id" ref="model_code_generator_db_table"/>
-    <field name="binding_model_id" ref="model_code_generator_db_table"/>
-    <field name="state">code</field>
-    <field name="code">
-if records:
+    <record model="ir.actions.server" id="code_generator_db_table_toggle_nomenclators_actionserver">
+        <field name="name">Toggle Nomenclator property</field>
+        <field name="model_id" ref="model_code_generator_db_table" />
+        <field name="binding_model_id" ref="model_code_generator_db_table" />
+        <field name="state">code</field>
+        <field name="code">
+            if records:
     records.toggle_nomenclator()
-    </field>
-  </record>
-
+        </field>
+    </record>
 </odoo>

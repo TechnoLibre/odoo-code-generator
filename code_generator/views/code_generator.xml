@@ -1,236 +1,248 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
+    <record model="ir.ui.view" id="code_generator_module_form">
+        <field name="name">code.generator.module.form</field>
+        <field name="model">code.generator.module</field>
+        <field name="mode">primary</field>
+        <field name="inherit_id" ref="base.module_form" />
+        <field name="arch" type="xml">
+            <form position="attributes">
+                <attribute name="create">1</attribute>
+                <attribute name="edit">1</attribute>
+            </form>
 
-  <record model="ir.ui.view" id="code_generator_module_form">
-    <field name="name">code.generator.module.form</field>
-    <field name="model">code.generator.module</field>
-    <field name="mode">primary</field>
-    <field name="inherit_id" ref="base.module_form"/>
-    <field name="arch" type="xml">
-      <form position="attributes">
-        <attribute name="create">1</attribute>
-        <attribute name="edit">1</attribute>
-      </form>
+            <xpath expr="//field[@name='icon_image']" position="after">
+                <!--        <field name="icon_child_image" widget="image" class="oe_avatar" attrs="{'invisible' : [('icon_child_image', '=', False)]}"/>-->
+                <field name="icon_child_image" widget="image" class="oe_avatar" />
+                <field name="icon_real_image" widget="image" class="oe_avatar" />
+            </xpath>
 
-      <xpath expr="//field[@name='icon_image']" position="after">
-        <!--        <field name="icon_child_image" widget="image" class="oe_avatar" attrs="{'invisible' : [('icon_child_image', '=', False)]}"/>-->
-        <field name="icon_child_image" widget="image" class="oe_avatar"/>
-        <field name="icon_real_image" widget="image" class="oe_avatar"/>
-      </xpath>
+            <xpath expr="//field[@name='icon_image']" position="replace" />
 
-      <xpath expr="//field[@name='icon_image']" position="replace"/>
-
-      <xpath expr="//div[hasclass('oe_title')]" position="replace">
-        <div class="oe_title mb32">
-          <group>
-            <field name="name" class="name_input"/>
-          </group>
-          <h1>
-            <field name="shortdesc" placeholder="Brief Description" class="shortdesc_input"/>
-          </h1>
-          <h3 class="oe_fade">
-            By
-            <field name="author" class="oe_inline" placeholder="Author Name"/>
-          </h3>
-          <div>
-            <button name="%(code_generator_generate_views_action)d"
-                    string="Views"
-                    type="action"
-                    class="btn btn-primary"
-                    context="{'default_code_generator_id': id, 'default_user_id': uid}"/>
-            <button name="%(code_generator_add_model_action)d"
-                    string="Models"
-                    type="action"
-                    class="btn btn-primary"
-                    context="{'default_code_generator_id': id, 'default_user_id': uid}"/>
-            <button name="%(code_generator_add_controller_action)d"
-                    string="Controllers"
-                    type="action"
-                    class="btn btn-primary"
-                    context="{'default_code_generator_id': id, 'default_user_id': uid}"/>
-          </div>
-        </div>
-      </xpath>
-
-      <notebook position="replace">
-
-        <notebook groups="base.group_no_one">
-          <page string="Information" name="Information">
-            <group>
-              <group>
-                <field name="category_id"/>
-                <field name="summary"/>
-                <field name="enable_sync_code" attrs="{'invisible': [('enable_sync_code', '=', True)]}"/>
-              </group>
-              <group>
-                <field name="license"/>
-                <field name="installed_version"/>
-              </group>
-            </group>
-            <group string="Sync code locally" attrs="{'invisible': [('enable_sync_code', '=', False)]}">
-              <field name="enable_sync_code"/>
-              <!-- <field name="clean_before_sync_code"/> -->
-              <field name="path_sync_code"/>
-            </group>
-          </page>
-          <page string="Technical Data" name="Technical Data">
-            <group>
-              <group>
-                <field name="application" class="application_input"/>
-                <field name="nomenclator_only"/>
-              </group>
-            </group>
-            <group string="Dependencies"/>
-            <field name="dependencies_id">
-              <tree string="Dependencies">
-                <field name="name"/>
-                <field name="state"/>
-              </tree>
-            </field>
-          </page>
-          <page string="Elements" name="Elements">
-            <notebook>
-              <page string="Groups">
-                <field name="o2m_groups" context="{'hide_m2o_module': True}"/>
-              </page>
-              <page string="Models">
-                <field name="o2m_models" context="{'hide_m2o_module': True}"/>
-                <group string="Whitelist fields" attrs="{'invisible': [('nomenclator_only', '=', False)]}">
-                  <field name="o2m_nomenclator_whitelist_fields" nolabel="1" widget="one2many_list"/>
-                  <!--                                    <tree>-->
-                  <!--                                        <field name="id"/>-->
-                  <!--                                        <field name="name"/>-->
-                  <!--                                    </tree>-->
-                </group>
-                <group string="Blacklist fields" attrs="{'invisible': [('nomenclator_only', '=', False)]}">
-                  <field name="o2m_nomenclator_blacklist_fields" nolabel="1" widget="one2many_list"/>
-                  <!--                                    <tree>-->
-                  <!--                                        <field name="id"/>-->
-                  <!--                                        <field name="name"/>-->
-                  <!--                                    </tree>-->
-                </group>
-              </page>
-              <page string="ACLs">
-                <field name="o2m_model_access"/>
-              </page>
-              <page string="Rules">
-                <field name="o2m_model_rules"/>
-              </page>
-              <page string="SQL Constrains">
-                <field name="o2m_model_constraints"/>
-              </page>
-              <page string="Server Constrains">
-                <field name="o2m_model_server_constrains">
-                  <tree>
-                    <field name="m2o_ir_model"/>
-                    <field name="constrained"/>
-                  </tree>
-                  <form string="Server Constrain">
+            <xpath expr="//div[hasclass('oe_title')]" position="replace">
+                <div class="oe_title mb32">
                     <group>
-                      <group>
-                        <field name="constrained"/>
-                      </group>
+                        <field name="name" class="name_input" />
                     </group>
-                    <group>
-                      <field name="txt_code" widget="ace" options="{'mode': 'python'}"/>
-                    </group>
-                  </form>
-                </field>
-              </page>
-              <page string="Views">
-                <field name="o2m_model_views"/>
-              </page>
-              <page string="Action Windows">
-                <field name="o2m_model_act_window"/>
-              </page>
-              <page string="Action Servers">
-                <field name="o2m_model_act_server"/>
-              </page>
-              <page string="Menus">
-                <field name="o2m_menus" context="{'hide_m2o_module': True}"/>
-              </page>
-              <page string="Reports">
-                <field name="o2m_model_reports"/>
-              </page>
+                    <h1>
+                        <field name="shortdesc" placeholder="Brief Description" class="shortdesc_input" />
+                    </h1>
+                    <h3 class="oe_fade">
+                        By
+                        <field name="author" class="oe_inline" placeholder="Author Name" />
+                    </h3>
+                    <div>
+                        <button
+                            name="%(code_generator_generate_views_action)d"
+                            string="Views"
+                            type="action"
+                            class="btn btn-primary"
+                            context="{'default_code_generator_id': id, 'default_user_id': uid}"
+                        />
+                        <button
+                            name="%(code_generator_add_model_action)d"
+                            string="Models"
+                            type="action"
+                            class="btn btn-primary"
+                            context="{'default_code_generator_id': id, 'default_user_id': uid}"
+                        />
+                        <button
+                            name="%(code_generator_add_controller_action)d"
+                            string="Controllers"
+                            type="action"
+                            class="btn btn-primary"
+                            context="{'default_code_generator_id': id, 'default_user_id': uid}"
+                        />
+                    </div>
+                </div>
+            </xpath>
+
+            <notebook position="replace">
+                <notebook groups="base.group_no_one">
+                    <page string="Information" name="Information">
+                        <group>
+                            <group>
+                                <field name="category_id" />
+                                <field name="summary" />
+                                <field
+                                    name="enable_sync_code"
+                                    attrs="{'invisible': [('enable_sync_code', '=', True)]}"
+                                />
+                            </group>
+                            <group>
+                                <field name="license" />
+                                <field name="installed_version" />
+                            </group>
+                        </group>
+                        <group string="Sync code locally" attrs="{'invisible': [('enable_sync_code', '=', False)]}">
+                            <field name="enable_sync_code" />
+                            <!-- <field name="clean_before_sync_code"/> -->
+                            <field name="path_sync_code" />
+                        </group>
+                    </page>
+                    <page string="Technical Data" name="Technical Data">
+                        <group>
+                            <group>
+                                <field name="application" class="application_input" />
+                                <field name="nomenclator_only" />
+                            </group>
+                        </group>
+                        <group string="Dependencies" />
+                        <field name="dependencies_id">
+                            <tree string="Dependencies">
+                                <field name="name" />
+                                <field name="state" />
+                            </tree>
+                        </field>
+                    </page>
+                    <page string="Elements" name="Elements">
+                        <notebook>
+                            <page string="Groups">
+                                <field name="o2m_groups" context="{'hide_m2o_module': True}" />
+                            </page>
+                            <page string="Models">
+                                <field name="o2m_models" context="{'hide_m2o_module': True}" />
+                                <group
+                                    string="Whitelist fields"
+                                    attrs="{'invisible': [('nomenclator_only', '=', False)]}"
+                                >
+                                    <field name="o2m_nomenclator_whitelist_fields" nolabel="1" widget="one2many_list" />
+                                    <!--                                    <tree>-->
+                                    <!--                                        <field name="id"/>-->
+                                    <!--                                        <field name="name"/>-->
+                                    <!--                                    </tree>-->
+                                </group>
+                                <group
+                                    string="Blacklist fields"
+                                    attrs="{'invisible': [('nomenclator_only', '=', False)]}"
+                                >
+                                    <field name="o2m_nomenclator_blacklist_fields" nolabel="1" widget="one2many_list" />
+                                    <!--                                    <tree>-->
+                                    <!--                                        <field name="id"/>-->
+                                    <!--                                        <field name="name"/>-->
+                                    <!--                                    </tree>-->
+                                </group>
+                            </page>
+                            <page string="ACLs">
+                                <field name="o2m_model_access" />
+                            </page>
+                            <page string="Rules">
+                                <field name="o2m_model_rules" />
+                            </page>
+                            <page string="SQL Constrains">
+                                <field name="o2m_model_constraints" />
+                            </page>
+                            <page string="Server Constrains">
+                                <field name="o2m_model_server_constrains">
+                                    <tree>
+                                        <field name="m2o_ir_model" />
+                                        <field name="constrained" />
+                                    </tree>
+                                    <form string="Server Constrain">
+                                        <group>
+                                            <group>
+                                                <field name="constrained" />
+                                            </group>
+                                        </group>
+                                        <group>
+                                            <field name="txt_code" widget="ace" options="{'mode': 'python'}" />
+                                        </group>
+                                    </form>
+                                </field>
+                            </page>
+                            <page string="Views">
+                                <field name="o2m_model_views" />
+                            </page>
+                            <page string="Action Windows">
+                                <field name="o2m_model_act_window" />
+                            </page>
+                            <page string="Action Servers">
+                                <field name="o2m_model_act_server" />
+                            </page>
+                            <page string="Menus">
+                                <field name="o2m_menus" context="{'hide_m2o_module': True}" />
+                            </page>
+                            <page string="Reports">
+                                <field name="o2m_model_reports" />
+                            </page>
+                        </notebook>
+                    </page>
+                </notebook>
             </notebook>
-          </page>
-        </notebook>
+        </field>
+    </record>
 
-      </notebook>
+    <record model="ir.ui.view" id="code_generator_module_tree">
+        <field name="name">code.generator.module.tree</field>
+        <field name="model">code.generator.module</field>
+        <field name="mode">primary</field>
+        <field name="inherit_id" ref="base.module_tree" />
+        <field name="arch" type="xml">
+            <tree position="attributes">
+                <attribute name="create">1</attribute>
+                <attribute name="decoration-info">''</attribute>
+                <attribute name="decoration-danger">''</attribute>
+                <attribute name="decoration-muted">''</attribute>
+            </tree>
+            <field name="website" position="replace" />
+            <field name="installed_version" position="replace" />
+            <field name="state" position="replace" />
+        </field>
+    </record>
 
-    </field>
-  </record>
+    <record model="ir.ui.view" id="code_generator_module_search">
+        <field name="name">code.generator.module.search</field>
+        <field name="model">code.generator.module</field>
+        <field name="mode">primary</field>
+        <field name="inherit_id" ref="base.view_module_filter" />
+        <field name="arch" type="xml">
+            <search position="attributes">
+                <attribute name="string">Code Generator Module Search</attribute>
+            </search>
+            <separator position="replace" />
+            <filter name="installed" position="replace" />
+            <filter name="not_installed" position="replace" />
+        </field>
+    </record>
 
-  <record model="ir.ui.view" id="code_generator_module_tree">
-    <field name="name">code.generator.module.tree</field>
-    <field name="model">code.generator.module</field>
-    <field name="mode">primary</field>
-    <field name="inherit_id" ref="base.module_tree"/>
-    <field name="arch" type="xml">
-      <tree position="attributes">
-        <attribute name="create">1</attribute>
-        <attribute name="decoration-info">''</attribute>
-        <attribute name="decoration-danger">''</attribute>
-        <attribute name="decoration-muted">''</attribute>
-      </tree>
-      <field name="website" position="replace"/>
-      <field name="installed_version" position="replace"/>
-      <field name="state" position="replace"/>
-    </field>
-  </record>
+    <record model="ir.actions.act_window" id="code_generator_module_actionwindow">
+        <field name="name">Modules</field>
+        <field name="res_model">code.generator.module</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('state', '!=', 'uninstallable')]</field>
+        <field name="context">{'search_default_app':1}</field>
+        <field name="search_view_id" ref="code_generator_module_search" />
+        <field name="help" type="html">
+            <p class="o_view_nocontent_empty_folder">Add a new module</p>
+            <p>Module whose content will be export into code</p>
+        </field>
+    </record>
 
-  <record model="ir.ui.view" id="code_generator_module_search">
-    <field name="name">code.generator.module.search</field>
-    <field name="model">code.generator.module</field>
-    <field name="mode">primary</field>
-    <field name="inherit_id" ref="base.view_module_filter"/>
-    <field name="arch" type="xml">
-      <search position="attributes">
-        <attribute name="string">Code Generator Module Search</attribute>
-      </search>
-      <separator position="replace"/>
-      <filter name="installed" position="replace"/>
-      <filter name="not_installed" position="replace"/>
-    </field>
-  </record>
+    <menuitem
+        id="code_generator_main_menu"
+        name="Code Generator"
+        web_icon="code_generator,static/description/icon.png"
+    />
 
-  <record model="ir.actions.act_window" id="code_generator_module_actionwindow">
-    <field name="name">Modules</field>
-    <field name="res_model">code.generator.module</field>
-    <field name="view_type">form</field>
-    <field name="view_mode">tree,form</field>
-    <field name="domain">[('state', '!=', 'uninstallable')]</field>
-    <field name="context">{'search_default_app':1}</field>
-    <field name="search_view_id" ref="code_generator_module_search"/>
-    <field name="help" type="html">
-      <p class="o_view_nocontent_empty_folder">
-        Add a new module
-      </p>
-      <p>
-        Module whose content will be export into code
-      </p>
-    </field>
-  </record>
+    <menuitem
+        id="code_generator_generator_menu"
+        name="Modules"
+        parent="code_generator_main_menu"
+        action="code_generator_module_actionwindow"
+        groups="code_generator_manager"
+        sequence="2"
+    />
 
-  <menuitem id="code_generator_main_menu" name="Code Generator" web_icon="code_generator,static/description/icon.png"/>
-
-  <menuitem id="code_generator_generator_menu"
-            name="Modules"
-            parent="code_generator_main_menu"
-            action="code_generator_module_actionwindow"
-            groups="code_generator_manager"
-            sequence="2"
-  />
-
-  <record model="ir.actions.server" id="code_generator_module_actionserver">
-    <field name="name">Generate code</field>
-    <field name="model_id" ref="model_code_generator_module"/>
-    <field name="binding_model_id" ref="model_code_generator_module"/>
-    <field name="state">code</field>
-    <field name="code">
-if records:
-    action = {"type": "ir.actions.act_url", "target": "self", "url": "/code_generator/%s" % ','.join(records.mapped(lambda r: str(r.id)))}
-    </field>
-  </record>
-
+    <record model="ir.actions.server" id="code_generator_module_actionserver">
+        <field name="name">Generate code</field>
+        <field name="model_id" ref="model_code_generator_module" />
+        <field name="binding_model_id" ref="model_code_generator_module" />
+        <field name="state">code</field>
+        <field name="code">
+            if records:
+    action = {"type": "ir.actions.act_url", "target": "self", "url": "/code_generator/%s" % ','.join(records.mapped(lambda
+            r: str(r.id)))}
+        </field>
+    </record>
 </odoo>

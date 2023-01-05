@@ -1,19 +1,21 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-  <!-- ir.cron -->
-  <record id="ir_cron_view_form_inherit" model="ir.ui.view">
-    <field name="name">ir.cron.view.form.inherit</field>
-    <field name="model">ir.cron</field>
-    <field name="inherit_id" ref="base.ir_cron_view_form"/>
-    <field name="arch" type="xml">
-      <xpath expr="//field[@name='nextcall']" position="before">
-        <field name="force_use_datetime_installation"/>
-        <field name="ignore_threshold_time_upper" attrs="{'invisible': [('force_use_datetime_installation','=',True)]}"/>
-      </xpath>
-      <xpath expr="//field[@name='nextcall']" position="attributes">
-        <attribute name="attrs">{'invisible': [('force_use_datetime_installation','=',True)]}</attribute>
-      </xpath>
-    </field>
-  </record>
-
+    <!-- ir.cron -->
+    <record id="ir_cron_view_form_inherit" model="ir.ui.view">
+        <field name="name">ir.cron.view.form.inherit</field>
+        <field name="model">ir.cron</field>
+        <field name="inherit_id" ref="base.ir_cron_view_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='nextcall']" position="before">
+                <field name="force_use_datetime_installation" />
+                <field
+                    name="ignore_threshold_time_upper"
+                    attrs="{'invisible': [('force_use_datetime_installation','=',True)]}"
+                />
+            </xpath>
+            <xpath expr="//field[@name='nextcall']" position="attributes">
+                <attribute name="attrs">{'invisible': [('force_use_datetime_installation','=',True)]}</attribute>
+            </xpath>
+        </field>
+    </record>
 </odoo>

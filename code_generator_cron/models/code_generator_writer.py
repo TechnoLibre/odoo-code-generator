@@ -14,28 +14,30 @@ class CodeGeneratorWriter(models.Model):
 
     def _set_model_py_file(self, module, model, model_model):
         key = "model."
-        if module.o2m_model_cron and module.o2m_model_cron.code.startswith(
-            key
-        ):
-            function_name = module.o2m_model_cron.code[len(key) : -2]
-            items = self.env["code.generator.model.code"].search(
-                [
-                    ("name", "=", function_name),
-                    ("m2o_model", "=", model.model),
-                    ("m2o_module", "=", module.id),
-                ]
-            )
-            if not items:
-                value = {
-                    "code": '''"""TODO what to run"""
-return''',
-                    "name": function_name,
-                    "decorator": "@api.model",
-                    "param": "self",
-                    "m2o_module": module.id,
-                    "m2o_model": model.id,
-                }
-                self.env["code.generator.model.code"].create(value)
+        ir_crons = self.env["ir.cron"].search(
+            [("m2o_module", "=", module.id), ("active", "in", [True, False])]
+        )
+        for ir_cron in ir_crons:
+            if ir_cron.code.startswith(key):
+                function_name = ir_cron.code[len(key) : -2]
+                items = self.env["code.generator.model.code"].search(
+                    [
+                        ("name", "=", function_name),
+                        ("m2o_model", "=", model.model),
+                        ("m2o_module", "=", module.id),
+                    ]
+                )
+                if not items:
+                    value = {
+                        "code": '''"""TODO what to run"""
+    return''',
+                        "name": function_name,
+                        "decorator": "@api.model",
+                        "param": "self",
+                        "m2o_module": module.id,
+                        "m2o_model": model.id,
+                    }
+                    self.env["code.generator.model.code"].create(value)
         super(CodeGeneratorWriter, self)._set_model_py_file(
             module, model, model_model
         )
@@ -204,7 +206,10 @@ return''',
 
     def set_xml_data_file(self, module):
         super(CodeGeneratorWriter, self).set_xml_data_file(module)
-        if not module.o2m_model_cron:
+        ir_crons = self.env["ir.cron"].search(
+            [("m2o_module", "=", module.id), ("active", "in", [True, False])]
+        )
+        if not ir_crons:
             return
 
         #
@@ -212,7 +217,7 @@ return''',
         #
         lst_record_xml = []
         i = -1
-        for ir_cron_id in module.o2m_model_cron:
+        for ir_cron_id in ir_crons:
             i += 1
 
             model_id_name = self._get_ir_model_data(
@@ -223,13 +228,16 @@ return''',
             if model_id_name.startswith("ir_"):
                 model_id_name = model_id_name[3:]
 
+            # Don't use this user, use instead root
+            # user = ir_cron_id.user_id
+            user = self.env.ref("base.user_root")
             lst_field = [
                 E.field({"name": "name"}, ir_cron_id.name),
                 E.field(
                     {
                         "name": "user_id",
                         "ref": self._get_ir_model_data(
-                            ir_cron_id.user_id,
+                            user,
                             give_a_default=True,
                             module_name=module.name,
                         ),
@@ -240,7 +248,8 @@ return''',
                     str(ir_cron_id.interval_number),
                 ),
                 E.field({"name": "interval_type"}, ir_cron_id.interval_type),
-                E.field({"name": "numbercall"}, str(ir_cron_id.numbercall)),
+                # E.field({"name": "numbercall"}, str(ir_cron_id.numbercall)),
+                E.field({"name": "numbercall"}, "-1"),
                 E.field({"name": "model_id", "ref": model_id_name}),
                 E.field({"name": "state"}, ir_cron_id.state),
                 E.field({"name": "code"}, ir_cron_id.code),
@@ -256,13 +265,13 @@ return''',
                 lst_field.append(
                     E.field({"name": "nextcall", "eval": nextcall_field})
                 )
-            else:
-                lst_field.append(
-                    E.field(
-                        {"name": "nextcall"},
-                        ir_cron_id.nextcall.strftime("%Y-%m-%d %H:%M:%S"),
-                    )
-                )
+            # else:
+            #     lst_field.append(
+            #         E.field(
+            #             {"name": "nextcall"},
+            #             ir_cron_id.nextcall.strftime("%Y-%m-%d %H:%M:%S"),
+            #         )
+            #     )
 
             model_data_id = self.env["ir.model.data"].search(
                 [

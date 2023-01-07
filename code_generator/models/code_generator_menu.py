@@ -32,6 +32,9 @@ class CodeGeneratorMenu(models.Model):
     )
 
     # TODO use ir.model.data instead if parent_id_name
+    # parent_id_name is fill in cg hook, but need parent_id instead to find ir.model.data associate
+    # Or do refactoring where preprocessing metadata
+    # But parent_id_name is a good way to try to know the parent from template, because we cannot use id
     parent_id_name = fields.Char(
         string="Menu parent id",
         help="Specify id name of parent menu, optional.",

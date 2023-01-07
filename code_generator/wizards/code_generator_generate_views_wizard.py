@@ -2506,6 +2506,17 @@ pass''',
     ):
         # TODO check function _get_action_data_name in code_generator_writer.py
         def _create_name(name, count=0, prefix_name="", suffix_name=""):
+            # TODO wait after cg refactoring to support this feature
+            # so ignore suffix_name menu
+            if suffix_name in ["root"]:
+                suffix_name = ""
+            # Accept prefix_name group
+            if suffix_name in ["group", "parent"]:
+                # TODO revert it when menu will be refactor
+                prefix_name = suffix_name
+                suffix_name = ""
+            if prefix_name in ["menu"]:
+                prefix_name = ""
             create_name = ""
             if prefix_name:
                 create_name = prefix_name + "_"
@@ -2942,6 +2953,15 @@ pass''',
                     v["web_icon"] = menu_id.web_icon
 
                 if menu_id.parent_id_name:
+                    # TODO wait after cg refactoring to support this feature
+                    # menu_id.parent_id doesn't exist, we try to find the parent with
+                    # ir_model_data_parent_id = self.env["ir.model.data"].search(
+                    #     [
+                    #         ("module", "=", module.name),
+                    #         ("model", "=", "ir.ui.menu"),
+                    #         ("res_id", "=", menu_id.parent_id.id),
+                    #     ]
+                    # )
                     # TODO crash when create empty module and template to read this empty module
                     try:
                         v["parent_id"] = self.env.ref(
@@ -2955,10 +2975,32 @@ pass''',
 
                 new_menu_id = self.env["ir.ui.menu"].create(v)
 
-                self._create_ir_model_data(
-                    module,
-                    "ir.ui.menu",
-                    new_menu_id.id,
-                    menu_id.id_name,
-                    prefix_name="menu",
+                ir_model_data_id = self.env["ir.model.data"].search(
+                    [
+                        ("name", "=", menu_id.id_name),
+                        ("model", "=", "ir.ui.menu"),
+                        (
+                            "module",
+                            "=",
+                            module.name,
+                        ),
+                    ]
                 )
+                if ir_model_data_id:
+                    # This is because the module is already installed
+                    ir_model_data_id.res_id = new_menu_id.id
+                    _logger.warning(
+                        f"Force change menu id for {menu_id.id_name}"
+                    )
+                else:
+                    suffix = ""
+                    if not menu_id.parent_id_name:
+                        suffix = "root"
+                    self._create_ir_model_data(
+                        module,
+                        "ir.ui.menu",
+                        new_menu_id.id,
+                        menu_id.id_name,
+                        prefix_name="menu",
+                        suffix_name=suffix,
+                    )

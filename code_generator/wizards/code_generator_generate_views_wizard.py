@@ -962,14 +962,11 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 }
             )
 
-            model_data_value = self.env["ir.model.data"].create(
-                {
-                    "name": f"{model_name_str}_view_form",
-                    "model": "ir.ui.view",
-                    "module": module.name,
-                    "res_id": view_value.id,
-                    "noupdate": True,  # If it's False, target record (res_id) will be removed while module update
-                }
+            self._create_ir_model_data(
+                module,
+                "ir.ui.view",
+                view_value.id,
+                f"{model_name_str}_view_form",
             )
         else:
             _logger.warning(
@@ -2454,14 +2451,11 @@ pass''',
             if ir_model_data_id:
                 ir_model_data_id.res_id = view_value.id
             else:
-                self.env["ir.model.data"].create(
-                    {
-                        "name": code_generator_view_id.id_name,
-                        "model": "ir.ui.view",
-                        "module": code_generator_view_id.code_generator_id.name,
-                        "res_id": view_value.id,
-                        "noupdate": True,  # If it's False, target record (res_id) will be removed while module update
-                    }
+                self._create_ir_model_data(
+                    code_generator_view_id.code_generator_id,
+                    "ir.ui.view",
+                    view_value.id,
+                    code_generator_view_id.id_name,
                 )
 
         return view_value
@@ -2500,6 +2494,19 @@ pass''',
         }
 
         access_value = self.env["ir.model.access"].create(v)
+
+    def _create_ir_model_data(self, module, model, res_id, name):
+        new_name = unidecode.unidecode(name).replace(' ', '').lower()
+        return self.env["ir.model.data"].create(
+            {
+                "name": new_name,
+                "model": model,
+                "module": module.name,
+                "res_id": res_id,
+                "noupdate": True,
+                # If it's False, target record (res_id) will be removed while module update
+            }
+        )
 
     def _generate_menu(
         self, model_created, module, lst_view_generated, model_ids
@@ -2577,15 +2584,9 @@ pass''',
                 menu_parent_name = (
                     f"parent_{unidecode.unidecode(menu_parent).replace(' ','').lower()}"
                 )
-                self.env["ir.model.data"].create(
-                    {
-                        "name": menu_parent_name,
-                        "model": "ir.ui.menu",
-                        "module": module.name,
-                        "res_id": menu_parent_id.id,
-                        "noupdate": True,
-                        # If it's False, target record (res_id) will be removed while module update
-                    }
+
+                self._create_ir_model_data(
+                    module, "ir.ui.menu", menu_parent_id.id, menu_parent_name
                 )
 
         # Create menu_group item
@@ -2613,15 +2614,8 @@ pass''',
                 menu_group_name = (
                     f"group_{unidecode.unidecode(menu_group).replace(' ','').lower()}"
                 )
-                self.env["ir.model.data"].create(
-                    {
-                        "name": menu_group_name,
-                        "model": "ir.ui.menu",
-                        "module": module.name,
-                        "res_id": menu_group_id.id,
-                        "noupdate": True,
-                        # If it's False, target record (res_id) will be removed while module update
-                    }
+                self._create_ir_model_data(
+                    module, "ir.ui.menu", menu_group_id.id, menu_group_name
                 )
 
         help_str = f"""<p class="o_view_nocontent_empty_folder">
@@ -2741,14 +2735,12 @@ pass''',
                 ]
             )
             if not model_data_value:
-                v_ir_model_data = {
-                    "name": action_id_name,
-                    "model": "ir.actions.act_window",
-                    "module": module.name,
-                    "res_id": action_id.id,
-                    "noupdate": True,
-                }
-                self.env["ir.model.data"].create(v_ir_model_data)
+                self._create_ir_model_data(
+                    module,
+                    "ir.actions.act_window",
+                    action_id.id,
+                    action_id_name,
+                )
             else:
                 _logger.warning(
                     f"ir.model.data '{action_id_name}' of model"
@@ -2966,11 +2958,6 @@ pass''',
                 if ir_model_data_id:
                     ir_model_data_id.res_id = new_menu_id.id
                 else:
-                    v_ir_model_data = {
-                        "name": menu_id.id_name,
-                        "model": "ir.ui.menu",
-                        "module": module.name,
-                        "res_id": new_menu_id.id,
-                        "noupdate": True,
-                    }
-                    self.env["ir.model.data"].create(v_ir_model_data)
+                    self._create_ir_model_data(
+                        module, "ir.ui.menu", new_menu_id.id, menu_id.id_name
+                    )

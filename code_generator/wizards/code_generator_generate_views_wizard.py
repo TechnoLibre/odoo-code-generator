@@ -942,16 +942,7 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
             ]
         )
 
-        model_data_value = self.env["ir.model.data"].search(
-            [
-                ("name", "=", f"{model_name_str}_view_form"),
-                ("model", "=", "ir.ui.view"),
-                ("module", "=", module.name),
-                # ("res_id", "=", view_value.id)
-            ]
-        )
-
-        if not view_value and not model_data_value:
+        if not view_value:
             view_value = self.env["ir.ui.view"].create(
                 {
                     "name": f"{model_name_str}_form",
@@ -966,7 +957,8 @@ class CodeGeneratorGenerateViewsWizard(models.TransientModel):
                 module,
                 "ir.ui.view",
                 view_value.id,
-                f"{model_name_str}_view_form",
+                model_name_str,
+                suffix_name="view_form",
             )
         else:
             _logger.warning(
@@ -2495,8 +2487,73 @@ pass''',
 
         access_value = self.env["ir.model.access"].create(v)
 
-    def _create_ir_model_data(self, module, model, res_id, name):
-        new_name = unidecode.unidecode(name).replace(' ', '').lower()
+    @staticmethod
+    def _generate_menu_name(lst_unique_menu_name: set, name: str):
+        if name in lst_unique_menu_name:
+            new_name = ""
+            i = 1
+            while not new_name:
+                new_name = f"{name}_{i}"
+                i += 1
+                if new_name in lst_unique_menu_name:
+                    new_name = ""
+            name = new_name
+        lst_unique_menu_name.add(name)
+        return name
+
+    def _create_ir_model_data(
+        self, module, model, res_id, name, prefix_name="", suffix_name=""
+    ):
+        # TODO check function _get_action_data_name in code_generator_writer.py
+        def _create_name(name, count=0, prefix_name="", suffix_name=""):
+            create_name = ""
+            if prefix_name:
+                create_name = prefix_name + "_"
+            create_name += name
+            if count:
+                create_name += f"_{count}"
+            if suffix_name:
+                create_name += f"_{suffix_name}"
+            return (
+                unidecode.unidecode(create_name)
+                .replace(" ", "_")
+                .replace("'", "_")
+                .replace("-", "_")
+                .lower()
+            )
+
+        data = self.env["ir.model.data"].search(
+            [
+                ("module", "=", module.name),
+                ("model", "=", model),
+                ("res_id", "=", res_id),
+            ]
+        )
+        if data:
+            _logger.warning(
+                f"Cannot create xml_id for model '{model}', id '{res_id}',"
+                f" name '{data.name}'. Already exist!"
+            )
+            return
+
+        # check if exist
+        new_name = ""
+        i = 0
+        while not new_name:
+            new_name = _create_name(
+                name, count=i, prefix_name=prefix_name, suffix_name=suffix_name
+            )
+            i += 1
+            data = self.env["ir.model.data"].search(
+                [
+                    ("module", "=", module.name),
+                    ("model", "=", model),
+                    ("name", "=", new_name),
+                ]
+            )
+            if data:
+                new_name = ""
+
         return self.env["ir.model.data"].create(
             {
                 "name": new_name,
@@ -2581,12 +2638,13 @@ pass''',
                 self.dct_parent_generated_menu[menu_parent] = menu_parent_id
 
                 # Create id name
-                menu_parent_name = (
-                    f"parent_{unidecode.unidecode(menu_parent).replace(' ','').lower()}"
-                )
-
                 self._create_ir_model_data(
-                    module, "ir.ui.menu", menu_parent_id.id, menu_parent_name
+                    module,
+                    "ir.ui.menu",
+                    menu_parent_id.id,
+                    menu_parent,
+                    prefix_name="menu",
+                    suffix_name="parent",
                 )
 
         # Create menu_group item
@@ -2611,11 +2669,13 @@ pass''',
                 self.dct_group_generated_menu[menu_group] = menu_group_id
 
                 # Create id name
-                menu_group_name = (
-                    f"group_{unidecode.unidecode(menu_group).replace(' ','').lower()}"
-                )
                 self._create_ir_model_data(
-                    module, "ir.ui.menu", menu_group_id.id, menu_group_name
+                    module,
+                    "ir.ui.menu",
+                    menu_group_id.id,
+                    menu_group,
+                    prefix_name="menu",
+                    suffix_name="group",
                 )
 
         help_str = f"""<p class="o_view_nocontent_empty_folder">
@@ -2714,38 +2774,14 @@ pass''',
                 )
                 action_id = action_data_value[0]
 
-            # TODO check function _get_action_data_name in code_generator_writer.py
-            fix_action_id_name = (
-                unidecode.unidecode(menu_name)
-                .replace(" ", "_")
-                .replace("'", "_")
-                .replace("-", "_")
-                .lower()
+            self._create_ir_model_data(
+                module,
+                "ir.actions.act_window",
+                action_id.id,
+                menu_name,
+                prefix_name=model_name_str,
+                suffix_name="action_window",
             )
-            action_id_name = (
-                f"{model_name_str}_{fix_action_id_name}_action_window"
-            )
-
-            model_data_value = self.env["ir.model.data"].search(
-                [
-                    ("name", "=", action_id_name),
-                    ("model", "=", "ir.actions.act_window"),
-                    ("module", "=", module.name),
-                    # ("res_id", "=", view_value.id)
-                ]
-            )
-            if not model_data_value:
-                self._create_ir_model_data(
-                    module,
-                    "ir.actions.act_window",
-                    action_id.id,
-                    action_id_name,
-                )
-            else:
-                _logger.warning(
-                    f"ir.model.data '{action_id_name}' of model"
-                    " 'ir.actions.act_window' already exist."
-                )
 
             self.nb_sub_menu += 1
 
@@ -2766,38 +2802,13 @@ pass''',
 
             new_menu_id = self.env["ir.ui.menu"].create(v)
 
-            menu_id_name = (
-                unidecode.unidecode(menu_name)
-                .replace(" ", "_")
-                .replace("'", "_")
-                .replace("-", "_")
-                .lower()
+            self._create_ir_model_data(
+                module,
+                "ir.ui.menu",
+                new_menu_id.id,
+                menu_name,
+                prefix_name="menu",
             )
-
-            model_data_value = self.env["ir.model.data"].search(
-                [
-                    ("name", "=", menu_id_name),
-                    ("model", "=", "ir.ui.menu"),
-                    ("module", "=", module.name),
-                    # ("res_id", "=", view_value.id)
-                ]
-            )
-
-            if not model_data_value:
-                v_ir_model_data = {
-                    "name": menu_id_name,
-                    "model": "ir.ui.menu",
-                    "module": module.name,
-                    "res_id": new_menu_id.id,
-                    "noupdate": True,
-                }
-                self.env["ir.model.data"].create(v_ir_model_data)
-            else:
-                _logger.warning(
-                    f"ir.model.data '{action_id_name}' of model 'ir.ui.menu'"
-                    " already exist."
-                )
-
         elif not is_generic_menu:
             cg_menu_ids = model_created.m2o_module.code_generator_menus_id
             # TODO check different case, with act_window, without, multiple menu, single menu
@@ -2944,20 +2955,10 @@ pass''',
 
                 new_menu_id = self.env["ir.ui.menu"].create(v)
 
-                ir_model_data_id = self.env["ir.model.data"].search(
-                    [
-                        ("name", "=", menu_id.id_name),
-                        ("model", "=", "ir.ui.menu"),
-                        (
-                            "module",
-                            "=",
-                            module.name,
-                        ),
-                    ]
+                self._create_ir_model_data(
+                    module,
+                    "ir.ui.menu",
+                    new_menu_id.id,
+                    menu_id.id_name,
+                    prefix_name="menu",
                 )
-                if ir_model_data_id:
-                    ir_model_data_id.res_id = new_menu_id.id
-                else:
-                    self._create_ir_model_data(
-                        module, "ir.ui.menu", new_menu_id.id, menu_id.id_name
-                    )

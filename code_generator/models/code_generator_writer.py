@@ -2925,14 +2925,7 @@ _logger = logging.getLogger(__name__)"""
                                 lst_split_relation_t = lst_split_relation_t[1:]
                             # Take only first later of each word
                             new_relation_table = (
-                                "_".join(
-                                    [
-                                        a[0]
-                                        for a in lst_split_relation_t.split(
-                                            "_"
-                                        )
-                                    ]
-                                )
+                                "_".join([a[0] for a in lst_split_relation_t])
                                 + "_rel"
                             )
                             if len(new_relation_table) > 63:

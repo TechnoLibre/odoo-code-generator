@@ -165,7 +165,6 @@
   position: absolute;
 }
 
-
 /* control positioning */
 
 .leaflet-control {
@@ -223,7 +222,6 @@
   margin-right: 10px;
 }
 
-
 /* zoom and fade animations */
 
 .leaflet-fade-anim .leaflet-popup {
@@ -263,7 +261,6 @@ svg.leaflet-zoom-animated {
 .leaflet-zoom-anim .leaflet-zoom-hide {
   visibility: hidden;
 }
-
 
 /* cursors */
 
@@ -321,14 +318,13 @@ svg.leaflet-image-layer.leaflet-interactive path {
 }
 
 .leaflet-container a {
-  color: #0078A8;
+  color: #0078a8;
 }
 
 .leaflet-zoom-box {
   border: 2px dotted #38f;
   background: rgba(255, 255, 255, 0.5);
 }
-
 
 /* general typography */
 .leaflet-container {
@@ -337,7 +333,6 @@ svg.leaflet-image-layer.leaflet-interactive path {
   font-size: 0.75rem;
   line-height: 1.5;
 }
-
 
 /* general toolbar styles */
 
@@ -407,14 +402,14 @@ svg.leaflet-image-layer.leaflet-interactive path {
 
 .leaflet-control-zoom-in,
 .leaflet-control-zoom-out {
-  font: bold 18px 'Lucida Console', Monaco, monospace;
+  font: bold 18px "Lucida Console", Monaco, monospace;
   text-indent: 1px;
 }
 
-.leaflet-touch .leaflet-control-zoom-in, .leaflet-touch .leaflet-control-zoom-out {
+.leaflet-touch .leaflet-control-zoom-in,
+.leaflet-touch .leaflet-control-zoom-out {
   font-size: 22px;
 }
-
 
 /* layers control */
 
@@ -481,10 +476,10 @@ svg.leaflet-image-layer.leaflet-interactive path {
 }
 
 /* Default icon URLs */
-.leaflet-default-icon-path { /* used only in path-guessing heuristic, see L.Icon.Default */
+.leaflet-default-icon-path {
+  /* used only in path-guessing heuristic, see L.Icon.Default */
   background-image: url("/demo_website_leaflet/static/src/images/marker-icon.png");
 }
-
 
 /* attribution and scale controls */
 
@@ -558,7 +553,6 @@ svg.leaflet-image-layer.leaflet-interactive path {
   border: 2px solid rgba(0, 0, 0, 0.2);
   background-clip: padding-box;
 }
-
 
 /* popup */
 
@@ -661,14 +655,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
   border: 1px solid #999;
 }
 
-
 /* div icon */
 
 .leaflet-div-icon {
   background: #fff;
   border: 1px solid #666;
 }
-
 
 /* Tooltip */
 /* Base styles for the element that has a tooltip */

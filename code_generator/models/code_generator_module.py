@@ -206,15 +206,6 @@ class CodeGeneratorModule(models.Model):
         domain=[("nomenclature_whitelist", "=", True)],
     )
 
-    path_sync_code = fields.Char(
-        string="Directory",
-        default="/home/mathben/git/ERPLibre2/addons/TechnoLibre_odoo-code-generator-template",
-        help=(
-            "Path directory where sync the code, will erase directory and"
-            " generate new code."
-        ),
-    )
-
     published_version = fields.Char(readonly=False)
 
     shortdesc = fields.Char(
@@ -276,6 +267,15 @@ class CodeGeneratorModule(models.Model):
         return os.path.normpath(
             os.path.join(os.path.dirname(__file__), "..", "..")
         )
+
+    path_sync_code = fields.Char(
+        string="Directory",
+        default=_default_path_sync_code,
+        help=(
+            "Path directory where sync the code, will erase directory and"
+            " generate new code."
+        ),
+    )
 
     @api.depends("template_module_name")
     @api.multi

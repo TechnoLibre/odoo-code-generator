@@ -645,6 +645,7 @@ class CodeGeneratorWriter(models.Model):
                 lst_depend = module.dependencies_id.mapped(
                     lambda did: f"'{did.depend_id.name}'"
                 )
+                lst_depend = sorted(lst_depend)
                 # Remove exclude_dependencies_str
                 if module.exclude_dependencies_str:
                     lst_exclude_depend = [

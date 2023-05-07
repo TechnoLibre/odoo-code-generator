@@ -773,7 +773,13 @@ class CodeGeneratorWriter(models.Model):
                                 a.name
                                 for a in module.template_module_id.dependencies_id
                             ]
-                        elif module.dependencies_id:
+                        elif (
+                            module.dependencies_id
+                            and module.dependencies_id.ids
+                            == module.dependencies_template_id.ids
+                        ):
+                            # TODO this hack of code_generator_demo need to be put in boolean variable
+                            # module.dependencies_id.ids == module.dependencies_template_id.ids means uc0 generate uca
                             lst_module_depend = [
                                 a.depend_id.name
                                 for a in module.dependencies_id
